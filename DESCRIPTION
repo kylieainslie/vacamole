@@ -1,0 +1,22 @@
+Package: vacamole
+Type: Package
+Title: Simulating Optimal COVID-19 Vaccination Strategies
+Version: 1.0
+Date: 2020-11-30
+Author: Kylie Ainslie
+Maintainer: Kylie Ainslie <kylie.ainslie@rivm.nl>
+Description: Dynamic individual-based transmission model of COVID-19 vaccination strategies.
+License: GPL (>= 2)
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.1
+LinkingTo: Rcpp
+Imports: Rcpp (>= 1.0.5)
+Suggests: knitr,
+          tidyr,
+          dplyr,
+          readr,
+          readxl
+SystemRequirements: C++11
+VignetteBuilder: knitr
+
