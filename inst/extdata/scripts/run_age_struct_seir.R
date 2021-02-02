@@ -32,25 +32,29 @@ times <- seq(0,200,length.out = 201)     # Vector of times
 timeInt <- times[2]-times[1]             # Time interval (for technical reasons)
 init <- c(t = times[1],                  # Initial conditions
           S = params$N - c(20,50),
-          Shold = c(0,0),
-          Sv = c(0,0),
-          Shold2 = c(0,0),
-          Sv2 = c(0,0),
+          Shold_1d = c(0,0),
+          Sv_1d = c(0,0),
+          Shold_2d = c(0,0),
+          Sv_2d = c(0,0),
           E = c(0,0),
-          Ev = c(0,0),
-          Ev2 = c(0,0),
+          Ev_1d = c(0,0),
+          Ev_2d = c(0,0),
           I = c(20,50),
-          Iv = c(0,0),
-          Iv2 = c(0,0),
+          Iv_1d = c(0,0),
+          Iv_2d = c(0,0),
           H = c(0,0),
+          Hv_1d = c(0,0),
+          Hv_2d = c(0,0),
           D = c(0,0),
           R = c(0,0),
-          Rv = c(0,0),
-          Rv2 = c(0,0))                      
+          Rv_1d = c(0,0),
+          Rv_2d = c(0,0)
+          )                      
 
 # Solve model ------------------------------------------------------
 seir_out <- lsoda(init,times,age_struct_seir_ode,params)
 seir_out <- as.data.frame(seir_out)
+out <- postprocess_age_struct_model_output(seir_out)
 # Summarise results ------------------------------------------------
 beta <- params$beta * timeInt
 eta <- params$eta
@@ -60,7 +64,7 @@ h <- params$h
 gamma <- params$gamma
 C <- params$C
 
-lambda <- beta * C %*% rowSums(seir_out[,c(11:13)])/N
+lambda <- beta * C %*% rowSums(seir_out[,c("I1", "Iv1", "Iv21")])/N[1]
 time <- seir_out$time
 S <- seir_out$S1 + seir_out$S2
 Shold <- seir_out$Shold1 + seir_out$Shold2
