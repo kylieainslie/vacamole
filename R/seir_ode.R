@@ -34,10 +34,10 @@ seir_ode <- function(times,init,params){
       dSv2 <- (1/delay2) * Shold2 - eta2 * lambda * Sv2
       dE <- lambda * (S + Shold) - sigma * E
       dEv <- eta * lambda * (Sv + Shold2) - sigma * Ev
-      dEv2 <- eta * lambda * Sv2 - sigma * Ev2 
-      dI <- sigma * E - (gamma + h) * I #(gamma * I) # 
-      dIv <- sigma * Ev - (gamma + h) * Iv #(gamma * Iv) # 
-      dIv2 <- sigma * Ev2 - (gamma + h) * Iv2 #(gamma * Iv2) #
+      dEv2 <- eta2 * lambda * Sv2 - sigma * Ev2 
+      dI <- sigma * E - (gamma + h) * I 
+      dIv <- sigma * Ev - (gamma + h) * Iv  
+      dIv2 <- sigma * Ev2 - (gamma + h) * Iv2
       dH <- h * (I + Iv + Iv2) - (d + r) * H
       dD <- d * H 
       dR <- gamma * I + r * H 
