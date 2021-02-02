@@ -40,14 +40,12 @@ seir_ode <- function(times,init,params){
       dIv2 <- sigma * Ev2 - (gamma + h) * Iv2
       dH <- h * (I + Iv + Iv2) - (d + r) * H
       dD <- d * H 
-      dR <- gamma * I + r * H 
-      dRv <- gamma * Iv + r * H
-      dRv2 <- gamma * Iv2 + r * H
+      dR <- gamma * (I + Iv + Iv2) + r * H 
       
     ################################################################
     
     dt <- 1
     list(c(dt,dS,dShold,dSv,dShold2,dSv2,dE,dEv,dEv2,
-           dI,dIv,dIv2,dH,dD,dR,dRv,dRv2))
+           dI,dIv,dIv2,dH,dD,dR))
   })
 }

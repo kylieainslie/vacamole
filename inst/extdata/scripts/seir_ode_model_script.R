@@ -86,8 +86,9 @@ init <- c(t = times[1],                  # Initial conditions
           H = 50,
           D = 0,
           R = inputs$R,
-          Rv = 0,
-          Rv2 = 0)                      
+          # Rv = 0,
+          # Rv2 = 0
+          )                      
 
 # Solve model ------------------------------------------------------
 seir_out <- lsoda(init,times,seir_ode,params)
