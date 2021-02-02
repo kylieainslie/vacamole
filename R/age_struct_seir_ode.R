@@ -23,46 +23,50 @@ age_struct_seir_ode <- function(times,init,params){
     
     # define initial state vectors from input ----------------------
     S = c(S1, S2)
-    Shold = c(Shold1, Shold2)
-    Sv = c(Sv1, Sv2)
-    Shold2 = c(Shold21, Shold22)
-    Sv2 = c(Sv21, Sv22)
+    Shold_1d = c(Shold_1d1, Shold_1d2)
+    Sv_1d = c(Sv_1d1, Sv_1d2)
+    Shold_2d = c(Shold_2d1, Shold_2d2)
+    Sv_2d = c(Sv_2d1, Sv_2d2)
     E = c(E1, E2)
-    Ev = c(Ev1, Ev2)
-    Ev2 = c(Ev21, Ev22)
+    Ev_1d = c(Ev_1d1, Ev_1d2)
+    Ev_2d = c(Ev_2d1, Ev_2d2)
     I = c(I1, I2)
-    Iv = c(Iv1, Iv2)
-    Iv2 = c(Iv21, Iv22)
+    Iv_1d = c(Iv_1d1, Iv_1d2)
+    Iv_2d = c(Iv_2d1, Iv_2d2)
     H = c(H1, H2)
+    Hv_1d = c(Hv_1d1, Hv_1d2)
+    Hv_2d = c(Hv_2d1, Hv_2d2)
     D = c(D1, D2)
     R = c(R1, R2)
-    Rv = c(Rv1, Rv2)
-    Rv2 = c(Rv21, Rv22)
+    Rv_1d = c(Rv_1d1, Rv_1d2)
+    Rv_2d = c(Rv_2d1, Rv_2d2)
     ################################################################
     # ODEs:
     lambda <- beta * (C%*%((I + Iv + Iv2)/N))
     
     dS <- -lambda * S - alpha * S/N
-    dShold <- alpha * S/N - (1/delay) * Shold - lambda * Shold
-    dSv <- (1/delay) * Shold - eta * lambda * Sv - ifelse(Sv>0,alpha2 * Sv/(Sv+Ev+Iv+Rv), alpha2*0)
-    dShold2 <- ifelse(Sv>0,alpha2 * Sv/(Sv+Ev+Iv+Rv), alpha2*0) - (1/delay2) * Shold2 - eta * lambda * Shold2
-    dSv2 <- (1/delay2) * Shold2 - eta2 * lambda * Sv2
-    dE <- lambda * (S + Shold) - sigma * E
-    dEv <- eta * lambda * (Sv + Shold2) - sigma * Ev
-    dEv2 <- eta * lambda * Sv2 - sigma * Ev2 
+    dShold_1d <- alpha * S/N - (1/delay) * Shold_1d - lambda * Shold_1d
+    dSv_1d <- (1/delay) * Shold_1d - eta * lambda * Sv_1d - ifelse(Sv>0,alpha2 * Sv_1d/(Sv_1d+Ev_1d+Iv_1d+Rv_1d), alpha2*0)
+    dShold_2d <- ifelse(Sv_1d>0,alpha2 * Sv_1d/(Sv_1d+Ev_1d+Iv_1d+Rv_1d), alpha2*0) - (1/delay2) * Shold_2d - eta * lambda * Shold_2d
+    dSv_2d <- (1/delay2) * Shold_2d - eta2 * lambda * Sv_2d
+    dE <- lambda * (S + Shold_1d) - sigma * E
+    dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
+    dEv_2d <- eta * lambda * Sv_2d - sigma * Ev_2d 
     dI <- sigma * E - (gamma + h) * I 
-    dIv <- sigma * Ev - (gamma + h) * Iv  
-    dIv2 <- sigma * Ev2 - (gamma + h) * Iv2
-    dH <- h * (I + Iv + Iv2) - (d + r) * H
-    dD <- d * H 
+    dIv_1d <- sigma * Ev_1d - (gamma + h) * Iv_1d  
+    dIv_2d <- sigma * Ev_2d - (gamma + h) * Iv_2d
+    dH <- h * I - (d + r) * H
+    dHv_1d <- h * Iv_1d - (d + r) * Hv_1d
+    dHv_2d <- h * Iv_2d - (d + r) * Hv_2d
+    dD <- d * (H + Hv_1d + Hv_2d) 
     dR <- gamma * I + r * H 
-    dRv <- gamma * Iv + r * H
-    dRv2 <- gamma * Iv2 + r * H
+    dRv_1d <- gamma * Iv + r * Hv_1d
+    dRv_2d <- gamma * Iv2 + r * Hv_2d
     
     ################################################################
     
     dt <- 1
-    list(c(dt,dS,dShold,dSv,dShold2,dSv2,dE,dEv,dEv2,
-           dI,dIv,dIv2,dH,dD,dR,dRv,dRv2))
+    list(c(dt,dS,dShold_1d,dSv_1d,dShold_2d,dSv_d2,dE,dEv_1d,dEv_2d,
+           dI,dIv_1d,dIv_2d,dH, dHv_1d,dHv_2d,dD,dR,dRv_1d,dRv_2d))
   })
 }
