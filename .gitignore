@@ -37,3 +37,10 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Object files
+.o
+
+# DLLs and shared objects
+.dll
+.so
