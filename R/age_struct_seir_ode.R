@@ -8,18 +8,6 @@
 # Define model -----------------------------------------------------
 age_struct_seir_ode <- function(times,init,params){
   with(as.list(c(params,init)), {
-    # determine vaccination rate
-    if (t>tv && S/N>(1-uptake)){
-      alpha <- vac_per_day
-    } else {
-      alpha <- 0
-    }
-    
-    if (t>tv2 && S/N>(1-uptake)){ 
-      alpha2 <- vac_per_day2
-    } else {
-      alpha2 <- 0
-    }
     
     # define initial state vectors from input ----------------------
     S = c(S1, S2)
@@ -40,6 +28,19 @@ age_struct_seir_ode <- function(times,init,params){
     R = c(R1, R2)
     Rv_1d = c(Rv_1d1, Rv_1d2)
     Rv_2d = c(Rv_2d1, Rv_2d2)
+    
+    # determine vaccination rate -----------------------------------
+    if (t>tv && S/N>(1-uptake)){
+      alpha <- vac_per_day
+    } else {
+      alpha <- 0
+    }
+    
+    if (t>tv2 && S/N>(1-uptake)){ 
+      alpha2 <- vac_per_day2
+    } else {
+      alpha2 <- 0
+    }
     ################################################################
     # ODEs:
     lambda <- beta * (C%*%((I + Iv_1d + Iv_2d)/N))
