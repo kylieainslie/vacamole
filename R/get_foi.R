@@ -1,16 +1,19 @@
 #' Calculate force of infection 
-#' @param I data frame of infectious (unvaccinated)
-#' @param Iv_1d data frame of infectious (vaccinated with dose 1)
-#' @param Iv_2d data frame of infectious (vaccinated with dose 2)
+#' @param dat data frame of states
 #' @param beta transmission parameter
 #' @param contact_matrix contact matrix
 #' @param N vector of total group sizes
-#' @return List of summary results
+#' @return matrix of force of infection in each age group (columns) at each
+#' time point (rows)
 #' @keywords vacamole
 #' @export
-get_foi <- function(I, Iv_1d, Iv_2d, beta, contact_matrix, N){
-  foi <- 0
-  #beta * C %*% rowSums(seir_out[,c("I1", "Iv1", "Iv21")])/N[1]
+get_foi <- function(dat, beta, contact_matrix, N){
+
+  # sum over different I states for each time step and age group
+  I_all <- dat$I + dat$Iv_1d + dat$Iv_2d
+  
+  # calculate force of infection for each time point
+  foi <- t(apply(I_all, 1, function(x){beta * (contact_matrix %*% x/N)}))
 
   return(foi)
 }
