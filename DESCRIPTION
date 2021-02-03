@@ -12,14 +12,16 @@ LazyData: true
 RoxygenNote: 7.1.1
 LinkingTo: Rcpp
 Imports: 
-    Rcpp (>= 1.0.5)
-Suggests: knitr,
-          tidyr,
-          dplyr,
-          readr,
-          readxl,
-          deSolve,
-          reshape2,
-          ggplot2,
+    Rcpp (>= 1.0.5),
+    dplyr,
+    stringr
+Suggests: 
+    knitr,
+    tidyr,
+    readr,
+    readxl,
+    deSolve,
+    reshape2,
+    ggplot2
 SystemRequirements: C++11
 VignetteBuilder: knitr
