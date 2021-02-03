@@ -6,15 +6,17 @@ library(reshape2)
 library(ggplot2)
 library(dplyr)
 library(stringr)
+library(tidyr)
 #library(readxl)
 source("R/age_struct_seir_ode.R")
 source("R/postprocess_age_struct_model_output.R")
+source("R/get_foi.R")
 
 # Input parameters:
 params <- list(beta = 0.61, 
                gamma = 0.5,                   # R0 = beta/gamma
                sigma = 0.5,                   # 1/sigma = latent period
-               N = c(500000, 500000),                  # Population (no need to change)
+               N = c(500000, 500000),         # Population (no need to change)
                vac_per_day = 25000,           # Number of vaccines per day (dose 1)
                vac_per_day2 = 25000,          # Number of vaccines per day (dose 2)
                tv = 10,                       # Time vaccination starts (dose 1)
@@ -58,6 +60,7 @@ init <- c(t = times[1],                  # Initial conditions
 seir_out <- lsoda(init,times,age_struct_seir_ode,params)
 seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
+
 # Summarise results ------------------------------------------------
 beta <- params$beta * timeInt
 eta <- params$eta
@@ -67,21 +70,39 @@ h <- params$h
 gamma <- params$gamma
 C <- params$C
 
-lambda <- beta * C %*% rowSums(seir_out[,c("I1", "Iv1", "Iv21")])/N[1]
+lambda <- get_foi(dat = out, beta = beta, contact_matrix = C, N = N)
 time <- seir_out$time
-S <- seir_out$S1 + seir_out$S2
-Shold <- seir_out$Shold1 + seir_out$Shold2
-Sv <- seir_out$Sv1 + seir_out$Sv2
-Shold2 <- seir_out$Shold21 + seir_out$Shold22
-Sv2 <- seir_out$Sv21 + seir_out$Sv22
-inc <- (S + Shold + (eta * (Sv + Shold2)) + (eta2 * Sv2)) * lambda
-I <- seir_out[,11]
-Iv <- seir_out[,12]
-Iv2 <- seir_out[,13]
-hosp <- h * (I + Iv + Iv2)
+inc <- (out$S + out$Shold_1d + (eta * (out$Sv_1d + out$Shold_2d)) + (eta2 * out$Sv_2d)) * lambda
+hosp <- h * (out$I + out$Iv_1d + out$Iv_2d)
 
-# Create object for plotting:
-df <- data.frame(time = time, 
-                 incidence = inc, 
-                 hosp_admissions = hosp,
-                 hosp_admissions_from_inc = hosp2)
+# Create object for plotting ---------------------------------------
+# convert from wide to long format
+inc_long <- inc %>% 
+  mutate(time = time) %>%
+  pivot_longer(cols = starts_with("S"), 
+               names_to = "age_group", 
+               names_prefix = "S",
+               values_to = "incidence")
+
+hosp_long <- hosp %>%
+  mutate(time = time) %>%
+  pivot_longer(cols = starts_with("I"), 
+               names_to = "age_group", 
+               names_prefix = "I",
+               values_to = "hosp_admissions")
+
+df <- left_join(inc_long, hosp_long, by = c("time", "age_group")) %>%
+  pivot_longer(cols = c("incidence", "hosp_admissions"),
+               names_to = "outcome",
+               values_to = "value") # %>%
+  # mutate(outcome = factor(outcome, levels = c("Incidence", "Hospital Admissions")))
+
+# Make plot ---------------------------------------------------------
+g <- ggplot(df, aes(x = time, y = value, color = age_group)) +
+  geom_line() +
+  labs(y = "Value", x = "Time (days)", color = "Age Group") +
+  theme(legend.position = "bottom",
+        panel.background = element_blank()) +
+  facet_wrap(~outcome, scales = "free")
+plot(g)
+
