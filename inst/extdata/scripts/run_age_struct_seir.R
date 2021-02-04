@@ -11,6 +11,7 @@ library(readxl)
 source("R/age_struct_seir_ode.R")
 source("R/postprocess_age_struct_model_output.R")
 source("R/get_foi.R")
+source("R/get_beta.R")
 
 # load data ---------------------------------------------------------
 # probabilities
@@ -50,12 +51,17 @@ init_states <- list(E = c(4060 * 8 * prob_inf_by_age),
 empty_state <- c(rep(0,n_age_groups))
 
 # Input parameters:
-params <- list(beta = 0.25, 
-               gamma = 0.5,                   # R0 = beta/gamma
-               sigma = 0.5,                   # 1/sigma = latent period
+c <- contact_matrix_input[,-1]
+s <- 0.2174  # from David
+g <- 0.4762  # from David
+b <- get_beta(R0 = 1.01,contact_matrix = c, N = n * age_dist,sigma = s,gamma = g) 
+
+params <- list(beta = b, 
+               gamma = g,                   # R0 = beta/gamma
+               sigma = s,                   # 1/sigma = latent period
                N = n * age_dist,              # Population (no need to change)
-               vac_per_day = dose1,           # Number of vaccines per day (dose 1)
-               vac_per_day2 = dose2,              # Number of vaccines per day (dose 2)
+               vac_per_day = 0,           # Number of vaccines per day (dose 1)
+               vac_per_day2 = 0,              # Number of vaccines per day (dose 2)
                tv = 14,                       # Time vaccination starts (dose 1)
                tv2 = 56,                      # Time vaccination starts (dose 2)
                delay = 14,                    # Delay from vaccination to protection (days)
@@ -66,8 +72,7 @@ params <- list(beta = 0.25,
                h = dons_probs$P_infection2admission, # Rate from infection to hospital admission
                d = dons_probs$P_admission2death,     # Rate from admission to death
                r = 0.0206,                    # Rate from admission to recovery
-               C = contact_matrix_input[,-1],
-               vac_total = 1000000,
+               C = c,
                constant_foi = TRUE,
                init_inf = init_states$I
 )
