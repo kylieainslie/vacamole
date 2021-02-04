@@ -233,7 +233,10 @@ if (!all(states_c %in% c(0,1,5,6,7,8))){
   time_of_infection_i <- time_of_infection[i]
 }
 # change states
-tmp2 = change_states(i-1,
+if(state_col[i] %in% c(0,7,8)){
+  next
+} else {
+  tmp2 = change_states(i-1,
                      state_i_updated,
                      age_i,
                      time_of_infection_i,
@@ -260,12 +263,12 @@ tmp2 = change_states(i-1,
                      time_ICU_to_hosp_i,
                      time_ICU_step_down_care_i)
 
-# update state and hh_isolation and infectious period
-state_col[i] <- tmp2$state_i
-household_isolation <- tmp2$household_isolation
-infectious_period[i] <- tmp2$infectious_period_i
-time_sympt_to_hosp[i] <- tmp2$time_sympt_to_hosp_i
-
+  # update state and hh_isolation and infectious period
+  state_col[i] <- tmp2$state_i
+  household_isolation <- tmp2$household_isolation
+  infectious_period[i] <- tmp2$infectious_period_i
+  time_sympt_to_hosp[i] <- tmp2$time_sympt_to_hosp_i
+  }
 } # end loop over individuals
 
 # output  
