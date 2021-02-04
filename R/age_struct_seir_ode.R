@@ -32,17 +32,9 @@ age_struct_seir_ode <- function(times,init,params){
     Rv_2d = c(Rv_2d1, Rv_2d2, Rv_2d3, Rv_2d4, Rv_2d5, Rv_2d6, Rv_2d7, Rv_2d8, Rv_2d9)
     
     # determine vaccination rate -----------------------------------
-    if (t>tv && S/N>(1-uptake) && sum(Shold_1d,Sv_1d,Shold_2d,Sv_2d) < vac_total){
-      alpha <- vac_per_day
-    } else {
-      alpha <- 0
-    }
+    alpha <- ifelse(t>tv && S/N > (1 - uptake), vac_per_day, 0)
+    alpha2 <- ifelse(t>tv2 && S/N > (1 - uptake), vac_per_day2, 0)
     
-    if (t>tv2 && S/N>(1-uptake) && sum(Shold_1d,Sv_1d,Shold_2d,Sv_2d) < vac_total){ 
-      alpha2 <- vac_per_day2
-    } else {
-      alpha2 <- 0
-    }
     ################################################################
     # ODEs:
     if(constant_foi){
