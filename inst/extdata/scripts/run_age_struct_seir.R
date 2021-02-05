@@ -8,6 +8,8 @@ library(dplyr)
 library(stringr)
 library(tidyr)
 library(readxl)
+
+# Source functions -------------------------------------------------
 source("R/age_struct_seir_ode.R")
 source("R/postprocess_age_struct_model_output.R")
 source("R/get_foi.R")
@@ -24,8 +26,14 @@ contact_matrix_april2020 <- contact_matrices_all %>%
   select(-survey, -contact_type) %>%
   pivot_wider(., names_from = cont_age, values_from = m_est)
 
-contact_matrix_input <- as.matrix(contact_matrix_april2020[-1,-1])
-rownames(contact_matrix_input) <- contact_matrix_april2020$part_age[-1]
+contact_matrix_baseline <- contact_matrices_all %>%
+  filter(survey == "baseline") %>%
+  filter(contact_type == "community") %>%
+  select(-survey, -contact_type) %>%
+  pivot_wider(., names_from = cont_age, values_from = m_est)
+
+contact_matrix_input <- as.matrix(contact_matrix_april2020[-1,-c(1,2)])
+#rownames(contact_matrix_input) <- contact_matrix_april2020$part_age[-1]
 
 # age distribution and pop size
 age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463, 
@@ -48,13 +56,14 @@ dose2 <- c(rep(0,9))
 init_states <- list(E = c(4060 * 8 * prob_inf_by_age),
                     I = c(infectious_total * prob_inf_by_age),
                     R = c(n * age_dist * prop_rec))
+test_state <- c(rep(100,n_age_groups))
 empty_state <- c(rep(0,n_age_groups))
 
 # Input parameters:
-c <- contact_matrix_input[,-1]
+c <- as.matrix(contact_matrix_baseline[-1,-c(1,2)])
 s <- 0.2174  # from David
 g <- 0.4762  # from David
-b <- get_beta(R0 = 1.01,contact_matrix = c, N = n * age_dist,sigma = s,gamma = g) 
+b <- get_beta(R0 = 3,contact_matrix = c, N = n * age_dist,sigma = s,gamma = g) 
 
 params <- list(beta = b, 
                gamma = g,                   # R0 = beta/gamma
@@ -73,7 +82,7 @@ params <- list(beta = b,
                d = dons_probs$P_admission2death,     # Rate from admission to death
                r = 0.0206,                    # Rate from admission to recovery
                C = c,
-               constant_foi = TRUE,
+               constant_foi = FALSE,
                init_inf = init_states$I
 )
 
@@ -81,22 +90,22 @@ params <- list(beta = b,
 times <- seq(0,200,length.out = 201)     # Vector of times
 timeInt <- times[2]-times[1]             # Time interval (for technical reasons)
 init <- c(t = times[1],                  # Initial conditions
-          S = params$N - (init_states$E + init_states$I + init_states$R),
+          S = params$N - test_state, #(init_states$E + init_states$I + init_states$R),
           Shold_1d = empty_state,
           Sv_1d = empty_state,
           Shold_2d = empty_state,
           Sv_2d = empty_state,
-          E = init_states$E,
+          E = empty_state, #init_states$E,
           Ev_1d = empty_state,
           Ev_2d = empty_state,
-          I = init_states$I,
+          I = test_state, #init_states$I,
           Iv_1d = empty_state,
           Iv_2d = empty_state,
           H = empty_state,
           Hv_1d = empty_state,
           Hv_2d = empty_state,
           D = empty_state,
-          R = init_states$R,
+          R = empty_state, #init_states$R,
           Rv_1d = empty_state,
           Rv_2d = empty_state
           )                      
@@ -105,6 +114,9 @@ init <- c(t = times[1],                  # Initial conditions
 seir_out <- lsoda(init,times,age_struct_seir_ode,params)
 seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
+
+# quick check
+plot(times, out$H[,1], type = "l")
 
 # Summarise results ------------------------------------------------
 beta <- params$beta * timeInt
@@ -118,7 +130,7 @@ C <- params$C
 lambda <- get_foi(dat = out, beta = beta, contact_matrix = C, N = N)
 time <- seir_out$time
 inc <- (out$S + out$Shold_1d + (eta * (out$Sv_1d + out$Shold_2d)) + (eta2 * out$Sv_2d)) * lambda
-hosp <- h * (out$I + out$Iv_1d + out$Iv_2d)
+hosp <- sweep(out$I + out$Iv_1d + out$Iv_2d, 2, h, "*")
 
 # Create object for plotting ---------------------------------------
 # convert from wide to long format
