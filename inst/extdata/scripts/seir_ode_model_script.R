@@ -8,11 +8,6 @@ library(gridExtra)
 library(readxl)
 source("R/seir_ode.R")
 
-# Read in vac schedule ---------------------------------------------
-vac_schedule_p <- read_xlsx("inst/extdata/data/cum_upt_A.xlsx", sheet = 1)
-vac_schedule_m <- read_xlsx("inst/extdata/data/cum_upt_A.xlsx", sheet = 2)
-vac_schedule_az <- read_xlsx("inst/extdata/data/cum_upt_A.xlsx", sheet = 3)
-
 # Specify parameter values -----------------------------------------
 ve_est <- list(Pfizer  = c(0.926, 0.948),
                Moderna = c(0.896, 0.941),
@@ -42,30 +37,31 @@ initial_inputs <- list(y60_64 = list(N = 1117798,
                                   I = 1941,
                                   R = 250590))
 
-output_tag <- "new_AZ_30_cfoi_60_64"
-inputs <- initial_inputs$y60_64
-# dose1_input <- as.numeric(vac_schedule_az$az_d1_7[which(as.Date(vac_schedule_az$date) > as.Date("2021-01-20"))])
-# dose2_input <- as.numeric(vac_schedule_az$az_d2_7[which(as.Date(vac_schedule_az$date) > as.Date("2021-01-20"))])
+output_tag <- "vac_deferral_2dose"
+inputs <- initial_inputs$all
+
 # Input parameters:
 params <- list(beta = 0.61, 
             gamma = 0.5,                   # R0 = beta/gamma
             sigma = 0.5,                   # 1/sigma = latent period
             N = inputs$N,                  # Population (no need to change)
-            vac_per_day = 25000,     # Number of vaccines per day (dose 1)
-            vac_per_day2 = 25000,    # Number of vaccines per day (dose 2)
-            tv = vac_start_day$AstraZeneca_2[1],                     # Time vaccination starts (dose 1)
-            tv2 = vac_start_day$AstraZeneca_2[2],                    # Time vaccination starts (dose 2)
-            delay = days_to_protection$AstraZeneca[1],   # Delay from vaccination to protection (days)
-            delay2 = days_to_protection$AstraZeneca[2],  # Delay for dose 2
-            eta = 1- ve_est$AZ_30[1],        # 1 - VE (dose 1)
-            eta2 = 1- ve_est$AZ_30[2],       # 1 - VE (dose 2)
+            vac_per_day = 15000,           # Number of vaccines per day (dose 1)
+            vac_per_day2 = 15000,          # Number of vaccines per day (dose 2)
+            tv = 21,                     # Time vaccination starts (dose 1)
+            tv2 = 63,                    # Time vaccination starts (dose 2)
+            delay = 14,                  # Delay from vaccination to protection (days)
+            delay2 = 14,                 # Delay for dose 2
+            eta = 1- 0.70,        # 1 - VE (dose 1)
+            eta2 = 1- 0.90,       # 1 - VE (dose 2)
             uptake = 0.85,                 # Proportion of population able and willing to be vaccinated
             h = 0.0251,                    # Rate from infection to hospital admission
             d = 0.106,                     # Rate from admission to death
             r = 0.0206,                    # Rate from admission to recovery
-            constant_foi = TRUE,
+            constant_foi = FALSE,
             init_inf = inputs$I,
-            vac_input_perc = TRUE          # is vaccine distribution a percentage of the population?
+            vac_input_perc = FALSE,         # is vaccine distribution a percentage of the population?
+            total_dose1 = 500000,
+            total_dose2 = 500000
 )                  
 
 # Specify initial values -------------------------------------------
@@ -84,15 +80,17 @@ init <- c(t = times[1],                  # Initial conditions
           Iv = 0,
           Iv2 = 0,
           H = 50,
+          Hv = 0,
+          Hv2 = 0,
           D = 0,
           R = inputs$R,
-          # Rv = 0,
-          # Rv2 = 0
+          Rv = 0,
+          Rv2 = 0
           )                      
 
 # Solve model ------------------------------------------------------
 seir_out <- lsoda(init,times,seir_ode,params)
-
+dim(seir_out)
 # Summarise results ------------------------------------------------
 beta <- params$beta * timeInt
 eta <- params$eta
@@ -114,14 +112,13 @@ I <- seir_out[,11]
 Iv <- seir_out[,12]
 Iv2 <- seir_out[,13]
 hosp <- h * (I + Iv + Iv2)
-hosp2 <- inc * params$h
+#hosp2 <- inc * params$h
 
 # Create object for plotting:
 df <- data.frame(time = time, 
                  incidence = inc, 
-                 hosp_admissions = hosp,
-                 hosp_admissions_from_inc = hosp2)
-saveRDS(df, file = paste0("inst/extdata/results/",output_tag,"_output.rds"))
+                 hosp_admissions = hosp)
+#saveRDS(df, file = paste0("inst/extdata/",output_tag,"_output.rds"))
 
 # Calculate summary data:
 Value <- c(time[which.max(inc)],max(inc),max(hosp),sum(inc),sum(hosp))

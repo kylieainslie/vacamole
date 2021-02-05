@@ -9,13 +9,13 @@
 seir_ode <- function(times,init,params){
   with(as.list(c(params,init)), {
     # determine vaccination rate
-      if (t>tv && S/N>(1-uptake)){
+      if (t>tv && S/N>(1-uptake) && sum(Shold,Sv) < total_dose1){
         alpha <- vac_per_day
       } else {
         alpha <- 0
       }
     
-      if (t>tv2 && S/N>(1-uptake)){ 
+      if (t>tv2 && S/N>(1-uptake) && sum(Shold2,Sv2) < total_dose2){ 
         alpha2 <- vac_per_day2
       } else {
         alpha2 <- 0
@@ -39,13 +39,17 @@ seir_ode <- function(times,init,params){
       dIv <- sigma * Ev - (gamma + h) * Iv  
       dIv2 <- sigma * Ev2 - (gamma + h) * Iv2
       dH <- h * (I + Iv + Iv2) - (d + r) * H
-      dD <- d * H 
-      dR <- gamma * (I + Iv + Iv2) + r * H 
+      dHv <- h * Iv - (d + r) * Hv
+      dHv2 <- h * Iv2 - (d + r) * Hv2
+      dD <- d * (H + Hv + Hv2) 
+      dR <- gamma * I + r * H 
+      dRv <- gamma * Iv + r * Hv
+      dRv2 <- gamma * Iv2 + r * Hv2 
       
     ################################################################
     
     dt <- 1
     list(c(dt,dS,dShold,dSv,dShold2,dSv2,dE,dEv,dEv2,
-           dI,dIv,dIv2,dH,dD,dR))
+           dI,dIv,dIv2,dH,dHv,dHv2,dD,dR,dRv,dRv2))
   })
 }
