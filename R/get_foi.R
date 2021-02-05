@@ -13,7 +13,7 @@ get_foi <- function(dat, beta, contact_matrix, N){
   I_all <- dat$I + dat$Iv_1d + dat$Iv_2d
   
   # calculate force of infection for each time point
-  foi <- t(apply(I_all, 1, function(x){beta * (contact_matrix %*% x/N)}))
+  foi <- t(apply(I_all, 1, function(x){beta * (contact_matrix %*% (x/N))}))
 
   return(foi)
 }
