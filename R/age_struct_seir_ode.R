@@ -37,12 +37,10 @@ age_struct_seir_ode <- function(times,init,params){
     
     ################################################################
     # ODEs:
-    if(constant_foi){
-      lambda <- beta * (C%*%(init_states$I/N))
-    } else {lambda <- beta * (C%*%((I + Iv_1d + Iv_2d)/N))}
+    lambda <- beta * (C %*% ((I + Iv_1d + Iv_2d)/N))
     
-    dS <- -lambda * S - alpha * S/N
-    dShold_1d <- alpha * S/N - (1/delay) * Shold_1d - lambda * Shold_1d
+    dS <- -lambda * S - alpha * (S/N)
+    dShold_1d <- alpha * (S/N) - (1/delay) * Shold_1d - lambda * Shold_1d
     dSv_1d <- (1/delay) * Shold_1d - eta * lambda * Sv_1d - ifelse(Sv_1d>0,alpha2 * Sv_1d/(Sv_1d+Ev_1d+Iv_1d+Rv_1d), alpha2*0)
     dShold_2d <- ifelse(Sv_1d>0,alpha2 * Sv_1d/(Sv_1d+Ev_1d+Iv_1d+Rv_1d), alpha2*0) - (1/delay2) * Shold_2d - eta * lambda * Shold_2d
     dSv_2d <- (1/delay2) * Shold_2d - eta2 * lambda * Sv_2d
