@@ -50,8 +50,10 @@ prob_inf_by_age <- c(0.018, 0.115, 0.156, 0.118, 0.142, 0.199, 0.114, 0.062, 0.0
 prop_rec = c(0.01120993, 0.09663659, 0.24141186, 0.11004723, 0.10677859, 0.11977255, 0.11904044, 0.11714503, 0.11347191)
 
 # vaccinations per day
-dose1 <- c(0,0,rep(3571.429,7))
-dose2 <- c(rep(0,9))
+vac_scheduleA <- read_csv("inst/extdata/data/cum_upt_A.csv")
+ve <- list(pfizer = c(0.926, 0.948), 
+           moderna = c(0.896, 0.941), 
+           astrazeneca = c(0.583, 0.621))
 
 init_states <- list(E = c(4060 * 8 * prob_inf_by_age),
                     I = c(infectious_total * prob_inf_by_age),
@@ -82,6 +84,8 @@ params <- list(beta = b,
                d = dons_probs$P_admission2death,     # Rate from admission to death
                r = 0.0206,                    # Rate from admission to recovery
                C = c,
+               vac_schedule = vac_scheduleA,
+               ve = ve,
                constant_foi = FALSE,
                init_inf = init_states$I
 )
@@ -116,7 +120,7 @@ seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 
 # quick check
-plot(times, out$H[,1], type = "l")
+plot(times, out$I[,1], type = "l")
 
 # Summarise results ------------------------------------------------
 beta <- params$beta * timeInt
@@ -126,11 +130,12 @@ N <- params$N
 h <- params$h
 gamma <- params$gamma
 C <- params$C
+time_inf_to_hosp <- 11
 
 lambda <- get_foi(dat = out, beta = beta, contact_matrix = C, N = N)
 time <- seir_out$time
 inc <- (out$S + out$Shold_1d + (eta * (out$Sv_1d + out$Shold_2d)) + (eta2 * out$Sv_2d)) * lambda
-hosp <- sweep(out$I + out$Iv_1d + out$Iv_2d, 2, h, "*")
+hosp <- sweep(inc, 2, h, "*")
 
 # Create object for plotting ---------------------------------------
 # convert from wide to long format
@@ -143,9 +148,9 @@ inc_long <- inc %>%
 
 hosp_long <- hosp %>%
   mutate(time = time) %>%
-  pivot_longer(cols = starts_with("I"), 
+  pivot_longer(cols = starts_with("S"), 
                names_to = "age_group", 
-               names_prefix = "I",
+               names_prefix = "S",
                values_to = "hosp_admissions")
 
 df <- left_join(inc_long, hosp_long, by = c("time", "age_group")) %>%
