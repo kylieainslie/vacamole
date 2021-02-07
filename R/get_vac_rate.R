@@ -10,7 +10,7 @@
 #' @export
 get_vac_rate <- function(times, params){
   with(as.list(c(times,params)),{
-    print(times)
+    #print(times)
   # pfizer
   pf_dose1 <- vac_schedule %>%
     select(date, pf_d1_1:pf_d1_9)
