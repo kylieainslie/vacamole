@@ -1,8 +1,6 @@
 #' Calculate force of infection 
-#' @param vac_schedule data frame of vac schedule for all three vaccines and 
-#' doses 1 and 2 by age group
-#' @param ve list of vaccine efficacy estimates for doses 1 and 2
-#' @param time time point
+#' @param times vector of times
+#' @param params list of parameter values
 #' @return list of percentage of each group to be vaccinated at time point
 #' and the composite ve for each group (based on how much of each vaccine is
 #' used and the ve of each vaccine)
