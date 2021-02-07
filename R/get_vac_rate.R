@@ -8,8 +8,9 @@
 #' used and the ve of each vaccine)
 #' @keywords vacamole
 #' @export
-get_vac_rate <- function(vac_schedule, ve, time){
-  
+get_vac_rate <- function(times, params){
+  with(as.list(c(times,params)),{
+    print(times)
   # pfizer
   pf_dose1 <- vac_schedule %>%
     select(date, pf_d1_1:pf_d1_9)
@@ -29,25 +30,27 @@ get_vac_rate <- function(vac_schedule, ve, time){
     select(date, az_d2_1:az_d2_9)
   
   # calculate composite VE
-  total_dose1 <- unlist(pf_dose1[time,-1] + mo_dose1[time,-1] + az_dose1[time,-1])
-  total_dose2 <- unlist(pf_dose2[time,-1] + mo_dose2[time,-1] + az_dose2[time,-1])
+  time_point <- ifelse(floor(times) == 0, floor(times) + 1, floor(times))
   
-  comp_ve_dose1 <- unlist((pf_dose1[time,-1]/total_dose1) * ve$pfizer[1] + 
-                   (mo_dose1[time,-1]/total_dose1) * ve$moderna[1] + 
-                   (az_dose1[time,-1]/total_dose1) * ve$astrazeneca[1])
+  total_dose1 <- unlist(pf_dose1[time_point,-1] + mo_dose1[time_point,-1] + az_dose1[time_point,-1])
+  names(total_dose1) <- paste0("tot_",c(substr(names(total_dose1), 4, 7)))
+  total_dose2 <- unlist(pf_dose2[time_point,-1] + mo_dose2[time_point,-1] + az_dose2[time_point,-1])
+  names(total_dose2) <- paste0("tot_",c(substr(names(total_dose2), 4, 7)))
   
-  comp_ve_dose2 <- unlist((pf_dose2[time,-1]/total_dose2) * ve$pfizer[2] + 
-                   (mo_dose2[time,-1]/total_dose2) * ve$moderna[2] + 
-                   (az_dose2[time,-1]/total_dose2) * ve$astrazeneca[2])
+  comp_ve_dose1 <- unlist((pf_dose1[time_point,-1]/total_dose1) * ve$pfizer[1] + 
+                   (mo_dose1[time_point,-1]/total_dose1) * ve$moderna[1] + 
+                   (az_dose1[time_point,-1]/total_dose1) * ve$astrazeneca[1])
   
-  comp_ve_dose1a <- ifelse(is.nan(comp_ve_dose1), 0, comp_ve_dose1)
-  comp_ve_dose2a <- ifelse(is.nan(comp_ve_dose2), 0, comp_ve_dose2)
+  comp_ve_dose2 <- unlist((pf_dose2[time_point,-1]/total_dose2) * ve$pfizer[2] + 
+                   (mo_dose2[time_point,-1]/total_dose2) * ve$moderna[2] + 
+                   (az_dose2[time_point,-1]/total_dose2) * ve$astrazeneca[2])
   
-  rtn <- list(dose1 = total_dose1,
-              dose2 = total_dose2,
-              comp_ve_dose1 = comp_ve_dose1a,
-              comp_ve_dose2 = comp_ve_dose2a)
+  eta_vec <- 1 - ifelse(is.nan(comp_ve_dose1), 0, comp_ve_dose1)
+  names(eta_vec) <- paste0("eta_",1:9)
+  eta2_vec <- 1- ifelse(is.nan(comp_ve_dose2), 0, comp_ve_dose2)
+  names(eta2_vec) <- paste0("eta2_",1:9)
   
-  return(rtn)
+  list(c(total_dose1,total_dose2,eta_vec,eta2_vec))
   
+  }) 
 }
