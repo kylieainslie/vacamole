@@ -32,13 +32,15 @@ age_struct_seir_ode <- function(times,init,params){
     Rv_2d = c(Rv_2d1, Rv_2d2, Rv_2d3, Rv_2d4, Rv_2d5, Rv_2d6, Rv_2d7, Rv_2d8, Rv_2d9)
     
     # determine vaccination rate -----------------------------------
-    tmp <- get_vac_rate(vac_schedule, ve, t)
-    alpha <- tmp$dose1
-    alpha2 <- tmp$dose2
-    # alpha <- ifelse(t>tv && S/N > (1 - uptake), vac_per_day, 0)
-    # alpha2 <- ifelse(t>tv2 && S/N > (1 - uptake), vac_per_day2, 0)
-    eta <- 1 - tmp$comp_ve_dose1
-    eta2 <- 1 - tmp$comp_ve_dose2
+    tmp <- get_vac_rate(times,params)
+    alpha <- c(tmp[[1]][1:9])
+    alpha2 <- c(tmp[[1]][10:18])
+    #alpha <- ifelse(t>tv && S/N > (1 - uptake), vac_per_day, 0)
+    #alpha2 <- ifelse(t>tv2 && S/N > (1 - uptake), vac_per_day2, 0)
+    
+    eta <- c(tmp[[1]][19:27])
+    eta2 <- c(tmp[[1]][28:36])
+
     ################################################################
     # ODEs:
     lambda <- beta * (C %*% ((I + Iv_1d + Iv_2d)/N))
@@ -66,6 +68,6 @@ age_struct_seir_ode <- function(times,init,params){
     
     dt <- 1
     list(c(dt,dS,dShold_1d,dSv_1d,dShold_2d,dSv_2d,dE,dEv_1d,dEv_2d,
-           dI,dIv_1d,dIv_2d,dH, dHv_1d,dHv_2d,dD,dR,dRv_1d,dRv_2d))
+           dI,dIv_1d,dIv_2d,dH,dHv_1d,dHv_2d,dD,dR,dRv_1d,dRv_2d))
   })
 }
