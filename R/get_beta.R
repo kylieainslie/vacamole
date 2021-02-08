@@ -5,12 +5,14 @@
 #' @param sigma 1/latent period
 #' @param gamma 1/infectious period
 #' @param contact_matrix2 current contact matrix
+#' @param Reff effective reproduction number
+#' @param init_s susceptibles used to calculate Reff
 #' @return matrix of force of infection in each age group (columns) at each
 #' time point (rows)
 #' @keywords vacamole
 #' @export
 get_beta <- function(R0, contact_matrix, N, sigma, gamma, 
-                     contact_matrix2 = NULL){
+                     Reff, contact_matrix2 = NULL, init_s = NULL){
   
   n_groups <- length(N)
   Nj <- matrix(rep(N, n_groups),nrow = n_groups)
@@ -29,8 +31,10 @@ get_beta <- function(R0, contact_matrix, N, sigma, gamma,
   d <- as.numeric(eigs(GD,1)$values)
   beta <- R0/d
   
-  if(!is.null(contact_matrix2) & !is.null(Reff)){
-    Deff2 <- contact_matrix2 * (Ni / Nj)
+  if(!is.null(contact_matrix2) & !is.null(init_s)){
+    Sj <- matrix(rep(init_s, n_groups), nrow = n_groups)
+    Si <- t(Sj)
+    Deff2 <- contact_matrix2 * (Si / Nj)
     F_mat2 <- matrix(rep(0,(6*n_groups)^2),nrow = 6*n_groups)
     F_mat2[1:n_groups,(3*n_groups+1):(4*n_groups)] <- Deff2 # E -> I
     F_mat2[(2*n_groups+1):(3*n_groups),(4*n_groups+1):(5*n_groups)] <- Deff2 # Ev_1d -> Iv_1d
@@ -45,11 +49,11 @@ get_beta <- function(R0, contact_matrix, N, sigma, gamma,
     
     GD2 <- -F_mat2 %*% solve(V2)
     d2 <- as.numeric(eigs(GD2,1)$values)
+    beta2 <- Reff/d2
   }
   
   rtn <- list(beta = beta,
-              d = d,
-              d2 = d2)
+              beta2 = beta2)
   return(rtn)
   
 }
