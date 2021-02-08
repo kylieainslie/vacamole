@@ -35,11 +35,15 @@ age_struct_seir_ode <- function(times,init,params){
     tmp <- get_vac_rate(times,params)
     alpha <- c(tmp[[1]][1:9])
     alpha2 <- c(tmp[[1]][10:18])
-    #alpha <- ifelse(t>tv && S/N > (1 - uptake), vac_per_day, 0)
-    #alpha2 <- ifelse(t>tv2 && S/N > (1 - uptake), vac_per_day2, 0)
     
     eta <- c(tmp[[1]][19:27])
     eta2 <- c(tmp[[1]][28:36])
+    
+    # constant vac rate
+    # if(!is.null(vaccines_per_day) & !is.null(vaccines_per_day2)){
+    # alpha <- ifelse(t>tv && S/N > (1 - uptake), vac_per_day, 0)
+    # alpha2 <- ifelse(t>tv2 && S/N > (1 - uptake), vac_per_day2, 0)
+    # }
 
     ################################################################
     # ODEs:
