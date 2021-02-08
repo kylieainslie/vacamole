@@ -14,10 +14,16 @@ source("R/age_struct_seir_ode.R")
 source("R/postprocess_age_struct_model_output.R")
 source("R/get_foi.R")
 source("R/get_beta.R")
+source("R/get_vac_rate.R")
+source("R/get_vac_rate_2.R")
 
 # load data ---------------------------------------------------------
 # probabilities
-dons_probs <- read_xlsx("inst/extdata/data/ProbabilitiesDelays_20210107.xlsx")
+#dons_probs <- read_xlsx("inst/extdata/data/ProbabilitiesDelays_20210107.xlsx")
+p_infection2admission <- c(0.003470, 0.000377, 0.000949, 0.003880, 0.008420, 0.016500,
+                           0.025100, 0.049400, 0.046300)
+p_admission2death <- c(0.00191, 0.00433, 0.00976, 0.02190, 0.02500, 0.04010,
+                       0.10600, 0.22900, 0.31100)
 # contact matrix
 contact_matrices_all <- read.delim("inst/extdata/data/S2_contact_matrices_withPico3.tsv", header=TRUE, allowEscapes=FALSE, sep="\t")
 contact_matrix_april2020 <- contact_matrices_all %>%
@@ -26,6 +32,7 @@ contact_matrix_april2020 <- contact_matrices_all %>%
   select(-survey, -contact_type) %>%
   pivot_wider(., names_from = cont_age, values_from = m_est)
 
+# pre-pandemic baseline contact matrix
 contact_matrix_baseline <- contact_matrices_all %>%
   filter(survey == "baseline") %>%
   filter(contact_type == "community") %>%
@@ -46,48 +53,55 @@ infectious_total <- 113264
 prob_inf_by_age <- c(0.018, 0.115, 0.156, 0.118, 0.142, 0.199, 0.114, 0.062, 0.054 + 0.023)          
 
 # proportion initially recovered (seroprevalence - from Don)
-# Method: extrapolated seroprev = [measured seroprev September] * [cumulative hospitalisations today] / [cumulative hospitalisations September]
-prop_rec = c(0.01120993, 0.09663659, 0.24141186, 0.11004723, 0.10677859, 0.11977255, 0.11904044, 0.11714503, 0.11347191)
+# Method: extrapolated seroprev = [measured seroprev September] * 
+#                                 [cumulative hospitalisations today] / [cumulative hospitalisations September]
+prop_rec = c(0.01120993, 0.09663659, 0.24141186, 0.11004723, 0.10677859, 
+             0.11977255, 0.11904044, 0.11714503, 0.11347191)
 
 # vaccinations per day
-vac_scheduleA <- read_csv("inst/extdata/data/cum_upt_A.csv")
+vac_scheduleB <- read_csv("inst/extdata/data/cum_upt_B_parallel.csv")
 ve <- list(pfizer = c(0.926, 0.948), 
            moderna = c(0.896, 0.941), 
            astrazeneca = c(0.583, 0.621))
 
-init_states <- list(E = c(4060 * 8 * prob_inf_by_age),
-                    I = c(infectious_total * prob_inf_by_age),
+init_states <- list(E = c(4060 * 8 * prob_inf_by_age), # current number of cases * 8
+                    I = c(infectious_total * prob_inf_by_age), # number of infectious
                     R = c(n * age_dist * prop_rec))
-test_state <- c(rep(100,n_age_groups))
+
+test_state <- c(rep(100,n_age_groups)) # for testing
 empty_state <- c(rep(0,n_age_groups))
 
 # Input parameters:
 c <- as.matrix(contact_matrix_baseline[-1,-c(1,2)])
 s <- 0.2174  # from David
 g <- 0.4762  # from David
-b <- get_beta(R0 = 3,contact_matrix = c, N = n * age_dist,sigma = s,gamma = g) 
+susceptibles <- params$N-init_states$E-init_states$I-init_states$R
+tmp <- get_beta(R0 = 3,contact_matrix = c, N = n * age_dist, sigma = s, gamma = g,
+                Reff = 1.22, contact_matrix2 = contact_matrix_input, init_s = susceptibles) 
+b <- tmp$beta #0.0903 (for fully susceptible population and R0 = 3)
+b2 <- tmp$beta2 #0.4002007 (for an Reff = 1.22 under lockdown contact matrix)
 
-params <- list(beta = b, 
-               gamma = g,                   # R0 = beta/gamma
-               sigma = s,                   # 1/sigma = latent period
-               N = n * age_dist,              # Population (no need to change)
-               vac_per_day = 0,           # Number of vaccines per day (dose 1)
-               vac_per_day2 = 0,              # Number of vaccines per day (dose 2)
-               tv = 14,                       # Time vaccination starts (dose 1)
-               tv2 = 56,                      # Time vaccination starts (dose 2)
-               delay = 14,                    # Delay from vaccination to protection (days)
-               delay2 = 14,                   # Delay for dose 2
-               eta = 1- 0.70,                 # 1 - VE (dose 1)
-               eta2 = 1- 0.90,                # 1 - VE (dose 2)
-               uptake = 0.85,                 # Proportion of population able and willing to be vaccinated
-               h = dons_probs$P_infection2admission, # Rate from infection to hospital admission
-               d = dons_probs$P_admission2death,     # Rate from admission to death
-               r = 0.0206,                    # Rate from admission to recovery
-               C = c,
-               vac_schedule = vac_scheduleA,
-               ve = ve,
-               constant_foi = FALSE,
-               init_inf = init_states$I
+params <- list(beta = 0.195,                      # transmission rate
+               gamma = g,                      # 1/gamma = infectious period
+               sigma = s,                      # 1/sigma = latent period
+               N = n * age_dist,               # Population (no need to change)
+               vac_per_day = NULL,             # Number of vaccines per day (dose 1)
+               vac_per_day2 = NULL,            # Number of vaccines per day (dose 2)
+               #tv = 14,                       # Time vaccination starts (dose 1)
+               #tv2 = 56,                      # Time vaccination starts (dose 2)
+               delay = 14,                     # Delay from vaccination to protection (days)
+               delay2 = 14,                    # Delay for dose 2
+               #eta = 1- 0.70,                 # 1 - VE (dose 1)
+               #eta2 = 1- 0.90,                # 1 - VE (dose 2)
+               #uptake = 0.85,                 # Proportion of population able and willing to be vaccinated
+               h = p_infection2admission,      # Rate from infection to hospital admission
+               d = p_admission2death,          # Rate from admission to death
+               r = 0.0206,                     # Rate from admission to recovery
+               C = contact_matrix_input,
+               vac_schedule = vac_scheduleB,
+               ve = ve #,
+               #constant_foi = FALSE,
+               #init_inf = init_states$I
 )
 
 # Specify initial values -------------------------------------------
@@ -99,17 +113,17 @@ init <- c(t = times[1],                  # Initial conditions
           Sv_1d = empty_state,
           Shold_2d = empty_state,
           Sv_2d = empty_state,
-          E = empty_state, #init_states$E,
+          E = init_states$E,
           Ev_1d = empty_state,
           Ev_2d = empty_state,
-          I = test_state, #init_states$I,
+          I = init_states$I,
           Iv_1d = empty_state,
           Iv_2d = empty_state,
           H = empty_state,
           Hv_1d = empty_state,
           Hv_2d = empty_state,
           D = empty_state,
-          R = empty_state, #init_states$R,
+          R = init_states$R,
           Rv_1d = empty_state,
           Rv_2d = empty_state
           )                      
@@ -120,12 +134,19 @@ seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 
 # quick check
-plot(times, out$I[,1], type = "l")
+# plot(times, out$I[,1], type = "l")
 
 # Summarise results ------------------------------------------------
 beta <- params$beta * timeInt
-eta <- params$eta
-eta2 <- params$eta2
+res <- get_vac_rate_2(times, params$vac_schedule, params$ve)
+eta <- res %>%
+  select(time, age_group, eta) %>%
+  pivot_wider(names_from = age_group, names_prefix = "eta",
+              values_from = eta)
+eta2 <- res %>%
+  select(time, age_group, eta2) %>%
+  pivot_wider(names_from = age_group, names_prefix = "eta",
+              values_from = eta2)
 N <- params$N
 h <- params$h
 gamma <- params$gamma
@@ -134,7 +155,7 @@ time_inf_to_hosp <- 11
 
 lambda <- get_foi(dat = out, beta = beta, contact_matrix = C, N = N)
 time <- seir_out$time
-inc <- (out$S + out$Shold_1d + (eta * (out$Sv_1d + out$Shold_2d)) + (eta2 * out$Sv_2d)) * lambda
+inc <- (out$S + out$Shold_1d + (eta[,-1] * (out$Sv_1d + out$Shold_2d)) + (eta2[,-1] * out$Sv_2d)) * lambda
 hosp <- sweep(inc, 2, h, "*")
 
 # Create object for plotting ---------------------------------------
