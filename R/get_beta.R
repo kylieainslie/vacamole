@@ -7,16 +7,19 @@
 #' @param contact_matrix2 current contact matrix
 #' @param Reff effective reproduction number
 #' @param init_s susceptibles used to calculate Reff
+#' @param eta 1 - VE after dose 1
+#' @param eta2 1- VE after dose 2
 #' @return matrix of force of infection in each age group (columns) at each
 #' time point (rows)
 #' @keywords vacamole
 #' @export
 get_beta <- function(R0, contact_matrix, N, sigma, gamma, 
-                     Reff, contact_matrix2 = NULL, init_s = NULL){
+                     Reff, contact_matrix2 = NULL, init_s = NULL,
+                     eta = NULL, eta2 = NULL){
   
   n_groups <- length(N)
-  Nj <- matrix(rep(N, n_groups),nrow = n_groups)
-  Ni <- t(Nj)
+  Ni <- matrix(rep(N, n_groups),nrow = n_groups)
+  Nj <- t(Nj)
   Deff <- contact_matrix * (Ni / Nj)
   
   ones <- rep(1,n_groups)
@@ -31,29 +34,47 @@ get_beta <- function(R0, contact_matrix, N, sigma, gamma,
   d <- as.numeric(eigs(GD,1)$values)
   beta <- R0/d
   
-  if(!is.null(contact_matrix2) & !is.null(init_s)){
-    Sj <- matrix(rep(init_s, n_groups), nrow = n_groups)
-    Si <- t(Sj)
-    Deff2 <- contact_matrix2 * (Si / Nj)
-    F_mat2 <- matrix(rep(0,(6*n_groups)^2),nrow = 6*n_groups)
-    F_mat2[1:n_groups,(3*n_groups+1):(4*n_groups)] <- Deff2 # E -> I
-    F_mat2[(2*n_groups+1):(3*n_groups),(4*n_groups+1):(5*n_groups)] <- Deff2 # Ev_1d -> Iv_1d
-    F_mat2[(3*n_groups+1):(4*n_groups),(5*n_groups+1):(6*n_groups)] <- Deff2 # Ev_2d -> Iv_2d
+  rtn <- list(beta = beta)
+  
+  if(!is.null(contact_matrix2) & !is.null(init_s) &
+     !is.null(eta) & !is.null(eta2)){
     
+    Si <- matrix(rep(init_s, n_groups), nrow = n_groups)
+    Deff2 <- contact_matrix2 * (Si / Nj) # effective contact matrix
+    
+    # create empty matrix for F
+    F_mat2 <- matrix(rep(0,(6*n_groups)^2),nrow = 6*n_groups)
+    # fill in F matrix with copies of Deff
+    # block row 1: E -> I
+    F_mat2[1:n_groups,(3*n_groups+1):(4*n_groups)] <- Deff2 # E -> I
+    F_mat2[1:n_groups,(4*n_groups+1):(5*n_groups)] <- Deff2 # E -> I
+    F_mat2[1:n_groups,(5*n_groups+1):(6*n_groups)] <- Deff2 # E -> I
+    # block row 2: Ev_1d -> Iv_1d
+    F_mat2[(2*n_groups+1):(3*n_groups),(3*n_groups+1):(4*n_groups)] <- eta * Deff2 # Ev_1d -> Iv_1d
+    F_mat2[(2*n_groups+1):(3*n_groups),(4*n_groups+1):(5*n_groups)] <- eta * Deff2 # Ev_1d -> Iv_1d
+    F_mat2[(2*n_groups+1):(3*n_groups),(5*n_groups+1):(6*n_groups)] <- eta * Deff2 # Ev_1d -> Iv_1d
+    # block row 3: Ev_2d -> Iv_2d
+    F_mat2[(3*n_groups+1):(4*n_groups),(3*n_groups+1):(4*n_groups)] <- eta2 * Deff2 # Ev_2d -> Iv_2d
+    F_mat2[(3*n_groups+1):(4*n_groups),(4*n_groups+1):(5*n_groups)] <- eta2 * Deff2 # Ev_2d -> Iv_2d
+    F_mat2[(3*n_groups+1):(4*n_groups),(5*n_groups+1):(6*n_groups)] <- eta2 * Deff2 # Ev_2d -> Iv_2d
+    
+    # V matrix
     v_vec2 <- c(-sigma*ones, -sigma*ones, -sigma*ones,
                 -gamma*ones, -gamma*ones, -gamma*ones)
     V2 <- diag(v_vec2)
-    F_mat2[(3*n_groups+1):(4*n_groups),1:n_groups] <- diag(sigma*ones) # I
-    F_mat2[(4*n_groups+1):(5*n_groups), (2*n_groups+1):(3*n_groups)] <- diag(sigma*ones) # Iv_1d
-    F_mat2[(5*n_groups+1):(6*n_groups), (3*n_groups+1):(4*n_groups)] <- diag(sigma*ones) # Iv_2d
+    V2[(3*n_groups+1):(4*n_groups),1:n_groups] <- diag(sigma*ones) # I
+    V2[(4*n_groups+1):(5*n_groups), (2*n_groups+1):(3*n_groups)] <- diag(sigma*ones) # Iv_1d
+    V2[(5*n_groups+1):(6*n_groups), (3*n_groups+1):(4*n_groups)] <- diag(sigma*ones) # Iv_2d
     
     GD2 <- -F_mat2 %*% solve(V2)
     d2 <- as.numeric(eigs(GD2,1)$values)
     beta2 <- Reff/d2
+    
+    rtn <- list(beta = beta,
+                beta2 = beta2)
   }
   
-  rtn <- list(beta = beta,
-              beta2 = beta2)
+  
   return(rtn)
   
 }
