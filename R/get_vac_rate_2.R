@@ -7,20 +7,21 @@
 #' used and the ve of each vaccine)
 #' @keywords vacamole
 #' @export
-get_vac_rate_2 <- function(times, vac_schedule, ve){
+get_vac_rate_2 <- function(times, vac_schedule, ve, t_ve_pf, t_ve_az){
+  
     #print(times)
     # pfizer
     pf_dose1 <- vac_schedule %>%
       select(date, pf_d1_1:pf_d1_9)
     pf_dose2 <- vac_schedule %>%
       select(date, pf_d2_1:pf_d2_9)
-    
+
     # moderna
-    mo_dose1 <- vac_schedule %>%
-      select(date, mo_d1_1:mo_d1_9)
-    mo_dose2 <- vac_schedule %>%
-      select(date, mo_d2_1:mo_d2_9)
-    
+    # mo_dose1 <- vac_schedule %>%
+    #   select(date, mo_d1_1:mo_d1_9)
+    # mo_dose2 <- vac_schedule %>%
+    #   select(date, mo_d2_1:mo_d2_9)
+    # 
     # astrazeneca
     az_dose1 <- vac_schedule %>%
       select(date, az_d1_1:az_d1_9)
@@ -32,21 +33,37 @@ get_vac_rate_2 <- function(times, vac_schedule, ve){
     
     for(t in times){
       time_point <- ifelse(floor(t) == 0, floor(t) + 1, floor(t))
-    
-      total_dose1 <- unlist(pf_dose1[time_point,-1] + mo_dose1[time_point,-1] + az_dose1[time_point,-1])
+      
+      # total_dose1 <- unlist(az_dose1[time_point,-1])
+      # total_dose2 <- unlist(az_dose2[time_point,-1])
+      total_dose1 <- unlist(pf_dose1[time_point,-1] + 
+                              #mo_dose1[time_point,-1] + 
+                              az_dose1[time_point,-1])
       names(total_dose1) <- paste0("tot_",c(substr(names(total_dose1), 4, 7)))
-    
-      total_dose2 <- unlist(pf_dose2[time_point,-1] + mo_dose2[time_point,-1] + az_dose2[time_point,-1])
+
+      total_dose2 <- unlist(pf_dose2[time_point,-1] + 
+                              #mo_dose2[time_point,-1] + 
+                              az_dose2[time_point,-1])
       names(total_dose2) <- paste0("tot_",c(substr(names(total_dose2), 4, 7)))
-    
-      comp_ve_dose1 <- unlist((pf_dose1[time_point,-1]/total_dose1) * ve$pfizer[1] + 
-                              (mo_dose1[time_point,-1]/total_dose1) * ve$moderna[1] + 
-                              (az_dose1[time_point,-1]/total_dose1) * ve$astrazeneca[1])
-    
-      comp_ve_dose2 <- unlist((pf_dose2[time_point,-1]/total_dose2) * ve$pfizer[2] + 
-                              (mo_dose2[time_point,-1]/total_dose2) * ve$moderna[2] + 
-                              (az_dose2[time_point,-1]/total_dose2) * ve$astrazeneca[2])
-    
+
+      # comp_ve_dose1 <- unlist((pf_dose1[time_point,-1]/total_dose1) * ve$pfizer[1] +
+      #                         #(mo_dose1[time_point,-1]/total_dose1) * ve$moderna[1] +
+      #                         (az_dose1[time_point,-1]/total_dose1) * ve$astrazeneca[1])
+      # 
+      # comp_ve_dose2 <- unlist((pf_dose2[time_point,-1]/total_dose2) * ve$pfizer[2] +
+      #                         #(mo_dose2[time_point,-1]/total_dose2) * ve$moderna[2] +
+      #                         (az_dose2[time_point,-1]/total_dose2) * ve$astrazeneca[2])
+      # comp_ve_dose1 <- c(0,rep(ve$astrazeneca[1],5),rep(0,3))
+      # comp_ve_dose2 <- c(0,rep(ve$astrazeneca[2],5),rep(0,3))
+      
+      if(t >= t_ve_pf & t < t_ve_az){
+        comp_ve_dose1 <- c(0,rep(ve$pfizer[1],8))
+        comp_ve_dose2 <- c(0,rep(ve$pfizer[2],8))
+      } else {
+        comp_ve_dose1 <- c(0,rep(ve$astrazeneca[1],8))
+        comp_ve_dose2 <- c(0,rep(ve$astrazeneca[2],8))
+      }
+      
       eta_vec <- 1 - ifelse(is.nan(comp_ve_dose1), 0, comp_ve_dose1)
       names(eta_vec) <- paste0("eta_",1:9)
       eta2_vec <- 1- ifelse(is.nan(comp_ve_dose2), 0, comp_ve_dose2)
