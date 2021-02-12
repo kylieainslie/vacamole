@@ -15,11 +15,11 @@
 #' @export
 get_beta <- function(R0, contact_matrix, N, sigma, gamma, 
                      Reff, contact_matrix2 = NULL, init_s = NULL,
-                     eta = NULL, eta2 = NULL){
+                     eta = NULL, eta2 = NULL, vac_started = FALSE){
   
   n_groups <- length(N)
   Ni <- matrix(rep(N, n_groups),nrow = n_groups)
-  Nj <- t(Nj)
+  Nj <- t(Ni)
   Deff <- contact_matrix * (Ni / Nj)
   
   ones <- rep(1,n_groups)
@@ -42,6 +42,7 @@ get_beta <- function(R0, contact_matrix, N, sigma, gamma,
     Si <- matrix(rep(init_s, n_groups), nrow = n_groups)
     Deff2 <- contact_matrix2 * (Si / Nj) # effective contact matrix
     
+    if(vac_started){
     # create empty matrix for F
     F_mat2 <- matrix(rep(0,(6*n_groups)^2),nrow = 6*n_groups)
     # fill in F matrix with copies of Deff
@@ -67,6 +68,13 @@ get_beta <- function(R0, contact_matrix, N, sigma, gamma,
     V2[(5*n_groups+1):(6*n_groups), (3*n_groups+1):(4*n_groups)] <- diag(sigma*ones) # Iv_2d
     
     GD2 <- -F_mat2 %*% solve(V2)
+    } else {
+      
+      F_mat2 <- matrix(rep(0,(2*n_groups)^2),nrow = 2*n_groups)
+      F_mat2[1:n_groups,(n_groups+1):dim(F_mat)[2]] <- Deff2
+      GD2 <- -F_mat2 %*% solve(V)
+    }
+    
     d2 <- as.numeric(eigs(GD2,1)$values)
     beta2 <- Reff/d2
     
