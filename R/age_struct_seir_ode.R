@@ -8,7 +8,7 @@
 # Define model -----------------------------------------------------
 age_struct_seir_ode <- function(times,init,params){
   with(as.list(c(params,init)), {
-    
+    #print(times)
     # define initial state vectors from input ----------------------
     S = c(S1, S2, S3, S4, S5, S6, S7, S8, S9)
     Shold_1d = c(Shold_1d1, Shold_1d2, Shold_1d3, Shold_1d4, Shold_1d5, Shold_1d6, 
@@ -35,20 +35,38 @@ age_struct_seir_ode <- function(times,init,params){
     tmp <- get_vac_rate(times,params)
     alpha <- c(tmp[[1]][1:9])
     alpha2 <- c(tmp[[1]][10:18])
-    
     eta <- c(tmp[[1]][19:27])
     eta2 <- c(tmp[[1]][28:36])
+    delay <- tmp[[1]][37]
+    delay2 <- tmp[[1]][38]
     
     # constant vac rate
     # if(!is.null(vaccines_per_day) & !is.null(vaccines_per_day2)){
     # alpha <- ifelse(t>tv && S/N > (1 - uptake), vac_per_day, 0)
     # alpha2 <- ifelse(t>tv2 && S/N > (1 - uptake), vac_per_day2, 0)
     # }
-
+    
+    # determine force of infection ----------------------------------
+    lambda <- beta * (c_start %*% ((I + Iv_1d + Iv_2d)/N))
+    # ---------------------------------------------------------------
+      C <- c_start
+      upper_thresh <- sum(N) * 21/100000
+      lower_thresh <- sum(N) * 7/100000
+      log_cm <- identical(C, c_lockdown)
+      #print(log_cm)
+      
+      incidence <- (S + Shold_1d + (eta * (Sv_1d + Shold_2d)) + (eta2 * Sv_2d)) * lambda
+      s_inc <- sum(incidence)
+      
+      C <- (s_inc < lower_thresh) * c_relaxed + (s_inc >= upper_thresh) * c_lockdown +
+           (s_inc >= lower_thresh & s_inc < upper_thresh & !log_cm) * c_relaxed +
+           (s_inc >= lower_thresh & s_inc < upper_thresh & log_cm) * c_lockdown
+     
+      lambda <- beta * (C %*% ((I + Iv_1d + Iv_2d)/N))
+    # ---------------------------------------------------------------
     ################################################################
     # ODEs:
-    lambda <- beta * (C %*% ((I + Iv_1d + Iv_2d)/N))
-    
+      
     dS <- -lambda * S - alpha * S
     dShold_1d <- alpha * S - (1/delay) * Shold_1d - lambda * Shold_1d
     dSv_1d <- (1/delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d #ifelse(Sv_1d>0,alpha2 * Sv_1d/(Sv_1d+Ev_1d+Iv_1d+Rv_1d), alpha2*0)
