@@ -1,9 +1,15 @@
 
+# need to convert from cumulative
+# vac_scheduleB <- read_csv("inst/extdata/data/cum_upt_B_parallel.csv")
+# vac_scheduleB_not_cum <- data.frame(date = vac_scheduleB$date[-1],
+#                                     diff(as.matrix(vac_scheduleB[,-1])))
+# write_csv(vac_scheduleB_not_cum,"inst/extdata/data/not_cum_upt_B.csv")
+
 n <- 17407585 
 age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463, 
               0.14514332, 0.12092904, 0.08807406, 0.04622194)
 n_vec <- n * age_dist
-n_vec[2] <- n_vec[2] * 0.2 # only 18 and 19 year olds will be vaccinated
+#n_vec[2] <- n_vec[2] * 0.2 # only 18 and 19 year olds will be vaccinated
 uptake <- 0.85
 perc_already_vaccinated <- c(0, 0.0737, 0.0737, 0.0736, 0.0822, 0.0773, 1, 1, 1)
 vac_per_week <- 800000
