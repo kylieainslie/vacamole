@@ -49,20 +49,20 @@ age_struct_seir_ode <- function(times,init,params){
     # determine force of infection ----------------------------------
     lambda <- beta * (c_start %*% ((I + Iv_1d + Iv_2d)/N))
     # ---------------------------------------------------------------
-      C <- c_start
-      upper_thresh <- sum(N) * 21/100000
-      lower_thresh <- sum(N) * 7/100000
-      log_cm <- identical(C, c_lockdown)
-      #print(log_cm)
-      
-      incidence <- (S + Shold_1d + (eta * (Sv_1d + Shold_2d)) + (eta2 * Sv_2d)) * lambda
-      s_inc <- sum(incidence)
-      
-      C <- (s_inc < lower_thresh) * c_relaxed + (s_inc >= upper_thresh) * c_lockdown +
-           (s_inc >= lower_thresh & s_inc < upper_thresh & !log_cm) * c_relaxed +
-           (s_inc >= lower_thresh & s_inc < upper_thresh & log_cm) * c_lockdown
-     
-      lambda <- beta * (C %*% ((I + Iv_1d + Iv_2d)/N))
+      # C <- c_start
+      # upper_thresh <- sum(N) * 21/100000
+      # lower_thresh <- sum(N) * 7/100000
+      # log_cm <- identical(C, c_lockdown)
+      # #print(log_cm)
+      # 
+      # incidence <- (S + Shold_1d + (eta * (Sv_1d + Shold_2d)) + (eta2 * Sv_2d)) * lambda
+      # s_inc <- sum(incidence)
+      # 
+      # C <- (s_inc < lower_thresh) * c_relaxed + (s_inc >= upper_thresh) * c_lockdown +
+      #      (s_inc >= lower_thresh & s_inc < upper_thresh & !log_cm) * c_relaxed +
+      #      (s_inc >= lower_thresh & s_inc < upper_thresh & log_cm) * c_lockdown
+      # 
+      # lambda <- beta * (C %*% ((I + Iv_1d + Iv_2d)/N))
     # ---------------------------------------------------------------
     ################################################################
     # ODEs:
