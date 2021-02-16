@@ -69,8 +69,7 @@ age_struct_seir_ode <- function(times,init,params){
       # 
       # lambda <- beta * (C %*% ((I + Iv_1d + Iv_2d)/N))
     # ---------------------------------------------------------------
-    h_new <- h/time_inf2hosp
-    r_new <- (1 - h)/time_hosp2rec
+    
     ################################################################
     # ODEs:
       
@@ -83,11 +82,11 @@ age_struct_seir_ode <- function(times,init,params){
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta * lambda * Sv_2d - sigma * Ev_2d 
     dI <- sigma * E - (gamma + h_new) * I 
-    dIv_1d <- sigma * Ev_1d - (gamma + h_new) * Iv_1d  
-    dIv_2d <- sigma * Ev_2d - (gamma + h_new) * Iv_2d
-    dH <- h_new * I + i2 * IC - (i1 + d + r_new) * H 
-    dHv_1d <- h_new * Iv_1d + i2 * ICv_1d - (i1 + d + r_new) * Hv_1d
-    dHv_2d <- h_new * Iv_2d + i2 * ICv_2d - (i1 + d + r_new) * Hv_2d
+    dIv_1d <- sigma * Ev_1d - (gamma + h) * Iv_1d  
+    dIv_2d <- sigma * Ev_2d - (gamma + h) * Iv_2d
+    dH <- h * I + i2 * IC - (i1 + d + r) * H 
+    dHv_1d <- h * Iv_1d + i2 * ICv_1d - (i1 + d + r) * Hv_1d
+    dHv_2d <- h * Iv_2d + i2 * ICv_2d - (i1 + d + r) * Hv_2d
     dIC <- i1 * H - (i2 + d_ic) * IC
     dICv_1d <- i1 * Hv_1d - (i2 + d_ic) * ICv_1d
     dICv_2d <- i1 * Hv_2d - (i2 + d_ic) * ICv_2d
