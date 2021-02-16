@@ -26,11 +26,11 @@ get_beta <- function(R0, contact_matrix, N, sigma, gamma,
   F_mat <- matrix(rep(0,(2*n_groups)^2),nrow = 2*n_groups)
   F_mat[1:n_groups,(n_groups+1):dim(F_mat)[2]] <- Deff
   
-  v_vec <- c(-sigma*ones, -gamma*ones);
+  v_vec <- c(sigma*ones, gamma*ones);
   V <- diag(v_vec)
-  V[(n_groups+1):(2*n_groups),1:n_groups] <- diag(sigma*ones)
+  V[(n_groups+1):(2*n_groups),1:n_groups] <- diag(-sigma*ones)
   
-  GD <- -F_mat %*% solve(V)    # next generation matrix
+  GD <- F_mat %*% solve(V)    # next generation matrix
   d <- as.numeric(eigs(GD,1)$values)
   beta <- R0/d
   
