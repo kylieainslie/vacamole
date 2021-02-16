@@ -21,13 +21,42 @@ source("R/get_vac_rate.R")
 #source("R/get_vac_rate_2.R")
 
 # Model inputs ----------------------------------------------------------
-# probabilities 
-p_infection2admission <- c(0.003470, 0.000377, 0.000949, 0.003880, 0.008420, 
-                           0.016500,0.025100, 0.049400, 0.046300)
-p_admission2death <- c(0.00191, 0.00433, 0.00976, 0.02190, 0.02500, 0.04010,
-                       0.10600, 0.22900, 0.31100)
+# probabilities
+dons_probs <- read_xlsx("inst/extdata/data/ProbabilitiesDelays_20210107.xlsx")
+p_infection2admission <- dons_probs$P_infection2admission
+p_admission2death <- dons_probs$P_admission2death
+p_admission2IC <- dons_probs$P_admission2IC
+p_IC2hospital <- dons_probs$P_IC2hospital
+p_IC2death <- 1-p_IC2hospital
+p_hospital2death <- c(rep(0,5), 0.01, 0.04, 0.12, 0.29) #(after ICU)
+p_reported <- c(0.29, 0.363, 0.381, 0.545, 0.645, 0.564, 0.365, 0.33, 0.409) # from Jantien
+# delays
+time_symptom2admission <- c(2.29, 5.51, 5.05, 5.66, 6.55, 5.88, 5.69, 5.09, 4.33) # assume same as infectious2admission
+time_admission2discharge <- 7.9
+time_admission2IC <- 2.28
+time_IC2hospital <- 15.6
+time_hospital2discharge <- 10.1 #(after ICU)
+time_admission2death <- 7 
+time_IC2death <- 19 
+time_hospital2death <- 10 #(after ICU)
+# parameter inputs
+s <- 0.2
+g <- 0.125
+r0 <- 3.33966     
+init_i <- 0.544645
+tmp <- get_beta(R0 = r0, contact_matrix = c1, N = n_vec, sigma = s, 
+                gamma = s) 
+beta <- tmp$beta
+h <- p_infection2admission/time_symptom2admission
+i1 <- p_admission2IC/time_admission2IC
+i2 <- p_IC2hospital/time_IC2hospital
+d <- p_admission2death/time_admission2death
+d_ic <- p_IC2death/time_IC2death
+d_hic <- p_hospital2death/time_hospital2death
+r <- (1 - p_admission2death)/time_admission2discharge
+r_ic <- (1 - p_IC2death)/time_hospital2discharge
 
-# contact matrix 
+# contact matrices
 contact_matrices_all <- readRDS("inst/extdata/data/contact_matrices_for_model_input.rds")
 c1 <- as.matrix(contact_matrices_all$baseline[,-1])
 c2 <- as.matrix(contact_matrices_all$april2020[,-1])
@@ -49,29 +78,25 @@ t_vec <- lubridate::yday(as.Date(c("2020-01-01",
                          )))
 t_vec[length(t_vec)] <- t_vec[length(t_vec)] + 366 #2020 was a leap year
 t_index <- length(t_vec)
-# parameter values
-s <- 0.2
-g <- 0.125
-r0 <- 3.33966     
-init_i <- 0.544645
 
-tmp <- get_beta(R0 = r0, contact_matrix = c1, N = n_vec, sigma = s, 
-                gamma = s) 
-
-params <- list(beta = tmp$beta,                # transmission rate
+params <- list(beta = beta,                    # transmission rate
                gamma = g,                      # 1/gamma = infectious period
                sigma = s,                      # 1/sigma = latent period
                N = n_vec,                      # Population (no need to change)
-               h = p_infection2admission,      # Rate from infection to hospital admission
-               time_inf2hosp = 21,
-               d = p_admission2death,          # Rate from admission to death
-               r = 1-p_admission2death,                     # Rate from admission to recovery
-               time_hosp2rec = 10.8,
-               c1 = c1,
-               c2 = c2,
-               c3 = c3,
-               c4 = c4,
-               t_vec = t_vec,
+               h = h,                          # Rate from infection to hospital admission/ time from infection to hosp admission
+               i1 = i1,
+               i2 = i2,
+               d = d, 
+               d_ic = d_ic,
+               d_hic = d_hic,
+               r = r,
+               r_ic = r_ic,
+               contact_mat = c1,
+               # c1 = c1,
+               # c2 = c2,
+               # c3 = c3,
+               # c4 = c4,
+               # t_vec = t_vec,
                no_vac = TRUE
 )
 
@@ -94,6 +119,12 @@ init <- c(t = times[1],
           H = empty_state,
           Hv_1d = empty_state,
           Hv_2d = empty_state,
+          H_IC = empty_state,
+          H_ICv_1d = empty_state,
+          H_ICv_2d = empty_state,
+          IC = empty_state,
+          ICv_1d = empty_state,
+          ICv_2d = empty_state,
           D = empty_state,
           R = empty_state,
           Rv_1d = empty_state,
@@ -108,7 +139,8 @@ out <- postprocess_age_struct_model_output(seir_out)
 # estimates
 # lambda <- get_foi(out, beta = params$beta, c_main = c1, N = n_vec)
 # inc <- rowSums(out$S * lambda)
-hosp_by_age_group <- sweep((out$I + out$Iv_1d + out$Iv_2d), 2, params$h/params$time_inf2hosp, "*")
+hosp_by_age_group <- sweep((out$I + out$Iv_1d + out$Iv_2d), 2, params$h, "*") + 
+  sweep((out$IC + out$ICv_1d + out$ICv_2d), 2, params$i2, "*")
 hosp <- rowSums(hosp_by_age_group)
 
 # quick plots
