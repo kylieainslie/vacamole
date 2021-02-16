@@ -22,8 +22,8 @@ source("R/get_vac_rate.R")
 source("R/get_vac_rate_2.R")
 
 # read in hospital admission counts -------------------------------------
-nice <- readRDS("inst/extdata/data/nice_admissions_20210212.rds") %>%
-  filter(AdmissionDate >= "2020-01-01")
+nice <- readRDS("inst/extdata/data/nice_admissions_20210212.rds") #%>%
+  #filter(AdmissionDate >= "2020-01-01")
 # make dates consecutive
 nice1 <- complete(nice, AdmissionDate = full_seq(AdmissionDate, 1)) %>%
   mutate(n = ifelse(is.na(n), 0, n))
@@ -45,68 +45,93 @@ age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,
               0.14514332, 0.12092904, 0.08807406, 0.04622194)
 n <- 17407585                                 # Dutch population size
 n_vec <- n * age_dist
+prob_inf_by_age <- c(0.018, 0.115, 0.156, 0.118, 0.142, 0.199, 0.114, 
+                     0.062, 0.054 + 0.023)          
+
 
 empty_state <- c(rep(0,9))
 
 # write wrapper function for seir model code that outputs only hospital
 # admission counts ------------------------------------------------------
-fit_to_data_wrapper <- function(x, params){ #, t0, delta, s, g
+fit_to_data_wrapper <- function(x, params){
  
-  r0 <- params[1]
-  init_i <- params[2]
-  #s <- params[3]
-  #g <- params[4]
-  s <- 0.5
-  g <- 0.5
-  delta1 <- params[3]
-  delta2 <- params[4]
-  delta3 <- params[5]
-  delta4 <- params[6]
+  # r0 <- params[1]
+  # init_i <- params[2]
+  delta1 <- params[1]
+  # delta2 <- params[2]
+  t01 <- params[2]
+  # t02 <- params[3]
+  # t03 <- params[4]
+  # delta3 <- params[3]
+  # delta4 <- params[4]
   
   # list of dates at different intervention points
-  t_vec <- lubridate::yday(as.Date(c("2020-01-01", 
-                                     "2020-03-15", 
-                                     #"2020-05-11",
-                                     "2020-06-01", 
-                                     #"2020-07-01", 
-                                     #"2020-08-16",
-                                     "2020-09-29", 
-                                     #"2020-10-14",
-                                     "2020-12-15",
-                                     "2021-02-11"))) 
-  t_vec[length(t_vec)] <- t_vec[length(t_vec)] + 366 #2020 was a leap year
-  rtn <- list()
+  t_vec <- lubridate::yday(as.Date(c("2020-01-01",
+                                     "2020-03-24",
+                                     "2020-06-01"#,
+                                     #"2020-09-01"#,
+                                     #"2021-01-01",
+                                     #"2021-02-01"
+                                     )))
+  
+  t_vec[2] <- t01
+  print(t01)
+  #print(t_vec)
+  #t_vec[length(t_vec)] <- t_vec[length(t_vec)] + 366 #2020 was a leap year
+  s <- 0.2
+  g <- 0.125
+  # r0 <- 3.33966     
+  # init_i <- 0.544645
+  r0 <- 3.48164 
+  init_i <- 0.299867
   
   tmp <- get_beta(R0 = r0, contact_matrix = c1, N = n_vec, sigma = s, 
                   gamma = s) 
   beta <- tmp$beta
   
   # loop over time periods -------------------------------------------
+  rtn <- list() # store output for each iteration here
   for (i in 1:(length(t_vec)-1)){
-    delta <- (i == 1) * 1 + (i == 2) * delta1 + (i == 3) * delta2 + (i == 4) * delta3 + (i == 5) * delta4
-    params <- list(beta = beta * delta,           # transmission rate
+    print(i)
+    # print(beta)
+    # 
+    delta <- (i == 1) * 1 + (i == 2) * delta1 #+ (i == 3) * delta2 #+ (i == 4) * delta3 + (i == 5) * delta4
+    cm <- (i == 1) * c1 + (i == 2) * c2 + (i == 3) * c3 + (i == 4) * c4
+    #print(delta)
+    params <- list(beta = beta * delta,          # transmission rate
                  gamma = g,                      # 1/gamma = infectious period
                  sigma = s,                      # 1/sigma = latent period
                  N = n_vec,                      # Population (no need to change)
-                 h = p_infection2admission,      # Rate from infection to hospital admission
-                 d = p_admission2death,          # Rate from admission to death
-                 r = 0.0206,                     # Rate from admission to recovery
-                 c_start = c1,
+                 h = p_infection2admission,      # Probability from infection to hospital admission
+                 time_inf2hosp = 21,             # time from infection to hospitalisation
+                 d = p_admission2death,          # Prob from admission to death
+                 r = 1-p_admission2death,        # Prob admission to recovery
+                 time_hosp2rec = 10.8,
+                 contact_mat = cm,
                  no_vac = TRUE
     )
     
   # Specify initial values -------------------------------------------
+    # print(t01)
+    # print(t02)
+    # t0 <- (i == 1) * t01 + (i == 2) * t02 #+ (i == 3) * t03 #+ (i == 4) * t04 + (i == 5) * t05
+    # print(t0)
     if (i == length(t_vec) - 1){
-      out_length <- length(seq(t_vec[i], t_vec[i+1], by = 1))
-      times <- seq(t_vec[i], t_vec[i+1], by = 1) 
+      #out_length <- length(seq(floor(t_vec[i]), floor(t_vec[i+1]), by = 1))
+      times <- seq(floor(t_vec[i]), floor(t_vec[i+1]), by = 1)
     } else {
-      out_length <- length(seq(t_vec[i], t_vec[i+1] - 1, by = 1))
-      times <- seq(t_vec[i], t_vec[i+1] - 1, by = 1) 
+      #out_length <- length(seq(floor(t_vec[i]), floor(t_vec[i+1]) - 1, by = 1))
+      times <- seq(floor(t_vec[i]), floor(t_vec[i+1]) - 1, by = 1)
     }
-
-  timeInt <- times[2]-times[1]             
-  init <- c(t = times[1],                  
-            S = params$N - c(rep(init_i/9, 9)),
+  print(t_vec[i])
+  #print(times)
+  #print(init_i)
+  timeInt <- times[2]-times[1] 
+  #e_start <- init_e * prob_inf_by_age
+  if (i == 1){
+    i_start <- init_i * prob_inf_by_age
+    init <- c(t = t_vec[i],                  
+            S = params$N - i_start,
             Shold_1d = empty_state,
             Sv_1d = empty_state,
             Shold_2d = empty_state,
@@ -114,7 +139,7 @@ fit_to_data_wrapper <- function(x, params){ #, t0, delta, s, g
             E = empty_state,
             Ev_1d = empty_state,
             Ev_2d = empty_state,
-            I = c(rep(init_i/9, 9)),
+            I = i_start,
             Iv_1d = empty_state,
             Iv_2d = empty_state,
             H = empty_state,
@@ -124,17 +149,40 @@ fit_to_data_wrapper <- function(x, params){ #, t0, delta, s, g
             R = empty_state,
             Rv_1d = empty_state,
             Rv_2d = empty_state
-  )                      
-
+    )                      
+  } else {init <- init_new}
   # Solve model ------------------------------------------------------
   seir_out <- lsoda(init,times,age_struct_seir_ode,params)
-
   seir_out <- as.data.frame(seir_out)
   out <- postprocess_age_struct_model_output(seir_out)
-  out_vec <- rowSums(out$H + out$Hv_1d + out$Hv_2d)
-  if(length(out_vec) != out_length){
-    out_vec <- c(rep(0,out_length-length(times)), out_vec)
-  }
+  init_new <- c(t = dim(out$S)[1],
+                S = as.numeric(tail(out$S,1)),
+                Shold_1d = as.numeric(tail(out$Shold_1d,1)),
+                Sv_1d = as.numeric(tail(out$Sv_1d,1)),
+                Shold_2d = as.numeric(tail(out$Shold_2d,1)),
+                Sv_2d = as.numeric(tail(out$Sv_2d,1)),
+                E = as.numeric(tail(out$E,1)),
+                Ev_1d = as.numeric(tail(out$Ev_1d,1)),
+                Ev_2d = as.numeric(tail(out$Ev_2d,1)),
+                I = as.numeric(tail(out$I,1)),
+                Iv_1d = as.numeric(tail(out$Iv_1d,1)),
+                Iv_2d = as.numeric(tail(out$Iv_2d,1)),
+                H = as.numeric(tail(out$H,1)),
+                Hv_1d = as.numeric(tail(out$Hv_1d,1)),
+                Hv_2d = as.numeric(tail(out$Hv_2d,1)),
+                D = as.numeric(tail(out$D,1)),
+                R = as.numeric(tail(out$R,1)),
+                Rv_1d = as.numeric(tail(out$Rv_1d,1)),
+                Rv_2d = as.numeric(tail(out$Rv_2d,1))
+  )
+  #print(init_i)
+  hosp_by_age_group <- sweep((out$I + out$Iv_1d + out$Iv_2d), 2, (params$h/params$time_inf2hosp), "*")
+  out_vec <- rowSums(hosp_by_age_group)
+  # print(length(out_vec))
+  # print(out_length)
+  # if(length(out_vec) != out_length){
+  #   out_vec <- c(rep(0,out_length-length(times)), out_vec)
+  # }
   rtn[[i]] <- out_vec
   }
   
@@ -144,24 +192,35 @@ fit_to_data_wrapper <- function(x, params){ #, t0, delta, s, g
 }
 
 # use nls to fit non-linear least squares ----------------------------
-delta_start <- c(mean(c2/c1), mean(c3/c1), mean(c4/c1), 1)
-delta_lower <- c(min(c2/c1), min(c3/c1), min(c4/c1), 0.05)
-delta_upper <- c(max(c2/c1), max(c3/c1), max(c4/c1), 1)
+delta_start <- c(rep(0.69, 4))
+delta_lower <- c(rep(0.001, 4))
+delta_upper <- c(rep(1, 4))
+t0_start <- c(1.1, 88, 153)
+# t0_lower <- c(0, 70)
+# t0_upper <- c(30, 95)
+nice_sub <- nice1 %>% 
+  filter(AdmissionDate > as.Date("2019-12-30") & AdmissionDate <= as.Date("2020-06-02")) %>%
+  mutate(moving_avg3 = zoo::rollmean(n, k = 3, fill = NA)) %>%
+  filter(!is.na(moving_avg3))
 
-model_fit <- nls(n ~ fit_to_data_wrapper(AdmissionDate, params), #, t0, delta, s, g
-                 data = nice1, # where x and y are
-                 start = list(params = c(3, 0.03, delta_start)), #initial conditions s = 0.5, g = 0.5
-                 lower = c(0, 0, delta_lower), # lower bound of parameter values s = 0.1, g = 0.1
-                 upper = c(10, 10e6, delta_upper), # upper bound of parameter values s = 1, g = 1
+# fit model
+model_fit <- nls(moving_avg3 ~ fit_to_data_wrapper(AdmissionDate, params), 
+                 data = nice_sub, # where x and y are
+                 start = list(params = c(0.9, 80)), #initial conditions
+                 lower = c(0, 80), # lower bound of parameter values
+                 upper = c(1, 110), # upper bound of parameter values
                  trace = T,
                  algorithm = "port", # must be used to specify bounds
-                 control = list(maxiter = 50000, 
+                 control = list(maxiter = 100000, 
                                 warnOnly=T)
                  )
-summary(model_fit)
 # plot ---------------------------------------------------------------
-plot(n~AdmissionDate,data=nice1,type = "l")
-abline(v = t_vec)
-lines(x = nice1$AdmissionDate, y = model_fit$m$fitted(), 
+# loess_fit <- loess(n ~ time, data=nice1, span=0.5)
+# smoothed <- predict(loess_fit) 
+ymax <- max(max(model_fit$m$fitted()),nice_sub$moving_avg3)
+plot(moving_avg3~AdmissionDate,data=nice_sub,type = "l", ylim = c(0,ymax),
+     xlab = "Date", ylab = "Hospital Admissions") 
+lines(x = nice_sub$AdmissionDate, y = model_fit$m$fitted(), 
       type = "l", col = "red")
+# lines(smoothed, x = nice1$AdmissionDate, col = "blue")
 
