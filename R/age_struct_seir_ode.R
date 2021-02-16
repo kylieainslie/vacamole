@@ -8,6 +8,7 @@
 # Define model -----------------------------------------------------
 age_struct_seir_ode <- function(times,init,params){
   with(as.list(c(params,init)), {
+    #print(t)
     #print(times)
     # define initial state vectors from input ----------------------
     S = c(S1, S2, S3, S4, S5, S6, S7, S8, S9)
@@ -26,6 +27,9 @@ age_struct_seir_ode <- function(times,init,params){
     H = c(H1, H2, H3, H4, H5, H6, H7, H8, H9)
     Hv_1d = c(Hv_1d1, Hv_1d2, Hv_1d3, Hv_1d4, Hv_1d5, Hv_1d6, Hv_1d7, Hv_1d8, Hv_1d9)
     Hv_2d = c(Hv_2d1, Hv_2d2, Hv_2d3, Hv_2d4, Hv_2d5, Hv_2d6, Hv_2d7, Hv_2d8, Hv_2d9)
+    IC = c(IC1, IC2, IC3, IC4, IC5, IC6, IC7, IC8, IC9)
+    ICv_1d = c(ICv_1d1, ICv_1d2, ICv_1d3, ICv_1d4, ICv_1d5, ICv_1d6, ICv_1d7, ICv_1d8, ICv_1d9)
+    ICv_2d = c(ICv_2d1, ICv_2d2, ICv_2d3, ICv_2d4, ICv_2d5, ICv_2d6, ICv_2d7, ICv_2d8, ICv_2d9)
     D = c(D1, D2, D3, D4, D5, D6, D7, D8, D9)
     R = c(R1, R2, R3, R4, R5, R6, R7, R8, R9)
     Rv_1d = c(Rv_1d1, Rv_1d2, Rv_1d3, Rv_1d4, Rv_1d5, Rv_1d6, Rv_1d7, Rv_1d8, Rv_1d9)
@@ -40,14 +44,15 @@ age_struct_seir_ode <- function(times,init,params){
     delay <- tmp[[1]][37]
     delay2 <- tmp[[1]][38]
     
-    # constant vac rate
-    # if(!is.null(vaccines_per_day) & !is.null(vaccines_per_day2)){
-    # alpha <- ifelse(t>tv && S/N > (1 - uptake), vac_per_day, 0)
-    # alpha2 <- ifelse(t>tv2 && S/N > (1 - uptake), vac_per_day2, 0)
-    # }
-    
     # determine force of infection ----------------------------------
-    lambda <- beta * (c_start %*% ((I + Iv_1d + Iv_2d)/N))
+    # print(t)
+    # print(t_vec)
+    #contact_mat <- (t <= t_vec[2]) * c1 + (t > t_vec[2] & t <= t_vec[3]) * c2 #+ (t > t_vec[3] & t <= t_vec[4]) * c3 + 
+                   #(t > t_vec[4] & t <= t_vec[5]) * c4 + (t > t_vec[5] & t <= t_vec[6]) * c2
+    #print(contact_mat)
+    # print(contact_mat)
+    lambda <- beta * (contact_mat %*% ((I + Iv_1d + Iv_2d)/N))
+    
     # ---------------------------------------------------------------
       # C <- c_start
       # upper_thresh <- sum(N) * 21/100000
@@ -64,6 +69,8 @@ age_struct_seir_ode <- function(times,init,params){
       # 
       # lambda <- beta * (C %*% ((I + Iv_1d + Iv_2d)/N))
     # ---------------------------------------------------------------
+    h_new <- h/time_inf2hosp
+    r_new <- (1 - h)/time_hosp2rec
     ################################################################
     # ODEs:
       
@@ -75,21 +82,25 @@ age_struct_seir_ode <- function(times,init,params){
     dE <- lambda * (S + Shold_1d) - sigma * E
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta * lambda * Sv_2d - sigma * Ev_2d 
-    dI <- sigma * E - (gamma + h) * I 
-    dIv_1d <- sigma * Ev_1d - (gamma + h) * Iv_1d  
-    dIv_2d <- sigma * Ev_2d - (gamma + h) * Iv_2d
-    dH <- h * I - (d + r) * H
-    dHv_1d <- h * Iv_1d - (d + r) * Hv_1d
-    dHv_2d <- h * Iv_2d - (d + r) * Hv_2d
-    dD <- d * (H + Hv_1d + Hv_2d) 
-    dR <- gamma * I + r * H 
-    dRv_1d <- gamma * Iv_1d + r * Hv_1d
-    dRv_2d <- gamma * Iv_2d + r * Hv_2d
+    dI <- sigma * E - (gamma + h_new) * I 
+    dIv_1d <- sigma * Ev_1d - (gamma + h_new) * Iv_1d  
+    dIv_2d <- sigma * Ev_2d - (gamma + h_new) * Iv_2d
+    dH <- h_new * I + i2 * IC - (i1 + d + r_new) * H 
+    dHv_1d <- h_new * Iv_1d + i2 * ICv_1d - (i1 + d + r_new) * Hv_1d
+    dHv_2d <- h_new * Iv_2d + i2 * ICv_2d - (i1 + d + r_new) * Hv_2d
+    dIC <- i1 * H - (i2 + d_ic) * IC
+    dICv_1d <- i1 * Hv_1d - (i2 + d_ic) * ICv_1d
+    dICv_2d <- i1 * Hv_2d - (i2 + d_ic) * ICv_2d
+    dD <- d * (H + Hv_1d + Hv_2d) + d_ic * (IC + ICv_1d + ICv_2d)
+    dR <- gamma * I + r_new * H 
+    dRv_1d <- gamma * Iv_1d + r_new * Hv_1d
+    dRv_2d <- gamma * Iv_2d + r_new * Hv_2d
     
     ################################################################
     
     dt <- 1
     list(c(dt,dS,dShold_1d,dSv_1d,dShold_2d,dSv_2d,dE,dEv_1d,dEv_2d,
-           dI,dIv_1d,dIv_2d,dH,dHv_1d,dHv_2d,dD,dR,dRv_1d,dRv_2d))
+           dI,dIv_1d,dIv_2d,dH,dHv_1d,dHv_2d, dIC, dICv_1d, dICv_2d,
+           dD,dR,dRv_1d,dRv_2d))
   })
 }
