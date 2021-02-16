@@ -27,6 +27,9 @@ age_struct_seir_ode <- function(times,init,params){
     H = c(H1, H2, H3, H4, H5, H6, H7, H8, H9)
     Hv_1d = c(Hv_1d1, Hv_1d2, Hv_1d3, Hv_1d4, Hv_1d5, Hv_1d6, Hv_1d7, Hv_1d8, Hv_1d9)
     Hv_2d = c(Hv_2d1, Hv_2d2, Hv_2d3, Hv_2d4, Hv_2d5, Hv_2d6, Hv_2d7, Hv_2d8, Hv_2d9)
+    H_IC = c(H_IC1, H_IC2, H_IC3, H_IC4, H_IC5, H_IC6, H_IC7, H_IC8, H_IC9)
+    H_ICv_1d = c(H_ICv_1d1, H_ICv_1d2, H_ICv_1d3, H_ICv_1d4, H_ICv_1d5, H_ICv_1d6, H_ICv_1d7, H_ICv_1d8, H_ICv_1d9)
+    H_ICv_2d = c(H_ICv_2d1, H_ICv_2d2, H_ICv_2d3, H_ICv_2d4, H_ICv_2d5, H_ICv_2d6, H_ICv_2d7, H_ICv_2d8, H_ICv_2d9)
     IC = c(IC1, IC2, IC3, IC4, IC5, IC6, IC7, IC8, IC9)
     ICv_1d = c(ICv_1d1, ICv_1d2, ICv_1d3, ICv_1d4, ICv_1d5, ICv_1d6, ICv_1d7, ICv_1d8, ICv_1d9)
     ICv_2d = c(ICv_2d1, ICv_2d2, ICv_2d3, ICv_2d4, ICv_2d5, ICv_2d6, ICv_2d7, ICv_2d8, ICv_2d9)
@@ -45,15 +48,12 @@ age_struct_seir_ode <- function(times,init,params){
     delay2 <- tmp[[1]][38]
     
     # determine force of infection ----------------------------------
-    # print(t)
-    # print(t_vec)
     #contact_mat <- (t <= t_vec[2]) * c1 + (t > t_vec[2] & t <= t_vec[3]) * c2 #+ (t > t_vec[3] & t <= t_vec[4]) * c3 + 
                    #(t > t_vec[4] & t <= t_vec[5]) * c4 + (t > t_vec[5] & t <= t_vec[6]) * c2
-    #print(contact_mat)
-    # print(contact_mat)
+
     lambda <- beta * (contact_mat %*% ((I + Iv_1d + Iv_2d)/N))
     
-    # ---------------------------------------------------------------
+    # change contact matrix based on condition ----------------------
       # C <- c_start
       # upper_thresh <- sum(N) * 21/100000
       # lower_thresh <- sum(N) * 7/100000
@@ -81,25 +81,28 @@ age_struct_seir_ode <- function(times,init,params){
     dE <- lambda * (S + Shold_1d) - sigma * E
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta * lambda * Sv_2d - sigma * Ev_2d 
-    dI <- sigma * E - (gamma + h_new) * I 
+    dI <- sigma * E - (gamma + h) * I 
     dIv_1d <- sigma * Ev_1d - (gamma + h) * Iv_1d  
     dIv_2d <- sigma * Ev_2d - (gamma + h) * Iv_2d
-    dH <- h * I + i2 * IC - (i1 + d + r) * H 
-    dHv_1d <- h * Iv_1d + i2 * ICv_1d - (i1 + d + r) * Hv_1d
-    dHv_2d <- h * Iv_2d + i2 * ICv_2d - (i1 + d + r) * Hv_2d
+    dH <- h * I - (i1 + d + r) * H 
+    dHv_1d <- h * Iv_1d - (i1 + d + r) * Hv_1d
+    dHv_2d <- h * Iv_2d - (i1 + d + r) * Hv_2d
+    dH_IC <- i2 * IC - (r_ic + d_hic) * H_IC
+    dH_ICv_1d <- i2 * ICv_1d - (r_ic + d_hic) * H_ICv_1d
+    dH_ICv_2d <- i2 * ICv_2d - (r_ic + d_hic) * H_ICv_2d
     dIC <- i1 * H - (i2 + d_ic) * IC
     dICv_1d <- i1 * Hv_1d - (i2 + d_ic) * ICv_1d
     dICv_2d <- i1 * Hv_2d - (i2 + d_ic) * ICv_2d
-    dD <- d * (H + Hv_1d + Hv_2d) + d_ic * (IC + ICv_1d + ICv_2d)
-    dR <- gamma * I + r_new * H 
-    dRv_1d <- gamma * Iv_1d + r_new * Hv_1d
-    dRv_2d <- gamma * Iv_2d + r_new * Hv_2d
+    dD <- d * (H + Hv_1d + Hv_2d) + d_ic * (IC + ICv_1d + ICv_2d) + d_hic * (H_IC + H_ICv_1d + H_ICv_2d)
+    dR <- gamma * I + r * H + r_ic * H_IC
+    dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d
+    dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d
     
     ################################################################
     
     dt <- 1
     list(c(dt,dS,dShold_1d,dSv_1d,dShold_2d,dSv_2d,dE,dEv_1d,dEv_2d,
-           dI,dIv_1d,dIv_2d,dH,dHv_1d,dHv_2d, dIC, dICv_1d, dICv_2d,
-           dD,dR,dRv_1d,dRv_2d))
+           dI,dIv_1d,dIv_2d,dH,dHv_1d,dHv_2d, dH_IC, dH_ICv_1d, dH_ICv_2d,
+           dIC, dICv_1d, dICv_2d,dD,dR,dRv_1d,dRv_2d))
   })
 }
