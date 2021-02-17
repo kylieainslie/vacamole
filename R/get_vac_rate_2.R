@@ -42,21 +42,20 @@ get_vac_rate_2 <- function(times, vac_schedule, ve, delay, no_vac = FALSE){
     
     # calculate composite VE
     for (time_point in 1:(length(times)-1)){
+
       total_dose1 <- unlist(pf_dose1_cs[time_point,] + az_dose1_cs[time_point,])
-      names(total_dose1) <- paste0("tot_",c(substr(names(total_dose1), 4, 7)))
       total_dose2 <- unlist(pf_dose2_cs[time_point,] + az_dose2_cs[time_point,])
-      names(total_dose2) <- paste0("tot_",c(substr(names(total_dose2), 4, 7)))
-    
+      
       frac_pf_dose1 <- unlist(pf_dose1_cs[time_point,]/total_dose1)
       frac_pf_dose1 <- ifelse(is.nan(frac_pf_dose1), 0, frac_pf_dose1)
       frac_pf_dose2 <- unlist(pf_dose2_cs[time_point,]/total_dose2)
       frac_pf_dose2 <- ifelse(is.nan(frac_pf_dose2), 0, frac_pf_dose2)
-    
+      
       frac_az_dose1 <- unlist(az_dose1_cs[time_point,]/total_dose1)
       frac_az_dose1 <- ifelse(is.nan(frac_az_dose1), 0, frac_az_dose1)
       frac_az_dose2 <- unlist(az_dose2_cs[time_point,]/total_dose2)
       frac_az_dose2 <- ifelse(is.nan(frac_az_dose2), 0, frac_az_dose2)
-    
+      
       comp_ve_dose1 <- frac_pf_dose1 * ve$pfizer[1] + frac_az_dose1 * ve$astrazeneca[1]
       comp_ve_dose2 <- frac_pf_dose2 * ve$pfizer[2] + frac_az_dose2 * ve$astrazeneca[2]
     
@@ -65,17 +64,15 @@ get_vac_rate_2 <- function(times, vac_schedule, ve, delay, no_vac = FALSE){
       delay_dose2 <- frac_pf_dose2 * delay$pfizer[2] + frac_az_dose2 * delay$astrazeneca[2]
       delay_dose2 <- ifelse(delay_dose2 == 0, 1, delay_dose2) # this prevents from deviding by 0 in the ODEs
     
-      eta_vec <- 1 - ifelse(is.nan(comp_ve_dose1), 0, comp_ve_dose1)
-      names(eta_vec) <- paste0("eta_",1:9)
-      eta2_vec <- 1- ifelse(is.nan(comp_ve_dose2), 0, comp_ve_dose2)
-      names(eta2_vec) <- paste0("eta2_",1:9)
+      eta_dose1 <- 1 - ifelse(is.nan(comp_ve_dose1), 0, comp_ve_dose1)
+      eta_dose2 <- 1- ifelse(is.nan(comp_ve_dose2), 0, comp_ve_dose2)
       
       tmp <- data.frame(time = time_point, 
                        age_group = 1:9, 
                        total_dose1 = total_dose1, 
                        total_dose2 = total_dose2, 
-                       eta_dose1 = eta_vec, 
-                       eta_dose2 = eta2_vec,
+                       eta_dose1 = eta_dose1, 
+                       eta_dose2 = eta_dose2,
                        delay_dose1 = delay_dose1,
                        delay_dose2 = delay_dose2,
                        row.names = NULL)
