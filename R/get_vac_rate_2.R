@@ -2,13 +2,14 @@
 #' @param times vector of times
 #' @param vac_schedule schedule of vaccination
 #' @param ve vaccine efficacies
+#' @param delay vaccine delays to protection
 #' @params no_vac logical
 #' @return list of percentage of each group to be vaccinated at time point
 #' and the composite ve for each group (based on how much of each vaccine is
 #' used and the ve of each vaccine)
 #' @keywords vacamole
 #' @export
-get_vac_rate_2 <- function(times, vac_schedule, ve, no_vac = FALSE){
+get_vac_rate_2 <- function(times, vac_schedule, ve, delay, no_vac = FALSE){
   if (no_vac){
     total_dose1 <- c(rep(0,9))
     total_dose2 <- c(rep(0,9))
@@ -40,7 +41,7 @@ get_vac_rate_2 <- function(times, vac_schedule, ve, no_vac = FALSE){
     az_dose2_cs <- cumsum(az_dose2[,-1])
     
     # calculate composite VE
-    for (time_point in 1: length(times)){
+    for (time_point in 1:(length(times)-1)){
       total_dose1 <- unlist(pf_dose1_cs[time_point,] + az_dose1_cs[time_point,])
       names(total_dose1) <- paste0("tot_",c(substr(names(total_dose1), 4, 7)))
       total_dose2 <- unlist(pf_dose2_cs[time_point,] + az_dose2_cs[time_point,])
@@ -79,7 +80,7 @@ get_vac_rate_2 <- function(times, vac_schedule, ve, no_vac = FALSE){
                        delay_dose2 = delay_dose2,
                        row.names = NULL)
     
-      if(t == times[1]){
+      if(time_point == 1){
         rtn <- tmp
       } else{ rtn <- bind_rows(rtn, tmp)}
     }
