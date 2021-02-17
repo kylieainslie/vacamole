@@ -8,8 +8,7 @@
 # Define model -----------------------------------------------------
 age_struct_seir_ode <- function(times,init,params){
   with(as.list(c(params,init)), {
-    #print(t)
-    #print(times)
+    
     # define initial state vectors from input ----------------------
     S = c(S1, S2, S3, S4, S5, S6, S7, S8, S9)
     Shold_1d = c(Shold_1d1, Shold_1d2, Shold_1d3, Shold_1d4, Shold_1d5, Shold_1d6, 
@@ -46,28 +45,16 @@ age_struct_seir_ode <- function(times,init,params){
     eta2 <- c(tmp[[1]][28:36])
     delay <- tmp[[1]][37]
     delay2 <- tmp[[1]][38]
-    
-    # determine force of infection ----------------------------------
-    #contact_mat <- (t <= t_vec[2]) * c1 + (t > t_vec[2] & t <= t_vec[3]) * c2 #+ (t > t_vec[3] & t <= t_vec[4]) * c3 + 
-                   #(t > t_vec[4] & t <= t_vec[5]) * c4 + (t > t_vec[5] & t <= t_vec[6]) * c2
 
-    lambda <- beta * (contact_mat %*% ((I + Iv_1d + Iv_2d)/N))
+    # determine force of infection ----------------------------------
+    ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))
+    if(t == 0){dH_sum <- 0}
+    contact_mat <- (ic_admin < ic_thresh_u & ic_admin >= ic_thresh_l & dH_sum < 0) * c_lockdown +
+                   (ic_admin < ic_thresh_l) * c_relaxed +
+                   (ic_admin >= ic_thresh_l & ic_admin < ic_thresh_u & dH_sum > 0) * c_relaxed +
+                   (ic_admin >= ic_thresh_u) * c_lockdown 
     
-    # change contact matrix based on condition ----------------------
-      # C <- c_start
-      # upper_thresh <- sum(N) * 21/100000
-      # lower_thresh <- sum(N) * 7/100000
-      # log_cm <- identical(C, c_lockdown)
-      # #print(log_cm)
-      # 
-      # incidence <- (S + Shold_1d + (eta * (Sv_1d + Shold_2d)) + (eta2 * Sv_2d)) * lambda
-      # s_inc <- sum(incidence)
-      # 
-      # C <- (s_inc < lower_thresh) * c_relaxed + (s_inc >= upper_thresh) * c_lockdown +
-      #      (s_inc >= lower_thresh & s_inc < upper_thresh & !log_cm) * c_relaxed +
-      #      (s_inc >= lower_thresh & s_inc < upper_thresh & log_cm) * c_lockdown
-      # 
-      # lambda <- beta * (C %*% ((I + Iv_1d + Iv_2d)/N))
+    lambda <- beta * (contact_mat %*% ((I + Iv_1d + Iv_2d)/N))
     # ---------------------------------------------------------------
     
     ################################################################
@@ -75,8 +62,8 @@ age_struct_seir_ode <- function(times,init,params){
       
     dS <- -lambda * S - alpha * S
     dShold_1d <- alpha * S - (1/delay) * Shold_1d - lambda * Shold_1d
-    dSv_1d <- (1/delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d #ifelse(Sv_1d>0,alpha2 * Sv_1d/(Sv_1d+Ev_1d+Iv_1d+Rv_1d), alpha2*0)
-    dShold_2d <- alpha2 * Sv_1d - (1/delay2) * Shold_2d - eta * lambda * Shold_2d #ifelse(Sv_1d>0,alpha2 * Sv_1d/(Sv_1d+Ev_1d+Iv_1d+Rv_1d), alpha2*0)
+    dSv_1d <- (1/delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d 
+    dShold_2d <- alpha2 * Sv_1d - (1/delay2) * Shold_2d - eta * lambda * Shold_2d
     dSv_2d <- (1/delay2) * Shold_2d - eta2 * lambda * Sv_2d
     dE <- lambda * (S + Shold_1d) - sigma * E
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
@@ -98,8 +85,9 @@ age_struct_seir_ode <- function(times,init,params){
     dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d
     dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d
     
+    dH_sum <- sum(dH + dHv_1d + dHv_2d)
+    assign("dH_sum", dH_sum, envir = globalenv())
     ################################################################
-    
     dt <- 1
     list(c(dt,dS,dShold_1d,dSv_1d,dShold_2d,dSv_2d,dE,dEv_1d,dEv_2d,
            dI,dIv_1d,dIv_2d,dH,dHv_1d,dHv_2d, dH_IC, dH_ICv_1d, dH_ICv_2d,
