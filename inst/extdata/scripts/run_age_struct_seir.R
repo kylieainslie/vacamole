@@ -96,9 +96,9 @@ init_states <- list(E = c((3245 / p_reported_all) * p_inf_by_age * 8.5), # cases
                     IC = c(p_admission2IC/sum(p_admission2IC) * 639), # from coronadashboard Feb 1, 2021
                     R = c(3000000 * p_recovered))
 
-empty_state <- c(rep(0,n_age_groups))
+empty_state <- c(rep(0,9))
 
-tag <- "1cp_old_to_young"
+tag <- "cmm_old_to_young"
 
 params <- list(beta = beta,                    # transmission rate
                gamma = g,                      # 1/gamma = infectious period
@@ -112,12 +112,13 @@ params <- list(beta = beta,                    # transmission rate
                d_hic = d_hic,
                r = r,
                r_ic = r_ic,
-               contact_mat = c2,
+               c_lockdown = c2,
                c_relaxed = c4,
                vac_schedule = old_to_young,
+               ve = ve,
                delay = delays,
                ic_thresh_l = 10,
-               ic_thresh_u = 25,
+               ic_thresh_u = 20,
                no_vac = FALSE
 )
 
@@ -158,63 +159,74 @@ seir_out <- lsoda(init,times,age_struct_seir_ode,params)
 seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 
-# quick plots
-plot(times, rowSums(out$I), type = "l")
-plot(times, rowSums(out$H), type = "l")
-plot(times, rowSums(out$IC), type = "l")
-
 # Summarise results ------------------------------------------------
 beta <- params$beta * timeInt
-res <- get_vac_rate_2(times, params$vac_schedule, params$ve, 
-                      t_ve_pf = params$t_ve_pf, t_ve_az = params$t_ve_az)
-eta_dat <- res %>%
-  select(time, age_group, eta) %>%
-  pivot_wider(names_from = age_group, names_prefix = "eta",
-              values_from = eta)
-eta2_dat <- res %>%
-  select(time, age_group, eta2) %>%
-  pivot_wider(names_from = age_group, names_prefix = "eta",
-              values_from = eta2)
-N <- params$N
-h <- params$h
-gamma <- params$gamma
-contact_mat <- params$C
-#time_inf_to_hosp <- 11
+res <- get_vac_rate_2(times, params$vac_schedule, params$ve, params$delay)
+eta_dose1 <- res %>%
+  select(time, age_group, eta_dose1) %>%
+  pivot_wider(names_from = age_group, names_prefix = "eta_dose1_",
+              values_from = eta_dose1)
+eta_dose2 <- res %>%
+  select(time, age_group, eta_dose2) %>%
+  pivot_wider(names_from = age_group, names_prefix = "eta_dose2_",
+              values_from = eta_dose2)
 
-lambda_est <- get_foi(dat = out, 
-                      beta = beta, 
-                      c_main = c2, 
-                      N = N,
-                      constant_contact_matrix = TRUE,
-                      c_lockdown = c2,
-                      c_relaxed = c3,
-                      times = times,
-                      eta = eta_dat[,-1],
-                      eta2 = eta2_dat[,-1],
-                      one_cp = params$one_cp)
-time <- seir_out$time
-inc <- (out$S + out$Shold_1d + (eta_dat[,-1] * (out$Sv_1d + out$Shold_2d)) + (eta2_dat[,-1] * out$Sv_2d)) * lambda_est
-hosp <- sweep(inc, 2, h, "*")
+lambda_est <- get_foi(out, 
+                      params$beta, 
+                      params$i1, 
+                      params$N, 
+                      params$c_lockdown, 
+                      params$c_relaxed,
+                      params$ic_thresh_l,
+                      params$ic_thresh_u)
 
+lambda_est1 <- lambda_est %>%
+  pivot_wider(names_from = age_group, names_prefix = "age_group_", values_from = foi)
+
+inc <- (out$S[-1,] + out$Shold_1d[-1,] + (eta_dose1[,-1] * (out$Sv_1d[-1,] + out$Shold_2d[-1,])) + 
+          (eta_dose2[,-1] * out$Sv_2d[-1,])) * lambda_est1[-1,-1]
+cases <- sweep(inc, 2, p_reported_by_age, "*")
+hosp_admissions <- sweep(inc, 2, h, "*")
+hosp_occ <- (out$H[-1,] + out$Hv_1d[-1,] + out$Hv_2d[-1,]) * i1
+ic <- sweep(hosp_occ, 2, i1, "*")
+hosp_after_ic <- sweep(ic, 2, i2, "*")
+deaths <- sweep(ic, 2, d_ic, "*") + sweep(hosp_admissions, 2, d, "*") + sweep(hosp_after_ic, 2, d_hic, "*")
 # quick check
-plot(times, rowSums(inc), type = "l")
-plot(times, rowSums(hosp), type = "l")
+plot(times[-1], rowSums(inc), type = "l", col = "blue")
+lines(times[-1], rowSums(cases), col = "green")
+plot(times[-1], rowSums(hosp_admissions), type = "l", col = "orange")
+plot(times[-1], rowSums(ic), type = "l", col = "red")
+lines(times[-1], rowSums(deaths), col = "black")
 
 # Create object for plotting ---------------------------------------
 # convert from wide to long format
 inc_long <- inc %>% 
-  mutate(time = time) %>%
+  mutate(time = times[-1]) %>%
   pivot_longer(cols = starts_with("S"), 
                names_to = "age_group", 
                names_prefix = "S",
                values_to = "incidence")
 
+inc_long <- cases %>% 
+  mutate(time = times[-1]) %>%
+  pivot_longer(cols = starts_with("S"), 
+               names_to = "age_group", 
+               names_prefix = "S",
+               values_to = "cases")
+
 hosp_long <- hosp %>%
-  mutate(time = time) %>%
+  mutate(time = times[-1]) %>%
   pivot_longer(cols = starts_with("S"), 
                names_to = "age_group", 
                names_prefix = "S",
                values_to = "hosp_admissions")
+
+ic_long <- ic %>%
+  mutate(time = times[-1]) %>%
+  pivot_longer(cols = starts_with("S"), 
+               names_to = "age_group", 
+               names_prefix = "S",
+               values_to = "ic_admissions")
 
 df <- left_join(inc_long, hosp_long, by = c("time", "age_group")) %>%
   pivot_longer(cols = c("incidence", "hosp_admissions"),
