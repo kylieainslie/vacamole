@@ -53,7 +53,7 @@ age_struct_seir_ode <- function(times,init,params){
                    (ic_admin < ic_thresh_l) * c_relaxed +
                    (ic_admin >= ic_thresh_l & ic_admin < ic_thresh_u & dH_sum > 0) * c_relaxed +
                    (ic_admin >= ic_thresh_u) * c_lockdown 
-    
+
     lambda <- beta * (contact_mat %*% ((I + Iv_1d + Iv_2d)/N))
     # ---------------------------------------------------------------
     
@@ -87,6 +87,14 @@ age_struct_seir_ode <- function(times,init,params){
     
     dH_sum <- sum(dH + dHv_1d + dHv_2d)
     assign("dH_sum", dH_sum, envir = globalenv())
+    
+    # if(t == 0){l <- data.frame(time = t, age_group = 1:9, foi = as.vector(lambda))
+    #   assign("lambdas", l, envir = globalenv())
+    # } else {
+    #   l_tmp <- data.frame(time = t, age_group = 1:9, foi = as.vector(lambda))
+    #   l <- bind_rows(lambdas, l_tmp)
+    #   assign("lambdas", l, envir = globalenv())
+    #   }
     ################################################################
     dt <- 1
     list(c(dt,dS,dShold_1d,dSv_1d,dShold_2d,dSv_2d,dE,dEv_1d,dEv_2d,
