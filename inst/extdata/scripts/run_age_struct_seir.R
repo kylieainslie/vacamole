@@ -44,6 +44,12 @@ time_admission2death <- 7
 time_IC2death <- 19 
 time_hospital2death <- 10 #(after ICU)
 
+# age distribution and pop size 
+age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463, 
+              0.14514332, 0.12092904, 0.08807406, 0.04622194)
+n <- 17407585                                 # Dutch population size
+n_vec <- n * age_dist
+
 # parameter inputs
 s <- 0.2
 g <- 0.125
@@ -67,12 +73,6 @@ c1 <- as.matrix(contact_matrices_all$baseline[,-1])
 c2 <- as.matrix(contact_matrices_all$april2020[,-1])
 c3 <- as.matrix(contact_matrices_all$june2020[,-1])
 c4 <- as.matrix(contact_matrices_all$september2020[,-1])
-
-# age distribution and pop size 
-age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463, 
-              0.14514332, 0.12092904, 0.08807406, 0.04622194)
-n <- 17407585                                 # Dutch population size
-n_vec <- n * age_dist
 
 # read in vac schedules
 old_to_young <- read_xlsx("inst/extdata/data/old_to_young_az_pf_only.xlsx", sheet = 1)
@@ -98,7 +98,7 @@ init_states <- list(E = c((3245 / p_reported_all) * p_inf_by_age * 8.5), # cases
 
 empty_state <- c(rep(0,9))
 
-tag <- "cmm_old_to_young"
+tag <- "ccm_old_to_young"
 
 params <- list(beta = beta,                    # transmission rate
                gamma = g,                      # 1/gamma = infectious period
@@ -180,23 +180,28 @@ lambda_est <- get_foi(out,
                       params$ic_thresh_l,
                       params$ic_thresh_u)
 
-lambda_est1 <- lambda_est %>%
+lambda_est1 <- lambda_est$lambda %>%
   pivot_wider(names_from = age_group, names_prefix = "age_group_", values_from = foi)
 
 inc <- (out$S[-1,] + out$Shold_1d[-1,] + (eta_dose1[,-1] * (out$Sv_1d[-1,] + out$Shold_2d[-1,])) + 
           (eta_dose2[,-1] * out$Sv_2d[-1,])) * lambda_est1[-1,-1]
 cases <- sweep(inc, 2, p_reported_by_age, "*")
+
+#I think these probabilities are wrong. Not sure I should be multiplying by prob/delay#
 hosp_admissions <- sweep(inc, 2, h, "*")
-hosp_occ <- (out$H[-1,] + out$Hv_1d[-1,] + out$Hv_2d[-1,]) * i1
+hosp_occ <- (out$H[-1,] + out$Hv_1d[-1,] + out$Hv_2d[-1,])
 ic <- sweep(hosp_occ, 2, i1, "*")
 hosp_after_ic <- sweep(ic, 2, i2, "*")
-deaths <- sweep(ic, 2, d_ic, "*") + sweep(hosp_admissions, 2, d, "*") + sweep(hosp_after_ic, 2, d_hic, "*")
+deaths <- out$D[-1,] # sweep(ic, 2, d_ic, "*") + sweep(hosp_admissions, 2, d, "*") + sweep(hosp_after_ic, 2, d_hic, "*")
 # quick check
 plot(times[-1], rowSums(inc), type = "l", col = "blue")
 lines(times[-1], rowSums(cases), col = "green")
+abline(v = c(71,98), lty = "dashed")
 plot(times[-1], rowSums(hosp_admissions), type = "l", col = "orange")
+plot(times[-1], rowSums(hosp_occ), type = "l", col = "yellow")
 plot(times[-1], rowSums(ic), type = "l", col = "red")
-lines(times[-1], rowSums(deaths), col = "black")
+abline(h = c(10, 20), lty = "dashed")
+plot(times[-1], rowSums(deaths), type = "l", col = "black")
 
 # Create object for plotting ---------------------------------------
 # convert from wide to long format
