@@ -23,24 +23,34 @@ get_foi <- function(dat,
     
     # calculate force of infection for each time point
     #foi <- t(apply(I_all, 1, function(x){beta * (c_main %*% (x/N))}))
-    for(t in 1:dim(I_all)[1]){
+    time_vec <- 1:dim(I_all)[1]
+    ic_admin <- rep(0, length(time_vec))
+    slope <- rep(0, length(time_vec))
+    cm_check <- rep(NA, length(time_vec))
     
-      ic_admin <- sum(i1 * H_all[t,])
-      dH_sum <- ifelse( t == 1, 0, sum(H_all[t,]) - sum(H_all[t-1]))
-
-      contact_mat <- (ic_admin < ic_thresh_u & ic_admin >= ic_thresh_l & dH_sum < 0) * c_lockdown +
-                     (ic_admin < ic_thresh_l) * c_relaxed +
-                     (ic_admin >= ic_thresh_l & ic_admin < ic_thresh_u & dH_sum > 0) * c_relaxed +
-                     (ic_admin >= ic_thresh_u) * c_lockdown 
+    for(t in time_vec){
+      ic_admin[t] <- sum(i1 * H_all[t,])
+      slope[t] <- ifelse( t == 1, 0, ic_admin[t] - ic_admin[t-1])
+      
+      contact_mat <- (ic_admin[t] < ic_thresh_u & ic_admin[t] >= ic_thresh_l & slope[t] < 0) * c_lockdown +
+                     (ic_admin[t] < ic_thresh_l) * c_relaxed +
+                     (ic_admin[t] >= ic_thresh_l & ic_admin[t] < ic_thresh_u & slope[t] > 0) * c_relaxed +
+                     (ic_admin[t] >= ic_thresh_u) * c_lockdown 
+      cm_check[t] <- ifelse(identical(contact_mat, c_lockdown), "c_lockdown", "c_relaxed")
 
       lambda <- beta * (contact_mat %*% (I_all[t,]/N))
-      
+
       if (t == 1){ rtn <- data.frame(time = t-1, age_group = 1:9, foi = lambda)
       } else { 
         tmp <- data.frame(time = t-1, age_group = 1:9, foi = lambda)
         rtn <- bind_rows(rtn, tmp)}
     }
-
   
-  return(rtn)
+    rtn2 <- list(cp = data.frame(time = time_vec - 1, 
+                                ic_admin = ic_admin,
+                                slope = slope,
+                                cm_check = cm_check),
+                 lambda = rtn)
+  
+  return(rtn2)
 }
