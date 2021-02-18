@@ -46,14 +46,20 @@ age_struct_seir_ode <- function(times,init,params){
     delay <- tmp[[1]][37]
     delay2 <- tmp[[1]][38]
 
-    # determine force of infection ----------------------------------
+    # determine contact matrix based on criteria --------------------
     ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))
-    if(t == 0){dH_sum <- 0}
-    contact_mat <- (ic_admin < ic_thresh_u & ic_admin >= ic_thresh_l & dH_sum < 0) * c_lockdown +
-                   (ic_admin < ic_thresh_l) * c_relaxed +
-                   (ic_admin >= ic_thresh_l & ic_admin < ic_thresh_u & dH_sum > 0) * c_relaxed +
-                   (ic_admin >= ic_thresh_u) * c_lockdown 
-
+    new_infectious <- sigma * (E + Ev_1d + Ev_2d)
+    cases <- sum(new_infectious * p_report)
+    
+    criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
+    
+    if(t == 0){slope <- 0}
+    contact_mat <- (criteria < thresh_u & criteria >= thresh_l & slope < 0) * c_lockdown +
+                   (criteria < thresh_l) * c_relaxed +
+                   (criteria >= thresh_l & criteria < thresh_u & slope > 0) * c_relaxed +
+                   (criteria >= thresh_u) * c_lockdown 
+    
+    # determine force of infection ----------------------------------
     lambda <- beta * (contact_mat %*% ((I + Iv_1d + Iv_2d)/N))
     # ---------------------------------------------------------------
     
@@ -85,8 +91,8 @@ age_struct_seir_ode <- function(times,init,params){
     dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d
     dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d
     
-    dH_sum <- sum(dH + dHv_1d + dHv_2d)
-    assign("dH_sum", dH_sum, envir = globalenv())
+    slope <- (use_cases) * sum(dE + dEv_1d + dEv_2d) + (!use_cases) * sum(dH + dHv_1d + dHv_2d)
+    assign("slope", slope, envir = globalenv())
     
     # if(t == 0){l <- data.frame(time = t, age_group = 1:9, foi = as.vector(lambda))
     #   assign("lambdas", l, envir = globalenv())
