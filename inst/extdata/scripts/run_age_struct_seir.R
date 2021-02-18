@@ -112,19 +112,21 @@ params <- list(beta = beta,                    # transmission rate
                d_hic = d_hic,
                r = r,
                r_ic = r_ic,
+               p_report = p_reported_by_age,
                c_lockdown = c2,
                c_relaxed = c4,
                vac_schedule = old_to_young,
                ve = ve,
                delay = delays,
-               ic_thresh_l = 10,
-               ic_thresh_u = 20,
+               use_cases = TRUE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
+               thresh_l = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
+               thresh_u = 35.7/100000 * sum(n_vec),        # 20 for IC admissions
                no_vac = FALSE
 )
 
 # Specify initial values -------------------------------------------
-t_max <- dim(old_to_young)[1]
-times <- seq(0,t_max,length.out = t_max+1)     # Vector of times
+t_max <- dim(old_to_young)[1] - 1
+times <- seq(0,t_max, by = 1)     # Vector of times
 timeInt <- times[2]-times[1]             # Time interval (for technical reasons)
 init <- c(t = times[1],                  
           S = params$N - init_states$E - init_states$I - init_states$H - init_states$IC - init_states$R,
@@ -159,6 +161,7 @@ seir_out <- lsoda(init,times,age_struct_seir_ode,params)
 seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 
+plot(times, rowSums(out$E + out$Ev_1d + out$Ev_2d), type = "l")
 # Summarise results ------------------------------------------------
 beta <- params$beta * timeInt
 res <- get_vac_rate_2(times, params$vac_schedule, params$ve, params$delay)
@@ -171,37 +174,40 @@ eta_dose2 <- res %>%
   pivot_wider(names_from = age_group, names_prefix = "eta_dose2_",
               values_from = eta_dose2)
 
-lambda_est <- get_foi(out, 
-                      params$beta, 
-                      params$i1, 
-                      params$N, 
-                      params$c_lockdown, 
-                      params$c_relaxed,
-                      params$ic_thresh_l,
-                      params$ic_thresh_u)
+lambda_est <- get_foi(dat = out, 
+                      beta = params$beta, 
+                      sigma = params$sigma,
+                      i1 = params$i1,
+                      p_report = params$p_report,
+                      N = params$N, 
+                      c_lockdown = params$c_lockdown, 
+                      c_relaxed = params$c_relaxed,
+                      thresh_l = params$thresh_l,
+                      thresh_u = params$thresh_u,
+                      use_cases = TRUE)
 
 lambda_est1 <- lambda_est$lambda %>%
   pivot_wider(names_from = age_group, names_prefix = "age_group_", values_from = foi)
 
-inc <- (out$S[-1,] + out$Shold_1d[-1,] + (eta_dose1[,-1] * (out$Sv_1d[-1,] + out$Shold_2d[-1,])) + 
-          (eta_dose2[,-1] * out$Sv_2d[-1,])) * lambda_est1[-1,-1]
-cases <- sweep(inc, 2, p_reported_by_age, "*")
+new_infections <- (out$S + out$Shold_1d + (eta_dose1 * (out$Sv_1d + out$Shold_2d)) + (eta_dose2 * out$Sv_2d)) * lambda_est1[,-1]
+new_infectious <- params$sigma * (out$E + out$Ev_1d + out$Ev_2d)
+new_cases <- sweep(new_infectious, 2, p_reported_by_age, "*")
 
 #I think these probabilities are wrong. Not sure I should be multiplying by prob/delay#
 hosp_admissions <- sweep(inc, 2, h, "*")
-hosp_occ <- (out$H[-1,] + out$Hv_1d[-1,] + out$Hv_2d[-1,])
+hosp_occ <- (out$H + out$Hv_1d[-1,] + out$Hv_2d[-1,])
 ic <- sweep(hosp_occ, 2, i1, "*")
 hosp_after_ic <- sweep(ic, 2, i2, "*")
-deaths <- out$D[-1,] # sweep(ic, 2, d_ic, "*") + sweep(hosp_admissions, 2, d, "*") + sweep(hosp_after_ic, 2, d_hic, "*")
+deaths <- out$D # sweep(ic, 2, d_ic, "*") + sweep(hosp_admissions, 2, d, "*") + sweep(hosp_after_ic, 2, d_hic, "*")
 # quick check
-plot(times[-1], rowSums(inc), type = "l", col = "blue")
-lines(times[-1], rowSums(cases), col = "green")
-abline(v = c(71,98), lty = "dashed")
-plot(times[-1], rowSums(hosp_admissions), type = "l", col = "orange")
-plot(times[-1], rowSums(hosp_occ), type = "l", col = "yellow")
-plot(times[-1], rowSums(ic), type = "l", col = "red")
-abline(h = c(10, 20), lty = "dashed")
-plot(times[-1], rowSums(deaths), type = "l", col = "black")
+plot(times, rowSums(inc), type = "l", col = "blue")
+plot(times, rowSums(new_cases), type = "l", col = "black")
+abline(h = c(params$thresh_l,params$thresh_u), lty = "dashed")
+# plot(times, rowSums(hosp_admissions), type = "l", col = "orange")
+# plot(times, rowSums(hosp_occ), type = "l", col = "yellow")
+# plot(times, rowSums(ic), type = "l", col = "red")
+# abline(h = c(10, 20), lty = "dashed")
+# plot(times, rowSums(deaths), type = "l", col = "black")
 
 # Create object for plotting ---------------------------------------
 # convert from wide to long format

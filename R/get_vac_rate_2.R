@@ -41,7 +41,7 @@ get_vac_rate_2 <- function(times, vac_schedule, ve, delay, no_vac = FALSE){
     az_dose2_cs <- cumsum(az_dose2[,-1])
     
     # calculate composite VE
-    for (time_point in 1:(length(times)-1)){
+    for (time_point in 1:(length(times))){
 
       total_dose1 <- unlist(pf_dose1_cs[time_point,] + az_dose1_cs[time_point,])
       total_dose2 <- unlist(pf_dose2_cs[time_point,] + az_dose2_cs[time_point,])
