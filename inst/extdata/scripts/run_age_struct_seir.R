@@ -18,6 +18,7 @@ source("R/get_foi.R")
 source("R/get_beta.R")
 source("R/get_vac_rate.R")
 source("R/get_vac_rate_2.R")
+source("R/summarise_results.R")
 
 # load data ---------------------------------------------------------
 # probabilities
@@ -50,12 +51,33 @@ age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,
 n <- 17407585                                 # Dutch population size
 n_vec <- n * age_dist
 
+# contact matrices
+contact_matrices_all <- readRDS("inst/extdata/data/contact_matrices_for_model_input.rds")
+c1 <- as.matrix(contact_matrices_all$baseline[,-1])
+c2 <- as.matrix(contact_matrices_all$april2020[,-1])
+c3 <- as.matrix(contact_matrices_all$june2020[,-1])
+c4 <- as.matrix(contact_matrices_all$september2020[,-1])
+
+# relative susceptibility/infectiousness
+rel_trans <- c(1.000, 3.051, 5.751, 3.538, 3.705, 4.365, 5.688, 5.324, 7.211)
+get_transmission_matrix <- function(x, contact_mat){
+  tmp <- sweep(contact_mat, 1, x, "*")
+  rtn <- sweep(tmp, 2, x, "*")
+  return(rtn)
+}
+
+t1 <- get_transmission_matrix(rel_trans, c1)
+t2 <- get_transmission_matrix(rel_trans, c2)
+t3 <- get_transmission_matrix(rel_trans, c3)
+t4 <- get_transmission_matrix(rel_trans, c4)
+
 # parameter inputs
 s <- 0.2
 g <- 0.125
-r0 <- 2.95550 
-init_i <- 0.489163
-tmp <- get_beta(R0 = r0, contact_matrix = c1, N = n_vec, sigma = s, 
+#r0 <- 3.99603 
+r0 <- 3.02627 
+#init_i <- 0.686474 or 0.361726
+tmp <- get_beta(R0 = r0, contact_matrix = t1, N = n_vec, sigma = s, 
                 gamma = s) 
 beta <- tmp$beta
 h <- p_infection2admission/time_symptom2admission
@@ -66,13 +88,6 @@ d_ic <- p_IC2death/time_IC2death
 d_hic <- p_hospital2death/time_hospital2death
 r <- (1 - p_admission2death)/time_admission2discharge
 r_ic <- (1 - p_IC2death)/time_hospital2discharge
-
-# contact matrices
-contact_matrices_all <- readRDS("inst/extdata/data/contact_matrices_for_model_input.rds")
-c1 <- as.matrix(contact_matrices_all$baseline[,-1])
-c2 <- as.matrix(contact_matrices_all$april2020[,-1])
-c3 <- as.matrix(contact_matrices_all$june2020[,-1])
-c4 <- as.matrix(contact_matrices_all$september2020[,-1])
 
 # read in vac schedules
 old_to_young <- read_xlsx("inst/extdata/data/old_to_young_az_pf_only.xlsx", sheet = 1)
@@ -87,49 +102,47 @@ ve <- list(pfizer = c(0.926, 0.948),
 
 delays <- list(pfizer = c(14, 7), 
                moderna = c(14, 14), 
-               astrazeneca = c(21,141))
+               astrazeneca = c(21,14))
+
+ve_scotland <- list(pfizer = c(0.645, 0.948), 
+           moderna = c(0.896, 0.941), 
+           astrazeneca = c(0.805, 0.621))
+
+delays_scotland <- list(pfizer = c(7, 7), 
+               moderna = c(14, 14), 
+               astrazeneca = c(7,14))
+
 
 # initial states
-init_states <- list(E = c((3245 / p_reported_all) * p_inf_by_age * 8.5), # cases as of Feb 1, 2021
-                    I = c(96617 * p_inf_by_age), # number of infectious on Feb 1, 2021 (from corona dashboard) 
-                    H = c(p_infection2admission/sum(p_infection2admission) * 1631), # from NICE data for Feb 1, 2021
+# for vaccinated
+# before_feb object is created in convert_vac_schedule.R
+init_sv_1d <- unlist(before_feb %>% select(pf_d1_1:pf_d1_9) + before_feb %>% select(mo_d1_1:mo_d1_9)) * n_vec
+init_sv_2d <- unlist(before_feb %>% select(pf_d2_1:pf_d2_9) + before_feb %>% select(mo_d2_1:mo_d2_9)) * n_vec
+# init_eta <- 1 - (unlist(before_feb %>% select(pf_d1_1:pf_d1_9))/(init_sv_1d/n_vec) * ve$pfizer[1] +
+#                  unlist(before_feb %>% select(mo_d1_1:mo_d1_9))/(init_sv_1d/n_vec) * ve$moderna[1])
+# init_eta2 <- 1 - (unlist(before_feb %>% select(pf_d2_1:pf_d2_9))/(init_sv_2d/n_vec) * ve$pfizer[2] +
+#                    unlist(before_feb %>% select(mo_d2_1:mo_d2_9))/(init_sv_2d/n_vec) * ve$moderna[2])
+
+init_states <- list(Sv_1d = init_sv_1d,
+                    Sv_2d = init_sv_2d,
+                    E = c((3244 / (s * p_reported_all)) * p_inf_by_age), # number of infections that will lead to same number 
+                        # of new cases as of Feb 1, 2021
+                    I = c(77000 * p_inf_by_age), # number of infectious on Feb 1, 2021 (from corona dashboard) so that
+                        # at the initial time step there are 215 hospital admissions
+                    H = c(p_infection2admission/sum(p_infection2admission) * 500), # number of hospitalisations so that at initial
+                        # time step there are 31 IC admissions (from coronadashboard data for Feb 1, 2021)
+                    H_IC = c(p_IC2hospital/sum(p_IC2hospital) * 1131), # so that total number of hospital occupancy (exc IC) is 1631 (from coronadashboard for 1 Feb 2021)
                     IC = c(p_admission2IC/sum(p_admission2IC) * 639), # from coronadashboard Feb 1, 2021
                     R = c(3000000 * p_recovered))
 
 empty_state <- c(rep(0,9))
 
-tag <- "ccm_old_to_young"
-
-params <- list(beta = beta,                    # transmission rate
-               gamma = g,                      # 1/gamma = infectious period
-               sigma = s,                      # 1/sigma = latent period
-               N = n_vec,                      # Population (no need to change)
-               h = h,                          # Rate from infection to hospital admission/ time from infection to hosp admission
-               i1 = i1,
-               i2 = i2,
-               d = d, 
-               d_ic = d_ic,
-               d_hic = d_hic,
-               r = r,
-               r_ic = r_ic,
-               p_report = p_reported_by_age,
-               c_lockdown = c2,
-               c_relaxed = c4,
-               vac_schedule = old_to_young,
-               ve = ve,
-               delay = delays,
-               use_cases = TRUE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
-               thresh_l = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
-               thresh_u = 35.7/100000 * sum(n_vec),        # 20 for IC admissions
-               no_vac = FALSE
-)
-
 # Specify initial values -------------------------------------------
-t_max <- dim(old_to_young)[1] - 1
+t_max <- dim(vac_schedule)[1] - 1
 times <- seq(0,t_max, by = 1)     # Vector of times
-timeInt <- times[2]-times[1]             # Time interval (for technical reasons)
+timeInt <- times[2]-times[1]      # Time interval (for technical reasons)
 init <- c(t = times[1],                  
-          S = params$N - init_states$E - init_states$I - init_states$H - init_states$IC - init_states$R,
+          S = n_vec - init_states$E - init_states$I - init_states$H - init_states$IC - init_states$R,
           Shold_1d = empty_state,
           Sv_1d = empty_state,
           Shold_2d = empty_state,
@@ -155,118 +168,67 @@ init <- c(t = times[1],
           Rv_2d = empty_state
 )                      
 
+# Input parameters -------------------------------------------------
+params <- list(beta = beta,                    # transmission rate
+               gamma = g,                      # 1/gamma = infectious period
+               sigma = s,                      # 1/sigma = latent period
+               N = n_vec,                      # Population (no need to change)
+               h = h,                          # Rate from infection to hospital admission/ time from infection to hosp admission
+               i1 = i1,
+               i2 = i2,
+               d = d, 
+               d_ic = d_ic,
+               d_hic = d_hic,
+               r = r,
+               r_ic = r_ic,
+               p_report = p_reported_by_age,
+               c_lockdown = t2,
+               c_relaxed = t4,
+               c_very_relaxed = t3,
+               c_normal = t1,
+               vac_schedule = vac_schedule_delay3mo_new,
+               ve = ve,
+               delay = delays,
+               #init_eta = ifelse(is.nan(init_eta), 0, init_eta),
+               #init_eta2 = ifelse(is.nan(init_eta2), 0, init_eta2),
+               use_cases = FALSE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
+               thresh_l = 3, #5/100000 * sum(n_vec),           # 3 for IC admissions
+               thresh_m = 10, #14.3/100000 * sum(n_vec),        # 10 for IC admissions
+               thresh_u = 20, #35.7/100000 * sum(n_vec),        # 20 for IC admissions
+               #thresh_cushion = 1/100000 * sum(n_vec),      # cushion so integrator doesn't get stuck at change point (0 for IC)
+               no_vac = FALSE,
+               force_relax = 30                              # time step when measures are forced to relax regardless of criteria
+)
 
 # Solve model ------------------------------------------------------
-seir_out <- lsoda(init,times,age_struct_seir_ode,params)
+seir_out <- lsoda(init,times,age_struct_seir_ode,params) #
 seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 
-plot(times, rowSums(out$E + out$Ev_1d + out$Ev_2d), type = "l")
-# Summarise results ------------------------------------------------
-beta <- params$beta * timeInt
-res <- get_vac_rate_2(times, params$vac_schedule, params$ve, params$delay)
-eta_dose1 <- res %>%
-  select(time, age_group, eta_dose1) %>%
-  pivot_wider(names_from = age_group, names_prefix = "eta_dose1_",
-              values_from = eta_dose1)
-eta_dose2 <- res %>%
-  select(time, age_group, eta_dose2) %>%
-  pivot_wider(names_from = age_group, names_prefix = "eta_dose2_",
-              values_from = eta_dose2)
-
-lambda_est <- get_foi(dat = out, 
-                      beta = params$beta, 
-                      sigma = params$sigma,
-                      i1 = params$i1,
-                      p_report = params$p_report,
-                      N = params$N, 
-                      c_lockdown = params$c_lockdown, 
-                      c_relaxed = params$c_relaxed,
-                      thresh_l = params$thresh_l,
-                      thresh_u = params$thresh_u,
-                      use_cases = TRUE)
-
-lambda_est1 <- lambda_est$lambda %>%
-  pivot_wider(names_from = age_group, names_prefix = "age_group_", values_from = foi)
-
-new_infections <- (out$S + out$Shold_1d + (eta_dose1 * (out$Sv_1d + out$Shold_2d)) + (eta_dose2 * out$Sv_2d)) * lambda_est1[,-1]
-new_infectious <- params$sigma * (out$E + out$Ev_1d + out$Ev_2d)
-new_cases <- sweep(new_infectious, 2, p_reported_by_age, "*")
-
-#I think these probabilities are wrong. Not sure I should be multiplying by prob/delay#
-hosp_admissions <- sweep(inc, 2, h, "*")
-hosp_occ <- (out$H + out$Hv_1d[-1,] + out$Hv_2d[-1,])
+# quick check ------------------------------------------------------
+hosp_occ <- (out$H + out$Hv_1d + out$Hv_2d)
 ic <- sweep(hosp_occ, 2, i1, "*")
-hosp_after_ic <- sweep(ic, 2, i2, "*")
-deaths <- out$D # sweep(ic, 2, d_ic, "*") + sweep(hosp_admissions, 2, d, "*") + sweep(hosp_after_ic, 2, d_hic, "*")
-# quick check
-plot(times, rowSums(inc), type = "l", col = "blue")
-plot(times, rowSums(new_cases), type = "l", col = "black")
-abline(h = c(params$thresh_l,params$thresh_u), lty = "dashed")
-# plot(times, rowSums(hosp_admissions), type = "l", col = "orange")
-# plot(times, rowSums(hosp_occ), type = "l", col = "yellow")
-# plot(times, rowSums(ic), type = "l", col = "red")
-# abline(h = c(10, 20), lty = "dashed")
-# plot(times, rowSums(deaths), type = "l", col = "black")
+plot(times, rowSums(ic), type = "l")
 
-# Create object for plotting ---------------------------------------
-# convert from wide to long format
-inc_long <- inc %>% 
-  mutate(time = times[-1]) %>%
-  pivot_longer(cols = starts_with("S"), 
-               names_to = "age_group", 
-               names_prefix = "S",
-               values_to = "incidence")
+# Summarise results ------------------------------------------------
+tag <- "delay3mo"
 
-inc_long <- cases %>% 
-  mutate(time = times[-1]) %>%
-  pivot_longer(cols = starts_with("S"), 
-               names_to = "age_group", 
-               names_prefix = "S",
-               values_to = "cases")
-
-hosp_long <- hosp %>%
-  mutate(time = times[-1]) %>%
-  pivot_longer(cols = starts_with("S"), 
-               names_to = "age_group", 
-               names_prefix = "S",
-               values_to = "hosp_admissions")
-
-ic_long <- ic %>%
-  mutate(time = times[-1]) %>%
-  pivot_longer(cols = starts_with("S"), 
-               names_to = "age_group", 
-               names_prefix = "S",
-               values_to = "ic_admissions")
-
-df <- left_join(inc_long, hosp_long, by = c("time", "age_group")) %>%
-  pivot_longer(cols = c("incidence", "hosp_admissions"),
-               names_to = "outcome",
-               values_to = "value") %>%
-  mutate(date = time + as.Date("2021-02-01")) %>%
-  select(time, date, age_group, outcome, value)
-
-
-df_summary <- df %>%
-  group_by(time, date, outcome) %>%
-  summarise_at(.vars = "value", .funs = sum) %>%
-  mutate(scenario = tag)
-
-saveRDS(df_summary, paste0("inst/extdata/results/res_",tag,".rds"))
+results <- summarise_results(out, params, start_date = "2021-02-01")
+saveRDS(results$df_summary, paste0("inst/extdata/results/res_",tag,".rds"))
 
 # Make summary table ------------------------------------------------
-summary_tab <- df_summary %>%
+summary_tab <- results$df_summary %>%
   group_by(outcome) %>%
   summarise_at(.vars = "value", .funs = sum) 
 
 # Make plot ---------------------------------------------------------
 # summary over all age groups
-p <- ggplot(df_summary %>% filter(time > 3), aes(x = date, y = value, color = outcome)) +
+p <- ggplot(results$df_summary, aes(x = date, y = value, color = outcome)) +
   geom_line() +
   labs(y = "Value", x = "Time (days)", color = "Outcome") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
-  geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
+  #geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -274,10 +236,10 @@ p <- ggplot(df_summary %>% filter(time > 3), aes(x = date, y = value, color = ou
 p
 
 # by age group
-p2 <- ggplot(df %>% filter(time > 3), aes(x = date, y = value, color = age_group)) +
+p2 <- ggplot(results$df, aes(x = date, y = value, color = age_group)) +
   geom_line() +
   labs(y = "Value", x = "Time (days)", color = "Outcome") +
-  ylim(0,1000) +
+  ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
   geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
   theme(legend.position = "bottom",
