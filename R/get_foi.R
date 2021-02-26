@@ -15,9 +15,13 @@ get_foi <- function(dat,
                     N,
                     c_lockdown = NULL,
                     c_relaxed = NULL,
+                    c_very_relaxed = NULL,
+                    c_normal = NULL,
                     thresh_l,
+                    thresh_m,
                     thresh_u,
-                    use_cases = TRUE
+                    use_cases = TRUE,
+                    force_relax = NULL
                     ){
 
     # sum over different I states for each time step and age group
@@ -41,12 +45,48 @@ get_foi <- function(dat,
       criteria[t] <- (use_cases) * cases[t] + (!use_cases) * ic_admin[t] 
       slope[t] <- ifelse( t == 1, 0, criteria[t] - criteria[t-1])
       
-      contact_mat <- (criteria[t] < thresh_u & criteria[t] >= thresh_l & slope[t] < 0) * c_lockdown +
-        (criteria[t] < thresh_l) * c_relaxed +
-        (criteria[t] >= thresh_l & criteria[t] < thresh_u & slope[t] > 0) * c_relaxed +
-        (criteria[t] >= thresh_u) * c_lockdown 
+      contact_mat <- (is.null(force_relax)) *
+        ((criteria[t] < thresh_u & criteria[t] >= thresh_m & slope[t] < 0) * c_lockdown +
+           (criteria[t] < thresh_m & criteria[t] >= thresh_l & slope[t] < 0) * c_relaxed +
+           (criteria[t] < thresh_l) * c_very_relaxed +
+           (criteria[t] >= thresh_l & criteria[t] <= thresh_m & slope[t] > 0) * c_very_relaxed +
+           (criteria[t] > thresh_m & criteria[t] <= thresh_u & slope[t] > 0) * c_relaxed +
+           (criteria[t] > thresh_u) * c_lockdown +
+           (criteria[t] >= 0 & criteria[t] < thresh_l & slope[t] > 0) * c_normal) +
+        (!is.null(force_relax)) * (t < force_relax) *
+        ((criteria[t] < thresh_u & criteria[t] >= thresh_m & slope[t] < 0) * c_lockdown +
+           (criteria[t] < thresh_m & criteria[t] >= thresh_l & slope[t] < 0) * c_relaxed +
+           (criteria[t] < thresh_l) * c_very_relaxed +
+           (criteria[t] >= thresh_l & criteria[t] <= thresh_m & slope[t] > 0) * c_very_relaxed +
+           (criteria[t] > thresh_m & criteria[t] <= thresh_u & slope[t] > 0) * c_relaxed +
+           (criteria[t] > thresh_u) * c_lockdown +
+           (criteria[t] >= 0 & criteria[t] < thresh_l & slope[t] > 0) * c_normal) +
+        (!is.null(force_relax)) * (t >= force_relax) *
+        ((criteria[t] < thresh_u & criteria[t] >= thresh_m & slope[t] < 0) * c_relaxed +
+           (criteria[t] < thresh_m & criteria[t] >= thresh_l & slope[t] < 0) * c_relaxed +
+           (criteria[t] < thresh_l) * c_very_relaxed +
+           (criteria[t] >= thresh_l & criteria[t] <= thresh_m & slope[t] > 0) * c_very_relaxed +
+           (criteria[t] > thresh_m & criteria[t] <= thresh_u & slope[t] > 0) * c_relaxed +
+           (criteria[t] > thresh_u) * c_relaxed +
+           (criteria[t] >= 0 & criteria[t] < thresh_l & slope[t] > 0) * c_normal)
       
-      cm_check[t] <- ifelse(identical(contact_mat, c_lockdown), "c_lockdown", "c_relaxed")
+      # contact_mat <- (criteria[t] < thresh_u & criteria[t] >= thresh_m & slope[t] < 0) * c_lockdown +
+      #   (criteria[t] < thresh_m & criteria[t] >= thresh_l & slope[t] < 0) * c_relaxed +
+      #   (criteria[t] < thresh_l) * c_very_relaxed +
+      #   (criteria[t] >= thresh_l & criteria[t] <= thresh_m & slope[t] > 0) * c_very_relaxed +
+      #   (criteria[t] > thresh_m & criteria[t] <= thresh_u & slope[t] > 0) * c_relaxed +
+      #   (criteria[t] > thresh_u) * c_lockdown +
+      #   (criteria[t] >= 0 & criteria[t] < thresh_l & slope[t] > 0) * c_normal
+      
+      # contact_mat <- (t < 20) * c_lockdown +
+      #   (criteria[t] < thresh_u & criteria[t] >= thresh_l & slope[t] < 0 & t >=20) * c_lockdown +
+      #   (criteria[t] < thresh_l & t >=20) * c_relaxed +
+      #   (criteria[t] >= thresh_l & criteria[t] <= thresh_u & slope[t] > 0 & t >=20) * c_relaxed +
+      #   (criteria[t] > thresh_u & t >=20) * c_lockdown 
+      
+      cm_check[t] <- ifelse(identical(contact_mat, c_lockdown), "c_lockdown", 
+                            ifelse(identical(contact_mat, c_relaxed),"c_relaxed",
+                                   ifelse(identical(contact_mat, c_very_relaxed),"c_very_relaxed", "c_normal")))
 
       lambda <- beta * (contact_mat %*% (I_all[t,]/N))
 
