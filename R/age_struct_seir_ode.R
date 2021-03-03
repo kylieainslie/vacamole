@@ -81,8 +81,6 @@ age_struct_seir_ode <- function(times,init,params){
                       (criteria > thresh_u) * c_relaxed +
                       (criteria >= 0 & criteria < thresh_l & slope > 0) * c_normal)
       
-                   
-    
     # original
     # contact_mat <- (t < 20) * c_lockdown +
     #   (criteria < thresh_u & criteria >= thresh_l & slope < 0 & t >=20) * c_lockdown +
@@ -114,14 +112,14 @@ age_struct_seir_ode <- function(times,init,params){
     dSv_2d <- (1/delay2) * Shold_2d - eta2 * lambda * Sv_2d
     dE <- lambda * (S + Shold_1d) - sigma * E
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
-    dEv_2d <- eta * lambda * Sv_2d - sigma * Ev_2d 
+    dEv_2d <- eta2 * lambda * Sv_2d - sigma * Ev_2d 
     dI <- sigma * E - (gamma + h) * I 
     dIv_1d <- sigma * Ev_1d - (gamma + h) * Iv_1d  
     dIv_2d <- sigma * Ev_2d - (gamma + h) * Iv_2d
     dH <- h * I - (i1 + d + r) * H 
     dHv_1d <- h * Iv_1d - (i1 + d + r) * Hv_1d
     dHv_2d <- h * Iv_2d - (i1 + d + r) * Hv_2d
-    dH_IC <- i2 * IC - (r_ic + d_hic) * H_IC
+    dH_IC <- i2 * IC - (r_ic + d_hic) * H_IC               # back to hospital after IC
     dH_ICv_1d <- i2 * ICv_1d - (r_ic + d_hic) * H_ICv_1d
     dH_ICv_2d <- i2 * ICv_2d - (r_ic + d_hic) * H_ICv_2d
     dIC <- i1 * H - (i2 + d_ic) * IC
