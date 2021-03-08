@@ -51,6 +51,7 @@ cases <- sweep(infectious, 2, p_reported_by_age, "*")
 hosp_admissions <- sweep(infectious, 2, h, "*")
 hosp_occ <- (out$H + out$Hv_1d + out$Hv_2d)
 ic <- sweep(hosp_occ, 2, i1, "*")
+ic_occ <- (out$IC + out$ICv_1d + out$ICv_2d)
 hosp_after_ic <- sweep(ic, 2, i2, "*")
 total_hosp_occ <- (out$H + out$Hv_1d + out$Hv_2d) + (out$H_IC + out$H_ICv_1d + out$H_ICv_2d)
 
