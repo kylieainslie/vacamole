@@ -72,8 +72,8 @@ t3 <- get_transmission_matrix(rel_trans, c3)
 t4 <- get_transmission_matrix(rel_trans, c4)
 
 # parameter inputs
-s <- 0.2
-g <- 0.125
+s <- 0.5
+g <- 0.5
 #r0 <- 3.99603 
 r0 <- 3.02627 
 #init_i <- 0.686474 or 0.361726
@@ -152,7 +152,10 @@ init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "4
                               # https://www.rivm.nl/coronavirus-covid-19/actueel/wekelijkse-update-epidemiologische-situatie-covid-19-in-nederland)
                               n_cases = c(835, 2851, 4591, 3854, 3925, 5191, 3216, 1819, 
                                           1376 + 485)
-                              )
+                              ) %>%
+  mutate(n_infections = n_cases * 3,
+         init_E = n_infections * (2/7),
+         init_I = n_infections * (2/7))
 
 empty_state <- c(rep(0,9))
 
@@ -161,28 +164,28 @@ t_max <- dim(vac_schedule)[1] - 1
 times <- seq(0,t_max, by = 1)     # Vector of times
 timeInt <- times[2]-times[1]      # Time interval (for technical reasons)
 init <- c(t = times[1],                  
-          S = n_vec - init_states$E - init_states$I - init_states$H - init_states$IC - init_states$R,
+          S = init_states_dat$n - init_states_dat$n_recovered - init_states_dat$init_E - init_states_dat$init_I,
           Shold_1d = empty_state,
           Sv_1d = empty_state,
           Shold_2d = empty_state,
           Sv_2d = empty_state,
-          E = init_states$E,
+          E = init_states_dat$init_E,
           Ev_1d = empty_state,
           Ev_2d = empty_state,
-          I = init_states$I,
+          I = init_states_dat$init_I,
           Iv_1d = empty_state,
           Iv_2d = empty_state,
-          H = init_states$H,
+          H = empty_state,
           Hv_1d = empty_state,
           Hv_2d = empty_state,
           H_IC = empty_state,
           H_ICv_1d = empty_state,
           H_ICv_2d = empty_state,
-          IC = init_states$IC,
+          IC = empty_state,
           ICv_1d = empty_state,
           ICv_2d = empty_state,
           D = empty_state,
-          R = init_states$R,
+          R = init_states_dat$n_recovered,
           Rv_1d = empty_state,
           Rv_2d = empty_state
 )                      
