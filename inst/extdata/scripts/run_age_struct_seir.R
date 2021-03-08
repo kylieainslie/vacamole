@@ -112,28 +112,47 @@ delays_scotland <- list(pfizer = c(7, 7),
                moderna = c(14, 14), 
                astrazeneca = c(7,14))
 
+ve_sa <- list(pfizer = c(0.51, 0.948), 
+              moderna = c(0.51, 0.941), 
+              astrazeneca = c(0.676, 0.495))
+
+ve_siren <- list(pfizer = c(0.72, 0.86), 
+              moderna = c(0.896, 0.941), 
+              astrazeneca = c(0.676, 0.495))
+
+delays_siren <- list(pfizer = c(21, 7), 
+                        moderna = c(14, 14), 
+                        astrazeneca = c(7,14))
 
 # initial states
 # for vaccinated
 # before_feb object is created in convert_vac_schedule.R
-init_sv_1d <- unlist(before_feb %>% select(pf_d1_1:pf_d1_9) + before_feb %>% select(mo_d1_1:mo_d1_9)) * n_vec
-init_sv_2d <- unlist(before_feb %>% select(pf_d2_1:pf_d2_9) + before_feb %>% select(mo_d2_1:mo_d2_9)) * n_vec
-# init_eta <- 1 - (unlist(before_feb %>% select(pf_d1_1:pf_d1_9))/(init_sv_1d/n_vec) * ve$pfizer[1] +
-#                  unlist(before_feb %>% select(mo_d1_1:mo_d1_9))/(init_sv_1d/n_vec) * ve$moderna[1])
-# init_eta2 <- 1 - (unlist(before_feb %>% select(pf_d2_1:pf_d2_9))/(init_sv_2d/n_vec) * ve$pfizer[2] +
-#                    unlist(before_feb %>% select(mo_d2_1:mo_d2_9))/(init_sv_2d/n_vec) * ve$moderna[2])
+# init_sv_1d <- unlist(before_feb %>% select(pf_d1_1:pf_d1_9) + before_feb %>% select(mo_d1_1:mo_d1_9)) * n_vec
+# init_sv_2d <- unlist(before_feb %>% select(pf_d2_1:pf_d2_9) + before_feb %>% select(mo_d2_1:mo_d2_9)) * n_vec
 
-init_states <- list(Sv_1d = init_sv_1d,
-                    Sv_2d = init_sv_2d,
-                    E = c((3244 / (s * p_reported_all)) * p_inf_by_age), # number of infections that will lead to same number 
-                        # of new cases as of Feb 1, 2021
-                    I = c(77000 * p_inf_by_age), # number of infectious on Feb 1, 2021 (from corona dashboard) so that
-                        # at the initial time step there are 215 hospital admissions
-                    H = c(p_infection2admission/sum(p_infection2admission) * 500), # number of hospitalisations so that at initial
-                        # time step there are 31 IC admissions (from coronadashboard data for Feb 1, 2021)
-                    H_IC = c(p_IC2hospital/sum(p_IC2hospital) * 1131), # so that total number of hospital occupancy (exc IC) is 1631 (from coronadashboard for 1 Feb 2021)
-                    IC = c(p_admission2IC/sum(p_admission2IC) * 639), # from coronadashboard Feb 1, 2021
-                    R = c(3000000 * p_recovered))
+# init_states <- list(Sv_1d = init_sv_1d,
+#                     Sv_2d = init_sv_2d,
+#                     E = c((3244 / (s * p_reported_all)) * p_inf_by_age), # number of infections that will lead to same number 
+#                         # of new cases as of Feb 1, 2021
+#                     I = c(77000 * p_inf_by_age), # number of infectious on Feb 1, 2021 (from corona dashboard) so that
+#                         # at the initial time step there are 215 hospital admissions
+#                     H = c(p_infection2admission/sum(p_infection2admission) * 500), # number of hospitalisations so that at initial
+#                         # time step there are 31 IC admissions (from coronadashboard data for Feb 1, 2021)
+#                     H_IC = c(p_IC2hospital/sum(p_IC2hospital) * 1131), # so that total number of hospital occupancy (exc IC) is 1631 (from coronadashboard for 1 Feb 2021)
+#                     IC = c(p_admission2IC/sum(p_admission2IC) * 639), # from coronadashboard Feb 1, 2021
+#                     R = c(3000000 * p_recovered))
+
+init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "40-49", 
+                                            "50-59", "60-69", "70-79","80+"),
+                              n = n_vec,
+                              # from Scott
+                              n_recovered = c(30720, 397100, 642600, 419000, 412200, 505900,
+                                              349100, 206800, 115900 + 33200),
+                              # from sitrep for 26 januari tot 2 februari: 
+                              # https://www.rivm.nl/coronavirus-covid-19/actueel/wekelijkse-update-epidemiologische-situatie-covid-19-in-nederland)
+                              n_cases = c(835, 2851, 4591, 3854, 3925, 5191, 3216, 1819, 
+                                          1376 + 485)
+                              )
 
 empty_state <- c(rep(0,9))
 
@@ -186,11 +205,9 @@ params <- list(beta = beta,                    # transmission rate
                c_relaxed = t4,
                c_very_relaxed = t3,
                c_normal = t1,
-               vac_schedule = vac_schedule_delay3mo_new,
-               ve = ve,
+               vac_schedule = vac_schedule_orig_new,
+               ve = ve_sa,
                delay = delays,
-               #init_eta = ifelse(is.nan(init_eta), 0, init_eta),
-               #init_eta2 = ifelse(is.nan(init_eta2), 0, init_eta2),
                use_cases = FALSE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_l = 3, #5/100000 * sum(n_vec),           # 3 for IC admissions
                thresh_m = 10, #14.3/100000 * sum(n_vec),        # 10 for IC admissions
@@ -211,7 +228,7 @@ ic <- sweep(hosp_occ, 2, i1, "*")
 plot(times, rowSums(ic), type = "l")
 
 # Summarise results ------------------------------------------------
-tag <- "delay3mo"
+tag <- "original_sa"
 
 results <- summarise_results(out, params, start_date = "2021-02-01")
 saveRDS(results$df_summary, paste0("inst/extdata/results/res_",tag,".rds"))
