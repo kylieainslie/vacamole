@@ -35,16 +35,27 @@ nov_ccm_ic_by_ag <- readRDS("inst/extdata/results/res_by_age_group_ccm_no_vac_w_
   mutate(scenario = "no_vac")
 
 # deferring second dose
-orig <- readRDS("inst/extdata/results/res_orig_distribution_schedule_extra_cp.rds") %>%
+orig <- readRDS("inst/extdata/results/res_original.rds") %>%
   mutate(scenario = "original")
-no_second_doses <- readRDS("inst/extdata/results/res_no_second_doses_extra_cp.rds") %>%
-  mutate(scenario = "second dose deferred")
+no2dose <- readRDS("inst/extdata/results/res_no2dose.rds") %>%
+  mutate(scenario = "no2dose")
+delay3mo <- readRDS("inst/extdata/results/res_delay3mo.rds") %>%
+  mutate(scenario = "delay3mo")
+
+# deferring second dose (sensitivity analysis)
+orig_sa <- readRDS("inst/extdata/results/res_original_sa.rds") %>%
+  mutate(scenario = "original")
+no2dose_sa <- readRDS("inst/extdata/results/res_no2dose_sa.rds") %>%
+  mutate(scenario = "no2dose")
+delay3mo_sa <- readRDS("inst/extdata/results/res_delay3mo_sa.rds") %>%
+  mutate(scenario = "delay3mo")
 
 # data wrangle for plotting/summary table -----------------------------------------
 results_cases_thresh <- bind_rows(o2y_ccm, y2o_ccm, alt_ccm, nov_ccm)
 results_ic_thresh <- bind_rows(o2y_ccm_ic, y2o_ccm_ic, alt_ccm_ic, nov_ccm_ic)
 results_ic_by_age_group <- bind_rows(o2y_ccm_ic_by_ag, y2o_ccm_ic_by_ag, alt_ccm_ic_by_ag, nov_ccm_ic_by_ag)
-results_deferral <- bind_rows(orig, no_second_doses)
+results_deferral <- bind_rows(orig, no2dose, delay3mo)
+results_deferral_sa <- bind_rows(orig_sa, no2dose_sa, delay3mo_sa)
 # calculate life years lost
 life_expectancy <- c(77.89, 67.93, 58.08, 48.28, 38.6, 29.22, 20.52, 12.76, 4.35)
 deaths_by_ag <- results_ic_by_age_group %>%
@@ -66,7 +77,7 @@ total_life_years_lost <- deaths_prevented %>%
   mutate(perc_diff = ((life_years_lost*100)/44505) - 100)
 
 # summary table -------------------------------------------------------------------
-results_dat <- results_deferral
+results_dat <- results_deferral_sa
 # change data frame in summary tab for summary results from ic_thresh
 summary_tab <- results_dat %>%
   group_by(scenario, outcome) %>%
@@ -191,9 +202,10 @@ for_plot3 <- results_dat %>%
          outcome = factor(outcome, levels = c("New Infections", "New Cases", "Hospital Admissions", "IC Admissions", "New Deaths")),
          scenario = case_when(
            scenario == "original" ~ "Original",
-           scenario == "second dose deferred" ~ "Second Dose Deferred"
+           scenario == "no2dose" ~ "No Second Dose",
+           scenario == "delay3mo" ~ "Second Dose Delayed 3 Months"
          ),
-         scenario = factor(scenario, levels = c("Original", "Second Dose Deferred")))
+         scenario = factor(scenario, levels = c("Original", "Second Dose Delayed 3 Months", "No Second Dose")))
 
 g_sum3 <- ggplot(for_plot3, aes(x = date, y = value, color = scenario)) +
   geom_line(position=position_dodge(width=2.5)) +
@@ -207,7 +219,7 @@ g_sum3 <- ggplot(for_plot3, aes(x = date, y = value, color = scenario)) +
   facet_wrap(~outcome, scales = "free")
 g_sum3
 
-ggsave("inst/extdata/results/second_dose_deferred.jpg",
+ggsave("inst/extdata/results/second_dose_deferred_sa.jpg",
        plot = g_sum3,
        height = 6,
        width = 12,
