@@ -133,13 +133,6 @@ age_struct_seir_ode <- function(times,init,params){
     slope <- (use_cases) * sum(dE + dEv_1d + dEv_2d) + (!use_cases) * sum(dH + dHv_1d + dHv_2d)
     assign("slope", slope, envir = globalenv())
     
-    # if(t == 0){l <- data.frame(time = t, age_group = 1:9, foi = as.vector(lambda))
-    #   assign("lambdas", l, envir = globalenv())
-    # } else {
-    #   l_tmp <- data.frame(time = t, age_group = 1:9, foi = as.vector(lambda))
-    #   l <- bind_rows(lambdas, l_tmp)
-    #   assign("lambdas", l, envir = globalenv())
-    #   }
     ################################################################
     dt <- 1
     list(c(dt,dS,dShold_1d,dSv_1d,dShold_2d,dSv_2d,dE,dEv_1d,dEv_2d,
