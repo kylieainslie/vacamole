@@ -53,10 +53,11 @@ hosp_occ <- (out$H + out$Hv_1d + out$Hv_2d)
 ic <- sweep(hosp_occ, 2, i1, "*")
 ic_occ <- (out$IC + out$ICv_1d + out$ICv_2d)
 hosp_after_ic <- sweep(ic, 2, i2, "*")
+hosp_after_ic_occ <- (out$H_IC + out$H_ICv_1d + out$H_ICv_2d)
 total_hosp_occ <- (out$H + out$Hv_1d + out$Hv_2d) + (out$H_IC + out$H_ICv_1d + out$H_ICv_2d)
 
 # deaths
-daily_deaths <- sweep(ic, 2, d_ic, "*") + sweep(hosp_admissions, 2, d, "*") + sweep(hosp_after_ic, 2, d_hic, "*")
+daily_deaths <- sweep(ic_occ, 2, d_ic, "*") + sweep(hosp_occ, 2, d, "*") + sweep(hosp_after_ic_occ, 2, d_hic, "*")
 
 # Create object for plotting ---------------------------------------
 # convert from wide to long format
