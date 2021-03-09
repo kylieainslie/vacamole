@@ -57,31 +57,61 @@ c1 <- as.matrix(contact_matrices_all$baseline[,-1])
 c2 <- as.matrix(contact_matrices_all$april2020[,-1])
 c3 <- as.matrix(contact_matrices_all$june2020[,-1])
 c4 <- as.matrix(contact_matrices_all$september2020[,-1])
+c5 <- readRDS("inst/extdata/data/Contactpatterns_PICO4_10y.rds")
+# population distributions
+demo <- data.frame(age_group = c("[0,10)", "[10,20)", "[20,30)", "[30,40)","[40,50)", "[50,60)",
+                                 "[60,70)", "[70,80)", "[80,Inf]"), 
+                   frac_2017 = c(0.105, 0.118, 0.126, 0.120, 0.138, 0.145, 0.122, 0.0808, 0.0447), 
+                   frac_2019 = c(0.103, 0.116, 0.127, 0.122, 0.131, 0.145, 0.121, 0.0881, 0.0462),
+                   frac_2020 = c(0.102, 0.115, 0.128, 0.123, 0.127, 0.145, 0.121, 0.0904, 0.0472))
 
 # relative susceptibility/infectiousness
 rel_trans <- c(1.000, 3.051, 5.751, 3.538, 3.705, 4.365, 5.688, 5.324, 7.211)
-get_transmission_matrix <- function(x, contact_mat){
-  tmp <- sweep(contact_mat, 1, x, "*")
+get_transmission_matrix <- function(x, contact_mat, year){
+  # first make symmetric
+  if (year == 2017){
+    cm <- contact_mat / demo$frac_2017
+  } else if (year == 2019){
+    cm <- contact_mat / demo$frac_2019
+  } else if (year == 2020) {
+    cm <- contact_mat / demo$frac_2020
+  }
+  # multiply by relative susc/inf
+  tmp <- sweep(cm, 1, x, "*")
   rtn <- sweep(tmp, 2, x, "*")
+  # output
   return(rtn)
 }
 
-t1 <- get_transmission_matrix(rel_trans, c1)
-t2 <- get_transmission_matrix(rel_trans, c2)
-t3 <- get_transmission_matrix(rel_trans, c3)
-t4 <- get_transmission_matrix(rel_trans, c4)
+t1 <- get_transmission_matrix(rel_trans, c1, year = 2017)
+t2 <- get_transmission_matrix(rel_trans, c2, year = 2019)
+t3 <- get_transmission_matrix(rel_trans, c3, year = 2019)
+t4 <- get_transmission_matrix(rel_trans, c4, year = 2019)
+t5 <- get_transmission_matrix(rel_trans, c5, year = 2020)
 
 # parameter inputs
 s <- 0.5
 g <- 0.5
 r0 <- 2.3 
-# determine transmission rate
+reff <- 1.13
+# determine transmission rate for r0
 S = diag(n_vec - 1)
 rho = as.numeric(eigs(S %*% t1,1)$values)
 beta = r0/rho
 # check
 K = beta * S %*% t1
 as.numeric(eigs(K,1)$values) # this should be r0
+
+# determine transmission rate fro reff
+S = diag(n_vec - 1)
+rho = as.numeric(eigs(S %*% t1,1)$values)
+beta = r0/rho
+# check
+K = beta * S %*% t1
+as.numeric(eigs(K,1)$values) # this should be r0
+
+
+
 # tmp <- get_beta(R0 = r0, contact_matrix = t1, N = n_vec, sigma = s, 
 #                 gamma = g) 
 # beta <- tmp$beta
@@ -132,6 +162,7 @@ delays <- list(pfizer = c(14, 7),
 #                     H_IC = c(p_IC2hospital/sum(p_IC2hospital) * 1131), # so that total number of hospital occupancy (exc IC) is 1631 (from coronadashboard for 1 Feb 2021)
 #                     IC = c(p_admission2IC/sum(p_admission2IC) * 639), # from coronadashboard Feb 1, 2021
 #                     R = c(3000000 * p_recovered))
+
 # Jacco's suggested way to determine initial conditions
 init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "40-49", 
                                             "50-59", "60-69", "70-79","80+"),
@@ -149,7 +180,8 @@ init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "4
                               ) %>%
   mutate(n_infections = n_cases * 3,
          init_E = n_infections * (2/7),
-         init_I = n_infections * (2/7))
+         init_I = n_infections * (2/7),
+         init_S = n - n_recovered - init_E - init_I - n_hosp - n_ic)
 
 empty_state <- c(rep(0,9))
 
@@ -158,7 +190,7 @@ t_max <- dim(vac_schedule)[1] - 1
 times <- seq(0,t_max, by = 1)     # Vector of times
 timeInt <- times[2]-times[1]      # Time interval (for technical reasons)
 init <- c(t = times[1],                  
-          S = init_states_dat$n - init_states_dat$n_recovered - init_states_dat$init_E - init_states_dat$init_I - init_states_dat$n_hosp - init_states_dat$n_ic,
+          S = init_states_dat$init_S,
           Shold_1d = empty_state,
           Sv_1d = empty_state,
           Shold_2d = empty_state,
