@@ -74,9 +74,8 @@ t4 <- get_transmission_matrix(rel_trans, c4)
 # parameter inputs
 s <- 0.5
 g <- 0.5
-#r0 <- 3.99603 
-r0 <- 3.02627 
-#init_i <- 0.686474 or 0.361726
+r0 <- 2.3 
+
 tmp <- get_beta(R0 = r0, contact_matrix = t1, N = n_vec, sigma = s, 
                 gamma = s) 
 beta <- tmp$beta
@@ -104,25 +103,9 @@ delays <- list(pfizer = c(14, 7),
                moderna = c(14, 14), 
                astrazeneca = c(21,14))
 
-ve_scotland <- list(pfizer = c(0.645, 0.948), 
-           moderna = c(0.896, 0.941), 
-           astrazeneca = c(0.805, 0.621))
-
-delays_scotland <- list(pfizer = c(7, 7), 
-               moderna = c(14, 14), 
-               astrazeneca = c(7,14))
-
 ve_sa <- list(pfizer = c(0.51, 0.948), 
               moderna = c(0.51, 0.941), 
               astrazeneca = c(0.676, 0.495))
-
-ve_siren <- list(pfizer = c(0.72, 0.86), 
-              moderna = c(0.896, 0.941), 
-              astrazeneca = c(0.676, 0.495))
-
-delays_siren <- list(pfizer = c(21, 7), 
-                        moderna = c(14, 14), 
-                        astrazeneca = c(7,14))
 
 # initial states
 # for vaccinated
