@@ -8,7 +8,7 @@
 # Define model -----------------------------------------------------
 age_struct_seir_ode <- function(times,init,params){
   with(as.list(c(params,init)), {
-    print(t)
+    #print(t)
     # define initial state vectors from input ----------------------
     S = c(S1, S2, S3, S4, S5, S6, S7, S8, S9)
     Shold_1d = c(Shold_1d1, Shold_1d2, Shold_1d3, Shold_1d4, Shold_1d5, Shold_1d6, 
@@ -51,11 +51,10 @@ age_struct_seir_ode <- function(times,init,params){
     ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))
     new_infectious <- sigma * (E + Ev_1d + Ev_2d)
     cases <- sum(new_infectious * p_report)
-    #print(cases)
     criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
-    #print(criteria)
+
     if(t == 0){slope <- 0}
-    #print(t < 10)
+
     contact_mat <- (is.null(force_relax)) *
                       ((criteria < thresh_u & criteria >= thresh_m & slope < 0) * c_lockdown +
                       (criteria < thresh_m & criteria >= thresh_l & slope < 0) * c_relaxed +
@@ -63,8 +62,8 @@ age_struct_seir_ode <- function(times,init,params){
                       (criteria >= thresh_l & criteria <= thresh_m & slope > 0) * c_very_relaxed +
                       (criteria > thresh_m & criteria <= thresh_u & slope > 0) * c_relaxed +
                       (criteria > thresh_u) * c_lockdown +
-                      (criteria >= 0 & criteria < thresh_l & slope > 0) * c_normal) +
-                    (!is.null(force_relax)) * (t < force_relax) *
+                      (criteria >= 0 & criteria < thresh_l & slope > 0) * c_normal) #+
+                    (!is.null(force_relax) & (t < force_relax)) *
                       ((criteria < thresh_u & criteria >= thresh_m & slope < 0) * c_lockdown +
                       (criteria < thresh_m & criteria >= thresh_l & slope < 0) * c_relaxed +
                       (criteria < thresh_l) * c_very_relaxed +
@@ -72,7 +71,7 @@ age_struct_seir_ode <- function(times,init,params){
                       (criteria > thresh_m & criteria <= thresh_u & slope > 0) * c_relaxed +
                       (criteria > thresh_u) * c_lockdown +
                       (criteria >= 0 & criteria < thresh_l & slope > 0) * c_normal) +
-                    (!is.null(force_relax)) * (t >= force_relax) *
+                    (!is.null(force_relax) & (t >= force_relax)) *
                       ((criteria < thresh_u & criteria >= thresh_m & slope < 0) * c_relaxed +
                       (criteria < thresh_m & criteria >= thresh_l & slope < 0) * c_relaxed +
                       (criteria < thresh_l) * c_very_relaxed +

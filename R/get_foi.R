@@ -53,7 +53,7 @@ get_foi <- function(dat,
            (criteria[t] > thresh_m & criteria[t] <= thresh_u & slope[t] > 0) * c_relaxed +
            (criteria[t] > thresh_u) * c_lockdown +
            (criteria[t] >= 0 & criteria[t] < thresh_l & slope[t] > 0) * c_normal) +
-        (!is.null(force_relax)) * (t < force_relax) *
+        (!is.null(force_relax) & (t < force_relax)) *
         ((criteria[t] < thresh_u & criteria[t] >= thresh_m & slope[t] < 0) * c_lockdown +
            (criteria[t] < thresh_m & criteria[t] >= thresh_l & slope[t] < 0) * c_relaxed +
            (criteria[t] < thresh_l) * c_very_relaxed +
@@ -61,7 +61,7 @@ get_foi <- function(dat,
            (criteria[t] > thresh_m & criteria[t] <= thresh_u & slope[t] > 0) * c_relaxed +
            (criteria[t] > thresh_u) * c_lockdown +
            (criteria[t] >= 0 & criteria[t] < thresh_l & slope[t] > 0) * c_normal) +
-        (!is.null(force_relax)) * (t >= force_relax) *
+        (!is.null(force_relax) & (t >= force_relax)) *
         ((criteria[t] < thresh_u & criteria[t] >= thresh_m & slope[t] < 0) * c_relaxed +
            (criteria[t] < thresh_m & criteria[t] >= thresh_l & slope[t] < 0) * c_relaxed +
            (criteria[t] < thresh_l) * c_very_relaxed +
