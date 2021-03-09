@@ -41,9 +41,20 @@ september2020 <- contact_matrices_all %>%
   select(-survey, -contact_type) %>%
   pivot_wider(., names_from = cont_age, values_from = m_est) 
 
+# February 2021
+february2021 <- readRDS("inst/extdata/data/Contactpatterns_PICO4_10y.rds") %>%
+  select(part_age, cnt_age, m_smt) %>%
+  mutate(contact_type = c(rep("all", 81),
+                          rep("community", 81),
+                          rep("household", 81))) %>%
+  filter(contact_type == "all") %>%
+  select(-contact_type) %>%
+  pivot_wider(., names_from = cnt_age, values_from = m_smt) 
+
 # put in a list and write to rds
 cm <- list(baseline = baseline,
            april2020 = april2020,
            june2020 = june2020,
-           september2020 = september2020)
+           september2020 = september2020,
+           february2021 = february2021)
 saveRDS(cm,"inst/extdata/data/contact_matrices_for_model_input.rds")
