@@ -88,7 +88,7 @@ get_foi <- function(dat,
                             ifelse(identical(contact_mat, c_relaxed),"c_relaxed",
                                    ifelse(identical(contact_mat, c_very_relaxed),"c_very_relaxed", "c_normal")))
 
-      lambda <- beta * (contact_mat %*% (I_all[t,]/N))
+      lambda <- beta * (contact_mat %*% I_all[t,])
 
       if (t == 1){ rtn <- data.frame(time = t-1, age_group = 1:9, foi = lambda)
       } else { 

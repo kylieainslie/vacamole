@@ -81,11 +81,11 @@ age_struct_seir_ode <- function(times,init,params){
                       (criteria >= 0 & criteria < thresh_l & slope > 0) * c_normal)
       
     # original
-    # contact_mat <- (t < 20) * c_lockdown +
-    #   (criteria < thresh_u & criteria >= thresh_l & slope < 0 & t >=20) * c_lockdown +
-    #   (criteria < thresh_l & t >=20) * c_relaxed +
-    #   (criteria >= thresh_l & criteria <= thresh_u & slope > 0 & t >=20) * c_relaxed +
-    #   (criteria > thresh_u & t >=20) * c_lockdown
+    # contact_mat <- c_lockdown +
+    #   (criteria < thresh_u & criteria >= thresh_l & slope < 0) * c_lockdown +
+    #   (criteria < thresh_l) * c_relaxed +
+    #   (criteria >= thresh_l & criteria <= thresh_u & slope > 0) * c_relaxed +
+    #   (criteria > thresh_u) * c_lockdown
     
     # contact_mat <- (use_cases) * (                   
     #                 (criteria >= thresh_m) * c_lockdown +
@@ -98,7 +98,7 @@ age_struct_seir_ode <- function(times,init,params){
     #                 (criteria < thresh_l) * c_normal)
     
     # determine force of infection ----------------------------------
-    lambda <- beta * (contact_mat %*% ((I + Iv_1d + Iv_2d)/N))
+    lambda <- beta * (contact_mat %*% (I + Iv_1d + Iv_2d))
     # ---------------------------------------------------------------
     
     ################################################################
