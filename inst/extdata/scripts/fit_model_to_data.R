@@ -76,8 +76,8 @@ t3 <- get_transmission_matrix(rel_trans, c3)
 t4 <- get_transmission_matrix(rel_trans, c4)
 
 # parameter inputs
-s <- 0.2
-g <- 0.125
+s <- 0.5
+g <- 0.5
 r0 <- 3.33966     
 init_i <- 0.544645
 tmp <- get_beta(R0 = r0, contact_matrix = t1, N = n_vec, sigma = s, 
@@ -122,8 +122,8 @@ fit_to_data_wrapper <- function(x, params){
   #t_vec[2] <- t_vec[2] + t01
   #t_vec[length(t_vec)] <- t_vec[length(t_vec)] + 366 #2020 was a leap year
   
-  s <- 0.2
-  g <- 0.125
+  s <- 0.5
+  g <- 0.5
   # r0 <- 2.95550 
   # init_i <- 0.489163
   # # r0 <- 3.33966     
@@ -134,7 +134,7 @@ fit_to_data_wrapper <- function(x, params){
   tmp <- get_beta(R0 = r0, contact_matrix = t1, N = n_vec, sigma = s, 
                   gamma = s) 
   beta <- tmp$beta
-  
+  slope <- 0
   # loop over time periods -------------------------------------------
   rtn <- list() # store output for each iteration here
   for (i in 1:(length(t_vec)-1)){
@@ -156,11 +156,15 @@ fit_to_data_wrapper <- function(x, params){
                    p_report = p_reported_by_age,
                    c_lockdown = t1,
                    c_relaxed = t4,
+                   c_very_relaxed = t3,
+                   c_normal = t1,
+                   force_relax = NULL,
                    #vac_schedule = old_to_young,
                    #ve = ve,
                    #delay = delays,
                    use_cases = FALSE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                    thresh_l = 0,#14.3/100000 * sum(n_vec),        # 10 for IC admissions
+                   thresh_m = sum(n_vec),
                    thresh_u = sum(n_vec),#35.7/100000 * sum(n_vec),        # 20 for IC admissions
                    no_vac = TRUE
     )
