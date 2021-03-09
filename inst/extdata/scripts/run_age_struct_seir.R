@@ -75,10 +75,16 @@ t4 <- get_transmission_matrix(rel_trans, c4)
 s <- 0.5
 g <- 0.5
 r0 <- 2.3 
-
-tmp <- get_beta(R0 = r0, contact_matrix = t1, N = n_vec, sigma = s, 
-                gamma = s) 
-beta <- tmp$beta
+# determine transmission rate
+S = diag(n_vec - 1)
+rho = as.numeric(eigs(S %*% t1,1)$values)
+beta = r0/rho
+# check
+K = beta * S %*% t1
+as.numeric(eigs(K,1)$values) # this should be r0
+# tmp <- get_beta(R0 = r0, contact_matrix = t1, N = n_vec, sigma = s, 
+#                 gamma = g) 
+# beta <- tmp$beta
 h <- p_infection2admission/time_symptom2admission
 i1 <- p_admission2IC/time_admission2IC
 i2 <- p_IC2hospital/time_IC2hospital
@@ -89,10 +95,12 @@ r <- (1 - p_admission2death)/time_admission2discharge
 r_ic <- (1 - p_IC2death)/time_hospital2discharge
 
 # read in vac schedules
-old_to_young <- read_xlsx("inst/extdata/data/old_to_young_az_pf_only.xlsx", sheet = 1)
-no_vac <- data.frame(date = old_to_young$date, old_to_young[,-1] * 0)
-young_to_old <- read_xlsx("inst/extdata/data/old_to_young_az_pf_only.xlsx", sheet = 2)
-alternative <- read_xlsx("inst/extdata/data/old_to_young_az_pf_only.xlsx", sheet = 3)
+# this now comes from convert_vac_schedule.R
+vac_schedule <- vac_schedule_orig_new
+# old_to_young <- read_xlsx("inst/extdata/data/old_to_young_az_pf_only.xlsx", sheet = 1)
+# no_vac <- data.frame(date = old_to_young$date, old_to_young[,-1] * 0)
+# young_to_old <- read_xlsx("inst/extdata/data/old_to_young_az_pf_only.xlsx", sheet = 2)
+# alternative <- read_xlsx("inst/extdata/data/old_to_young_az_pf_only.xlsx", sheet = 3)
 
 # vaccinations params
 ve <- list(pfizer = c(0.926, 0.948), 
@@ -103,9 +111,9 @@ delays <- list(pfizer = c(14, 7),
                moderna = c(14, 14), 
                astrazeneca = c(21,14))
 
-ve_sa <- list(pfizer = c(0.51, 0.948), 
-              moderna = c(0.51, 0.941), 
-              astrazeneca = c(0.676, 0.495))
+# ve_sa <- list(pfizer = c(0.51, 0.948), 
+#               moderna = c(0.51, 0.941), 
+#               astrazeneca = c(0.676, 0.495))
 
 # initial states
 # for vaccinated
@@ -124,7 +132,7 @@ ve_sa <- list(pfizer = c(0.51, 0.948),
 #                     H_IC = c(p_IC2hospital/sum(p_IC2hospital) * 1131), # so that total number of hospital occupancy (exc IC) is 1631 (from coronadashboard for 1 Feb 2021)
 #                     IC = c(p_admission2IC/sum(p_admission2IC) * 639), # from coronadashboard Feb 1, 2021
 #                     R = c(3000000 * p_recovered))
-
+# Jacco's suggested way to determine initial conditions
 init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "40-49", 
                                             "50-59", "60-69", "70-79","80+"),
                               n = n_vec,
@@ -134,7 +142,10 @@ init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "4
                               # from sitrep for 26 januari tot 2 februari: 
                               # https://www.rivm.nl/coronavirus-covid-19/actueel/wekelijkse-update-epidemiologische-situatie-covid-19-in-nederland)
                               n_cases = c(835, 2851, 4591, 3854, 3925, 5191, 3216, 1819, 
-                                          1376 + 485)
+                                          1376 + 485),
+                              # from NICE data (n_hosp/n_ic refers to occupancy on 1 Feb 2021)
+                              n_hosp = c(4, 3, 17, 34, 74, 234, 463, 551, 452),
+                              n_ic = c(0, 2, 6, 9, 25, 83, 181, 150, 12)
                               ) %>%
   mutate(n_infections = n_cases * 3,
          init_E = n_infections * (2/7),
@@ -147,7 +158,7 @@ t_max <- dim(vac_schedule)[1] - 1
 times <- seq(0,t_max, by = 1)     # Vector of times
 timeInt <- times[2]-times[1]      # Time interval (for technical reasons)
 init <- c(t = times[1],                  
-          S = init_states_dat$n - init_states_dat$n_recovered - init_states_dat$init_E - init_states_dat$init_I,
+          S = init_states_dat$n - init_states_dat$n_recovered - init_states_dat$init_E - init_states_dat$init_I - init_states_dat$n_hosp - init_states_dat$n_ic,
           Shold_1d = empty_state,
           Sv_1d = empty_state,
           Shold_2d = empty_state,
@@ -158,13 +169,13 @@ init <- c(t = times[1],
           I = init_states_dat$init_I,
           Iv_1d = empty_state,
           Iv_2d = empty_state,
-          H = empty_state,
+          H = empty_state, #init_states_dat$n_hosp,
           Hv_1d = empty_state,
           Hv_2d = empty_state,
           H_IC = empty_state,
           H_ICv_1d = empty_state,
           H_ICv_2d = empty_state,
-          IC = empty_state,
+          IC = empty_state, #init_states_dat$n_ic,
           ICv_1d = empty_state,
           ICv_2d = empty_state,
           D = empty_state,
@@ -174,7 +185,7 @@ init <- c(t = times[1],
 )                      
 
 # Input parameters -------------------------------------------------
-params <- list(beta = beta,                    # transmission rate
+params <- list(beta = beta,                   # transmission rate
                gamma = g,                      # 1/gamma = infectious period
                sigma = s,                      # 1/sigma = latent period
                N = n_vec,                      # Population (no need to change)
@@ -191,16 +202,16 @@ params <- list(beta = beta,                    # transmission rate
                c_relaxed = t4,
                c_very_relaxed = t3,
                c_normal = t1,
-               vac_schedule = vac_schedule_orig_new,
-               ve = ve_sa,
+               vac_schedule = vac_schedule,
+               ve = ve,
                delay = delays,
                use_cases = FALSE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
-               thresh_l = 3, #5/100000 * sum(n_vec),           # 3 for IC admissions
+               thresh_l = 3, #5/100000 * sum(n_vec),            # 3 for IC admissions
                thresh_m = 10, #14.3/100000 * sum(n_vec),        # 10 for IC admissions
                thresh_u = 20, #35.7/100000 * sum(n_vec),        # 20 for IC admissions
                #thresh_cushion = 1/100000 * sum(n_vec),      # cushion so integrator doesn't get stuck at change point (0 for IC)
                no_vac = FALSE,
-               force_relax = 30                              # time step when measures are forced to relax regardless of criteria
+               force_relax = NULL                              # time step when measures are forced to relax regardless of criteria
 )
 
 # Solve model ------------------------------------------------------
@@ -209,9 +220,10 @@ seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 
 # quick check ------------------------------------------------------
-hosp_occ <- (out$H + out$Hv_1d + out$Hv_2d)
-ic <- sweep(hosp_occ, 2, i1, "*")
-plot(times, rowSums(ic), type = "l")
+infs <- (out$I + out$Iv_1d + out$Iv_2d)
+plot(times, rowSums(infs), type = "l")
+ic_admin <- sweep(out$H + out$Hv_1d + out$Hv_2d, 2, i1, "*")
+plot(times, rowSums(ic_admin), type = "l")
 
 # Summarise results ------------------------------------------------
 tag <- "original_sa"
