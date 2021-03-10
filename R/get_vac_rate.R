@@ -41,12 +41,22 @@ get_vac_rate <- function(times,params){
     select(date, az_d2_1:az_d2_9)
   az_dose2_cs <- cumsum(az_dose2[,-1])
   
+  # jansen
+  ja_dose1 <- vac_schedule %>%
+    select(date, Ja_d1_1:Ja_d1_9)
+  ja_dose1_cs <- cumsum(ja_dose1[,-1])
+  ja_dose2 <- vac_schedule %>%
+    select(date, ja_d2_1:ja_d2_9)
+  ja_dose2_cs <- cumsum(ja_dose2[,-1])
+  
   # calculate composite VE
   time_point <- floor(times) + 1
   
-  total_dose1 <- unlist(pf_dose1_cs[time_point,] + mo_dose1_cs[time_point,] + az_dose1_cs[time_point,])
+  total_dose1 <- unlist(pf_dose1_cs[time_point,] + mo_dose1_cs[time_point,] + 
+                          az_dose1_cs[time_point,] + ja_dose1_cs[time_point,])
   names(total_dose1) <- paste0("tot_",c(substr(names(total_dose1), 4, 7)))
-  total_dose2 <- unlist(pf_dose2_cs[time_point,] + mo_dose2_cs[time_point,] + az_dose2_cs[time_point,])
+  total_dose2 <- unlist(pf_dose2_cs[time_point,] + mo_dose2_cs[time_point,] + 
+                          az_dose2_cs[time_point,] + ja_dose2_cs[time_point,])
   names(total_dose2) <- paste0("tot_",c(substr(names(total_dose2), 4, 7)))
   
   frac_pf_dose1 <- unlist(pf_dose1_cs[time_point,]/total_dose1)
@@ -63,22 +73,32 @@ get_vac_rate <- function(times,params){
   frac_az_dose1 <- ifelse(is.nan(frac_az_dose1), 0, frac_az_dose1)
   frac_az_dose2 <- unlist(az_dose2_cs[time_point,]/total_dose2)
   frac_az_dose2 <- ifelse(is.nan(frac_az_dose2), 0, frac_az_dose2)
+  
+  frac_ja_dose1 <- unlist(ja_dose1_cs[time_point,]/total_dose1)
+  frac_ja_dose1 <- ifelse(is.nan(frac_ja_dose1), 0, frac_az_dose1)
+  frac_ja_dose2 <- unlist(ja_dose2_cs[time_point,]/total_dose2)
+  frac_ja_dose2 <- ifelse(is.nan(frac_ja_dose2), 0, frac_ja_dose2)
 
   comp_ve_dose1 <- frac_pf_dose1 * ve$pfizer[1] + 
     frac_mo_dose1 * ve$moderna[1] + 
-    frac_az_dose1 * ve$astrazeneca[1]
+    frac_az_dose1 * ve$astrazeneca[1] +
+    frac_ja_dose1 * ve$jansen
   comp_ve_dose2 <- frac_pf_dose2 * ve$pfizer[2] + 
     frac_mo_dose2 * ve$moderna[2] + 
-    frac_az_dose2 * ve$astrazeneca[2]
+    frac_az_dose2 * ve$astrazeneca[2] +
+    frac_ja_dose2 * ve$jansen
   
+  # composite delay to protection
   delay_dose1 <- frac_pf_dose1 * delay$pfizer[1] +
     frac_mo_dose1 * delay$moderna[1] +
-    frac_az_dose1 * delay$astrazeneca[1]
-  delay_dose1 <- ifelse(delay_dose1 == 0, 1, delay_dose1) # this prevents from deviding by 0 in the ODEs
+    frac_az_dose1 * delay$astrazeneca[1] +
+    frac_ja_dose1 * delay$jansen
+  delay_dose1 <- ifelse(delay_dose1 == 0, 1, delay_dose1) # this prevents from dividing by 0 in the ODEs
   delay_dose2 <- frac_pf_dose2 * delay$pfizer[2] +
     frac_mo_dose2 * delay$moderna[1] +
-    frac_az_dose2 * delay$astrazeneca[2]
-  delay_dose2 <- ifelse(delay_dose2 == 0, 1, delay_dose2) # this prevents from deviding by 0 in the ODEs
+    frac_az_dose2 * delay$astrazeneca[2] +
+    frac_ja_dose2 * delay$jansen
+  delay_dose2 <- ifelse(delay_dose2 == 0, 1, delay_dose2) # this prevents from dividing by 0 in the ODEs
   
   eta_vec <- 1 - ifelse(is.nan(comp_ve_dose1), 0, comp_ve_dose1)
   names(eta_vec) <- paste0("eta_",1:9)
