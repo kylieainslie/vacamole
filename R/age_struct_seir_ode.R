@@ -8,7 +8,7 @@
 # Define model -----------------------------------------------------
 age_struct_seir_ode <- function(times,init,params){
   with(as.list(c(params,init)), {
-    #print(t)
+    print(t)
     # define initial state vectors from input ----------------------
     S = c(S1, S2, S3, S4, S5, S6, S7, S8, S9)
     Shold_1d = c(Shold_1d1, Shold_1d2, Shold_1d3, Shold_1d4, Shold_1d5, Shold_1d6, 
@@ -49,53 +49,13 @@ age_struct_seir_ode <- function(times,init,params){
     #print(eta)
     # determine contact matrix based on criteria --------------------
     ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))
-    new_infectious <- sigma * (E + Ev_1d + Ev_2d)
-    cases <- sum(new_infectious * p_report)
+    #print(sum(ic_admin))
+    cases <- sum(sigma * (E + Ev_1d + Ev_2d) * p_report)
     criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
 
     if(t == 0){slope <- 0}
-
-    contact_mat <- (is.null(force_relax)) *
-                      ((criteria < thresh_u & criteria >= thresh_m & slope < 0) * c_lockdown +
-                      (criteria < thresh_m & criteria >= thresh_l & slope < 0) * c_relaxed +
-                      (criteria < thresh_l) * c_very_relaxed +
-                      (criteria >= thresh_l & criteria <= thresh_m & slope > 0) * c_very_relaxed +
-                      (criteria > thresh_m & criteria <= thresh_u & slope > 0) * c_relaxed +
-                      (criteria > thresh_u) * c_lockdown +
-                      (criteria >= 0 & criteria < thresh_l & slope > 0) * c_normal) #+
-                    (!is.null(force_relax) & (t < force_relax)) *
-                      ((criteria < thresh_u & criteria >= thresh_m & slope < 0) * c_lockdown +
-                      (criteria < thresh_m & criteria >= thresh_l & slope < 0) * c_relaxed +
-                      (criteria < thresh_l) * c_very_relaxed +
-                      (criteria >= thresh_l & criteria <= thresh_m & slope > 0) * c_very_relaxed +
-                      (criteria > thresh_m & criteria <= thresh_u & slope > 0) * c_relaxed +
-                      (criteria > thresh_u) * c_lockdown +
-                      (criteria >= 0 & criteria < thresh_l & slope > 0) * c_normal) +
-                    (!is.null(force_relax) & (t >= force_relax)) *
-                      ((criteria < thresh_u & criteria >= thresh_m & slope < 0) * c_relaxed +
-                      (criteria < thresh_m & criteria >= thresh_l & slope < 0) * c_relaxed +
-                      (criteria < thresh_l) * c_very_relaxed +
-                      (criteria >= thresh_l & criteria <= thresh_m & slope > 0) * c_very_relaxed +
-                      (criteria > thresh_m & criteria <= thresh_u & slope > 0) * c_relaxed +
-                      (criteria > thresh_u) * c_relaxed +
-                      (criteria >= 0 & criteria < thresh_l & slope > 0) * c_normal)
-      
-    # original
-    # contact_mat <- c_lockdown +
-    #   (criteria < thresh_u & criteria >= thresh_l & slope < 0) * c_lockdown +
-    #   (criteria < thresh_l) * c_relaxed +
-    #   (criteria >= thresh_l & criteria <= thresh_u & slope > 0) * c_relaxed +
-    #   (criteria > thresh_u) * c_lockdown
     
-    # contact_mat <- (use_cases) * (                   
-    #                 (criteria >= thresh_m) * c_lockdown +
-    #                 (criteria >= thresh_l & criteria < thresh_m) * c_relaxed +
-    #                 (criteria < thresh_l) * c_very_relaxed) +
-    #                (!use_cases) * (
-    #                 (criteria >= thresh_u) * c_lockdown +
-    #                 (criteria < thresh_u & criteria >= thresh_m) * c_relaxed +
-    #                 (criteria >= thresh_l & criteria < thresh_m) * c_very_relaxed +
-    #                 (criteria < thresh_l) * c_normal)
+    contact_mat <- choose_contact_matrix(params, times, criteria, slope)
     
     # determine force of infection ----------------------------------
     lambda <- beta * (contact_mat %*% (I + Iv_1d + Iv_2d))
