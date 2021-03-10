@@ -57,37 +57,24 @@ c1 <- as.matrix(contact_matrices_all$baseline[,-1])
 c2 <- as.matrix(contact_matrices_all$april2020[,-1])
 c3 <- as.matrix(contact_matrices_all$june2020[,-1])
 c4 <- as.matrix(contact_matrices_all$september2020[,-1])
-c5 <- readRDS("inst/extdata/data/Contactpatterns_PICO4_10y.rds")
-# population distributions
-demo <- data.frame(age_group = c("[0,10)", "[10,20)", "[20,30)", "[30,40)","[40,50)", "[50,60)",
-                                 "[60,70)", "[70,80)", "[80,Inf]"), 
-                   frac_2017 = c(0.105, 0.118, 0.126, 0.120, 0.138, 0.145, 0.122, 0.0808, 0.0447), 
-                   frac_2019 = c(0.103, 0.116, 0.127, 0.122, 0.131, 0.145, 0.121, 0.0881, 0.0462),
-                   frac_2020 = c(0.102, 0.115, 0.128, 0.123, 0.127, 0.145, 0.121, 0.0904, 0.0472))
+c5 <- as.matrix(contact_matrices_all$february2021[,-1])
 
 # relative susceptibility/infectiousness
 rel_trans <- c(1.000, 3.051, 5.751, 3.538, 3.705, 4.365, 5.688, 5.324, 7.211)
-get_transmission_matrix <- function(x, contact_mat, year){
-  # first make symmetric
-  if (year == 2017){
-    cm <- contact_mat / demo$frac_2017
-  } else if (year == 2019){
-    cm <- contact_mat / demo$frac_2019
-  } else if (year == 2020) {
-    cm <- contact_mat / demo$frac_2020
-  }
+get_transmission_matrix <- function(x, contact_mat){
   # multiply by relative susc/inf
-  tmp <- sweep(cm, 1, x, "*")
-  rtn <- sweep(tmp, 2, x, "*")
+  tmp <- sweep(contact_mat, 1, x, "*")  # rows
+  rtn <- sweep(tmp, 2, x, "*") # columns
+  
   # output
   return(rtn)
 }
 
-t1 <- get_transmission_matrix(rel_trans, c1, year = 2017)
-t2 <- get_transmission_matrix(rel_trans, c2, year = 2019)
-t3 <- get_transmission_matrix(rel_trans, c3, year = 2019)
-t4 <- get_transmission_matrix(rel_trans, c4, year = 2019)
-t5 <- get_transmission_matrix(rel_trans, c5, year = 2020)
+t1 <- get_transmission_matrix(rel_trans, c1)
+t2 <- get_transmission_matrix(rel_trans, c2)
+t3 <- get_transmission_matrix(rel_trans, c3)
+t4 <- get_transmission_matrix(rel_trans, c4)
+t5 <- get_transmission_matrix(rel_trans, c5)
 
 # parameter inputs
 s <- 0.5
@@ -101,16 +88,6 @@ beta = r0/rho
 # check
 K = beta * S %*% t1
 as.numeric(eigs(K,1)$values) # this should be r0
-
-# determine transmission rate fro reff
-S = diag(n_vec - 1)
-rho = as.numeric(eigs(S %*% t1,1)$values)
-beta = r0/rho
-# check
-K = beta * S %*% t1
-as.numeric(eigs(K,1)$values) # this should be r0
-
-
 
 # tmp <- get_beta(R0 = r0, contact_matrix = t1, N = n_vec, sigma = s, 
 #                 gamma = g) 
@@ -127,23 +104,17 @@ r_ic <- (1 - p_IC2death)/time_hospital2discharge
 # read in vac schedules
 # this now comes from convert_vac_schedule.R
 vac_schedule <- vac_schedule_orig_new
-# old_to_young <- read_xlsx("inst/extdata/data/old_to_young_az_pf_only.xlsx", sheet = 1)
-# no_vac <- data.frame(date = old_to_young$date, old_to_young[,-1] * 0)
-# young_to_old <- read_xlsx("inst/extdata/data/old_to_young_az_pf_only.xlsx", sheet = 2)
-# alternative <- read_xlsx("inst/extdata/data/old_to_young_az_pf_only.xlsx", sheet = 3)
 
 # vaccinations params
 ve <- list(pfizer = c(0.926, 0.948), 
            moderna = c(0.896, 0.941), 
-           astrazeneca = c(0.583, 0.621))
+           astrazeneca = c(0.583, 0.621),
+           jansen = c(0.66))
 
 delays <- list(pfizer = c(14, 7), 
                moderna = c(14, 14), 
-               astrazeneca = c(21,14))
-
-# ve_sa <- list(pfizer = c(0.51, 0.948), 
-#               moderna = c(0.51, 0.941), 
-#               astrazeneca = c(0.676, 0.495))
+               astrazeneca = c(21,14),
+               jansen = c(14))
 
 # initial states
 # for vaccinated
@@ -175,19 +146,30 @@ init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "4
                               n_cases = c(835, 2851, 4591, 3854, 3925, 5191, 3216, 1819, 
                                           1376 + 485),
                               # from NICE data (n_hosp/n_ic refers to occupancy on 1 Feb 2021)
-                              n_hosp = c(4, 3, 17, 34, 74, 234, 463, 551, 452),
-                              n_ic = c(0, 2, 6, 9, 25, 83, 181, 150, 12)
+                              n_hosp = c(2, 1, 8, 19, 29, 76, 142, 159, 186),
+                              n_ic = c(0, 2, 6, 9, 25, 83, 181, 150, 12),
+                              # from NICE data: people with length of stay >= 9 days
+                              n_hosp_after_ic = c(2, 2, 9, 15, 45, 158, 321, 392, 266) 
                               ) %>%
   mutate(n_infections = n_cases * 3,
          init_E = n_infections * (2/7),
          init_I = n_infections * (2/7),
-         init_S = n - n_recovered - init_E - init_I - n_hosp - n_ic)
+         init_S = n - n_recovered - init_E - init_I  - n_hosp - n_ic - n_hosp_after_ic)
 
 empty_state <- c(rep(0,9))
 
+# determine transmission rate for reff
+S2 = diag(init_states_dat$init_S)
+rho2 = as.numeric(eigs(S2 %*% t5,1)$values)
+beta2 = reff/rho2
+# check
+K2 = beta2 * S2 %*% t5
+as.numeric(eigs(K2,1)$values) # this should be r0
+
+
 # Specify initial values -------------------------------------------
 t_max <- dim(vac_schedule)[1] - 1
-times <- seq(0,t_max, by = 1)     # Vector of times
+times <- seq(0,80, by = 1)     # Vector of times
 timeInt <- times[2]-times[1]      # Time interval (for technical reasons)
 init <- c(t = times[1],                  
           S = init_states_dat$init_S,
@@ -201,13 +183,13 @@ init <- c(t = times[1],
           I = init_states_dat$init_I,
           Iv_1d = empty_state,
           Iv_2d = empty_state,
-          H = empty_state, #init_states_dat$n_hosp,
+          H = init_states_dat$n_hosp,
           Hv_1d = empty_state,
           Hv_2d = empty_state,
-          H_IC = empty_state,
+          H_IC = init_states_dat$n_hosp_after_ic,
           H_ICv_1d = empty_state,
           H_ICv_2d = empty_state,
-          IC = empty_state, #init_states_dat$n_ic,
+          IC = init_states_dat$n_ic,
           ICv_1d = empty_state,
           ICv_2d = empty_state,
           D = empty_state,
@@ -217,7 +199,7 @@ init <- c(t = times[1],
 )                      
 
 # Input parameters -------------------------------------------------
-params <- list(beta = beta,                   # transmission rate
+params <- list(beta = beta2,                   # transmission rate
                gamma = g,                      # 1/gamma = infectious period
                sigma = s,                      # 1/sigma = latent period
                N = n_vec,                      # Population (no need to change)
@@ -230,6 +212,7 @@ params <- list(beta = beta,                   # transmission rate
                r = r,
                r_ic = r_ic,
                p_report = p_reported_by_age,
+               c_start = t5,
                c_lockdown = t2,
                c_relaxed = t4,
                c_very_relaxed = t3,
@@ -237,13 +220,13 @@ params <- list(beta = beta,                   # transmission rate
                vac_schedule = vac_schedule,
                ve = ve,
                delay = delays,
-               use_cases = FALSE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
-               thresh_l = 3, #5/100000 * sum(n_vec),            # 3 for IC admissions
-               thresh_m = 10, #14.3/100000 * sum(n_vec),        # 10 for IC admissions
-               thresh_u = 20, #35.7/100000 * sum(n_vec),        # 20 for IC admissions
-               #thresh_cushion = 1/100000 * sum(n_vec),      # cushion so integrator doesn't get stuck at change point (0 for IC)
+               use_cases = TRUE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
+               thresh_l = 5/100000 * sum(n_vec),            # 3 for IC admissions
+               thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
+               thresh_u = 35.7/100000 * sum(n_vec),        # 20 for IC admissions
                no_vac = FALSE,
-               force_relax = NULL                              # time step when measures are forced to relax regardless of criteria
+               force_relax = NULL,                          # time step when measures are forced to relax regardless of criteria
+               t_start_end = 30                           # time step when starting contact matrix ends and criteria are used to decide contact matrix
 )
 
 # Solve model ------------------------------------------------------
@@ -252,10 +235,10 @@ seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 
 # quick check ------------------------------------------------------
-infs <- (out$I + out$Iv_1d + out$Iv_2d)
-plot(times, rowSums(infs), type = "l")
+cases <- sweep(params$sigma * (out$E + out$Ev_1d + out$Ev_2d), 2, p_reported_by_age, "*")
+plot(times, rowSums(cases), type = "l")
 ic_admin <- sweep(out$H + out$Hv_1d + out$Hv_2d, 2, i1, "*")
-plot(times, rowSums(ic_admin), type = "l")
+plot(times[-1], rowSums(ic_admin)[-1], type = "l")
 
 # Summarise results ------------------------------------------------
 tag <- "original_sa"
