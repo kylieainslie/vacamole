@@ -8,7 +8,7 @@
 
 choose_contact_matrix <- function(params, times, criteria, slope){
   # define variables from params
-  force_relax <- params$force_relax
+  #force_relax <- params$force_relax
   thresh_l <- params$thresh_l
   thresh_m <- params$thresh_m
   thresh_u <- params$thresh_u
@@ -16,45 +16,39 @@ choose_contact_matrix <- function(params, times, criteria, slope){
   c_lockdown <- params$c_lockdown
   c_relaxed <- params$c_relaxed
   c_very_relaxed <- params$c_very_relaxed
-  c_normal <- params$c_normal
+  #c_normal <- params$c_normal
   t_start_end <- params$t_start_end
   
-  if(times <= t_start_end){
-    contact_mat <- c_start
-  } else if(is.null(force_relax)){
-    contact_mat <- (criteria >= thresh_u) * c_lockdown +
-      (criteria < thresh_u & criteria >= thresh_m & slope < 0) * c_lockdown +
-      (criteria < thresh_m & criteria >= thresh_l & slope < 0) * c_relaxed +
-      (criteria < thresh_l & slope < 0) * c_very_relaxed +
-      (criteria >= thresh_l & criteria <= thresh_m & slope > 0) * c_very_relaxed +
-      (criteria > thresh_m & criteria <= thresh_u & slope > 0) * c_relaxed +
-      (criteria >= 0 & criteria < thresh_l & slope > 0) * c_normal
-    } else{
-      if(t < force_relax){
-        contact_mat <- (criteria > thresh_u) * c_lockdown +
-          (criteria < thresh_u & criteria >= thresh_m & slope < 0) * c_lockdown +
-          (criteria < thresh_m & criteria >= thresh_l & slope < 0) * c_relaxed +
-          (criteria < thresh_l & slope < 0) * c_very_relaxed +
-          (criteria >= thresh_l & criteria <= thresh_m & slope > 0) * c_very_relaxed +
-          (criteria > thresh_m & criteria <= thresh_u & slope > 0) * c_relaxed +
-          (criteria >= 0 & criteria < thresh_l & slope > 0) * c_normal
-      } else {
-        contact_mat <- (criteria > thresh_u) * c_relaxed +
-          (criteria < thresh_u & criteria >= thresh_m & slope < 0) * c_relaxed +
-          (criteria < thresh_m & criteria >= thresh_l & slope < 0) * c_relaxed +
-          (criteria < thresh_l & slope < 0) * c_very_relaxed +
-          (criteria >= thresh_l & criteria <= thresh_m & slope > 0) * c_very_relaxed +
-          (criteria > thresh_m & criteria <= thresh_u & slope > 0) * c_relaxed +
-          (criteria >= 0 & criteria < thresh_l & slope > 0) * c_normal
-      }
-    }
+  if(!is.null(t_start_end) & times <= t_start_end){
+    contact_matrix <- c_start
+  } else{
+    # use simpler conditions where measures are only relaxed and not re-tightened
+    # for flags
+      if(criteria <= thresh_m){flag_relaxed <- flag_relaxed + 1}
+      if(criteria <= thresh_l){flag_very_relaxed <- flag_very_relaxed + 1}
+    # for contact matrix
+      if (flag_relaxed > 0 & flag_very_relaxed == 0) {contact_matrix <- c_relaxed
+      } else if (flag_very_relaxed > 0) { contact_matrix <- c_very_relaxed
+      } else {contact_matrix <- c_lockdown}
+    # old criteria
+      # if(criteria >= thresh_u){ contact_matrix <- c_lockdown
+      # } else if (criteria < thresh_m & criteria >= thresh_l & slope < 0){ contact_matrix <- c_relaxed
+      # } else if (criteria < thresh_l & slope < 0){ contact_matrix <- c_very_relaxed
+      # } else if (criteria < thresh_m & slope > 0){ contact_matrix <- c_very_relaxed
+      # } else if (criteria < thresh_u & criteria >= thresh_m & slope > 0){ contact_matrix <- c_relaxed
+      # } else if (criteria < thresh_u & criteria >= thresh_m & slope < 0) {contact_matrix <- c_lockdown}
+  } 
   
-  if(identical(contact_mat, c_lockdown)){ cat("criteria: ", criteria, "contact matrix: c_lockdown", "\n")
-  } else if(identical(contact_mat, c_relaxed)){cat("criteria: ", criteria, "contact matrix: c_relaxed", "\n")
-  } else if (identical(contact_mat, c_very_relaxed)){ cat("criteria: ", criteria, "contact matrix: c_very_relaxed", "\n")
-  } else if (identical(contact_mat, c_normal)){cat("criteria: ", criteria, "contact matrix: c_normal", "\n")
+  cat("flag_relaxed: ", flag_relaxed, "\n")
+  cat("flag_very_relaxed: ", flag_very_relaxed, "\n")
+  if(identical(contact_matrix, c_lockdown)){ cat("criteria: ", criteria, "contact matrix: c_lockdown", "\n")
+  } else if(identical(contact_matrix, c_relaxed)){cat("criteria: ", criteria, "contact matrix: c_relaxed", "\n")
+  } else if (identical(contact_matrix, c_very_relaxed)){ cat("criteria: ", criteria, "contact matrix: c_very_relaxed", "\n")
+  #} else if (identical(contact_matrix, c_normal)){cat("criteria: ", criteria, "contact matrix: c_normal", "\n")
   } else {cat("criteria: ", criteria, "contact matrix: c_start", "\n")}
 
-
-  return(contact_mat)
+  rtn <- list(contact_matrix = contact_matrix,
+              flag_relaxed = flag_relaxed,
+              flag_very_relaxed = flag_very_relaxed)
+  return(rtn)
 }

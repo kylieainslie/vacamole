@@ -53,12 +53,18 @@ age_struct_seir_ode <- function(times,init,params){
     cases <- sum(sigma * (E + Ev_1d + Ev_2d) * p_report)
     criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
 
-    if(t == 0){slope <- 0}
+    if(t == 0){
+      flag_relaxed <- 0
+      flag_very_relaxed <- 0
+    }
     
-    contact_mat <- choose_contact_matrix(params, times, criteria, slope)
+    tmp2 <- choose_contact_matrix(params, times, criteria, flag_relaxed, flag_very_relaxed)
+    contact_mat <- tmp2$contact_matrix
+    flag_relaxed <- tmp2$flag_relaxed
+    flag-very_relaxed <- tmp2$flag_very_relaxed
     
     # determine force of infection ----------------------------------
-    lambda <- beta * (contact_mat %*% (I + Iv_1d + Iv_2d))
+    lambda <- beta * delta * (contact_mat %*% (I + Iv_1d + Iv_2d))
     # ---------------------------------------------------------------
     
     ################################################################
@@ -89,9 +95,9 @@ age_struct_seir_ode <- function(times,init,params){
     dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d
     dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d
     
-    slope <- (use_cases) * sum(dE + dEv_1d + dEv_2d) + (!use_cases) * sum(dH + dHv_1d + dHv_2d)
-    assign("slope", slope, envir = globalenv())
-    
+    #slope <- (use_cases) * sum(dE + dEv_1d + dEv_2d) + (!use_cases) * sum(dH + dHv_1d + dHv_2d)
+    assign("flag_relaxed", flag_relaxed, envir = globalenv())
+    assign("flag_very_relaxed", flag_very_relaxed, envir = globalenv())
     ################################################################
     dt <- 1
     list(c(dt,dS,dShold_1d,dSv_1d,dShold_2d,dSv_2d,dE,dEv_1d,dEv_2d,
