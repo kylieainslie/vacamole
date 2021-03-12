@@ -2,11 +2,12 @@
 #' @param seir_output list of dataframes from postprocessing
 #' @param params list of parameter values
 #' @param start_date calendar date of start of simulation
+#' @param times vector of time points
 #' @return List of summary results
 #' @keywords vacamole
 #' @export
 
-summarise_results <- function(seir_output, params, start_date){
+summarise_results <- function(seir_output, params, start_date, times){
 
 res <- get_vac_rate_2(times, params$vac_schedule, params$ve, params$delay)
 eta_dose1 <- res %>%
@@ -18,21 +19,7 @@ eta_dose2 <- res %>%
   pivot_wider(names_from = age_group, names_prefix = "eta_dose2_",
               values_from = eta_dose2)
 
-lambda_est <- get_foi(dat = seir_output, 
-                      beta = params$beta, 
-                      sigma = params$sigma,
-                      i1 = params$i1,
-                      p_report = params$p_report,
-                      N = params$N, 
-                      c_lockdown = params$c_lockdown, 
-                      c_relaxed = params$c_relaxed,
-                      c_very_relaxed = params$c_very_relaxed,
-                      c_normal = params$c_normal,
-                      thresh_l = params$thresh_l,
-                      thresh_m = params$thresh_m,
-                      thresh_u = params$thresh_u,
-                      use_cases = params$use_cases,
-                      force_relax = params$force_relax)
+lambda_est <- get_foi(dat = seir_output, params)
 
 lambda_est1 <- lambda_est$lambda %>%
   pivot_wider(names_from = age_group, names_prefix = "age_group_", values_from = foi)
