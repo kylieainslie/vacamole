@@ -17,16 +17,28 @@ baseline <- contact_matrices_all %>%
   filter(survey == "baseline") %>%
   filter(contact_type == "all") %>%
   mutate(f_pop = rep(demo$frac_2017,9),
-         c_est = round(m_est/f_pop,1)) %>%
+         c_est = round(m_est/f_pop,1)) 
+
+baseline_asym <- baseline %>%
+  select(-survey, -contact_type, -c_est, -f_pop) %>%
+  pivot_wider(., names_from = cont_age, values_from = m_est)
+
+baseline_sym <- baseline %>%
   select(-survey, -contact_type, -m_est, -f_pop) %>%
   pivot_wider(., names_from = cont_age, values_from = c_est)
-  
+
 # April 2020 (lockdown)
 april2020 <- contact_matrices_all %>%
   filter(survey == "April 2020") %>%
   filter(contact_type == "all") %>%
   mutate(f_pop = rep(demo$frac_2019,9),
-         c_est = round(m_est/f_pop,1)) %>%
+         c_est = round(m_est/f_pop,1))
+
+april2020_asym <- april2020 %>%
+  select(-survey, -contact_type, -c_est, -f_pop) %>%
+  pivot_wider(., names_from = cont_age, values_from = m_est)
+
+april2020_sym <- april2020 %>%
   select(-survey, -contact_type, -m_est, -f_pop) %>%
   pivot_wider(., names_from = cont_age, values_from = c_est)
 
@@ -35,7 +47,13 @@ june2020 <- contact_matrices_all %>%
   filter(survey == "June 2020") %>%
   filter(contact_type == "all") %>%
   mutate(f_pop = rep(demo$frac_2019,9),
-         c_est = round(m_est/f_pop,1)) %>%
+         c_est = round(m_est/f_pop,1))
+
+june2020_asym <- june2020 %>%
+  select(-survey, -contact_type, -c_est, -f_pop) %>%
+  pivot_wider(., names_from = cont_age, values_from = m_est)
+
+june2020_sym <- june2020 %>%
   select(-survey, -contact_type, -m_est, -f_pop) %>%
   pivot_wider(., names_from = cont_age, values_from = c_est)
 
@@ -44,24 +62,44 @@ september2020 <- contact_matrices_all %>%
   filter(survey == "September 2020") %>%
   filter(contact_type == "all") %>%
   mutate(f_pop = rep(demo$frac_2019,9),
-         c_est = round(m_est/f_pop,1)) %>%
+         c_est = round(m_est/f_pop,1)) 
+
+september2020_asym <- september2020 %>%
+  select(-survey, -contact_type, -c_est, -f_pop) %>%
+  pivot_wider(., names_from = cont_age, values_from = m_est)
+
+september2020_sym <- september2020 %>%
   select(-survey, -contact_type, -m_est, -f_pop) %>%
-  pivot_wider(., names_from = cont_age, values_from = c_est) 
+  pivot_wider(., names_from = cont_age, values_from = c_est)
+
 
 # February 2021
 february2021 <- readRDS("inst/extdata/data/Contactpatterns_PICO4_10y.rds") %>%
-  select(part_age, cnt_age, c_smt) %>%
+  select(part_age, cnt_age, c_smt, m_smt) %>%
   mutate(contact_type = c(rep("all", 81),
                           rep("community", 81),
                           rep("household", 81))) %>%
   filter(contact_type == "all") %>%
-  select(-contact_type) %>%
+  select(-contact_type) 
+
+february2021_asym <- february2021 %>%
+  select(-c_smt) %>%
+  pivot_wider(., names_from = cnt_age, values_from = m_smt) 
+
+february2021_sym <- february2021 %>%
+  select(-m_smt) %>%
   pivot_wider(., names_from = cnt_age, values_from = c_smt) 
 
 # put in a list and write to rds
-cm <- list(baseline = baseline,
-           april2020 = april2020,
-           june2020 = june2020,
-           september2020 = september2020,
-           february2021 = february2021)
+cm <- list(baseline_sym = baseline_sym,
+           baseline_asym = baseline_asym,
+           april2020_sym = april2020_sym,
+           april2020_asym = april2020_asym,
+           june2020_sym = june2020_sym,
+           june2020_asym = june2020_asym,
+           september2020_sym = september2020_sym,
+           september2020_asym = september2020_asym,
+           february2021_sym = february2021_sym,
+           february2021_asym = february2021_asym
+           )
 saveRDS(cm,"inst/extdata/data/contact_matrices_for_model_input.rds")
