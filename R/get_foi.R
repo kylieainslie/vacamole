@@ -22,18 +22,18 @@ get_foi <- function(dat, params){
     
     
     # calculate force of infection for each time point
-    time_vec <- 1:dim(I_all)[1]
+    time_vec <- 1:dim(E_all)[1]
     ic_admin <- rep(0, length(time_vec))
     cases    <- rep(0, length(time_vec))
     criteria <- rep(0, length(time_vec))
     #slope    <- rep(0, length(time_vec))
-    #cm_check <- rep(NA, length(time_vec))
+    cm_check <- rep(NA, length(time_vec))
     
     for(t in time_vec){
-      ic_admin[t] <- sum(i1 * H_all[t,])
-      cases[t] <- sum(sigma * E_all[t,] * p_report)
+      ic_admin[t] <- sum(params$i1 * H_all[t,])
+      cases[t] <- sum(params$sigma * E_all[t,] * params$p_report)
       
-      criteria[t] <- (use_cases) * cases[t] + (!use_cases) * ic_admin[t] 
+      criteria[t] <- (params$use_cases) * cases[t] + (!params$use_cases) * ic_admin[t] 
       
       #if(t == 0 ){cases <- sum(init_lambda * ((S[t,] + Shold_1d[t,]) + eta * (Sv_1d[t,] + Shold_2d[t,]) + eta2 * Sv_2d[t,]))}
       #criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
@@ -52,13 +52,13 @@ get_foi <- function(dat, params){
       flag_normal <- tmp2$flag_normal
       
       # determine force of infection ----------------------------------
-      lambda <- beta * delta * (contact_mat %*% (I + Iv_1d + Iv_2d))
+      lambda <- params$beta * params$delta * (contact_mat %*% (I_all[t,]))
       # ---------------------------------------------------------------
       
       # check for which contact metrix was selected -------------------
-      cm_check[t] <- ifelse(identical(contact_mat, c_lockdown), "c_lockdown", 
-                            ifelse(identical(contact_mat, c_relaxed),"c_relaxed",
-                                   ifelse(identical(contact_mat, c_very_relaxed),"c_very_relaxed", "c_normal")))
+      cm_check[t] <- ifelse(identical(contact_mat, params$c_lockdown), "c_lockdown", 
+                            ifelse(identical(contact_mat, params$c_relaxed),"c_relaxed",
+                                   ifelse(identical(contact_mat, params$c_very_relaxed),"c_very_relaxed", "c_normal")))
       # ---------------------------------------------------------------
   
       if (t == 1){ rtn <- data.frame(time = t-1, age_group = 1:9, foi = lambda)
