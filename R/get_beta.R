@@ -17,6 +17,8 @@ get_beta <- function(R0, contact_matrix, N, sigma, gamma,
                      Reff, contact_matrix2 = NULL, init_s = NULL,
                      eta = NULL, eta2 = NULL, vac_started = FALSE){
   
+  #################################################################
+  # to check:
   n_groups <- length(N)
   Ni <- matrix(rep(N, n_groups),nrow = n_groups)
   Nj <- t(Ni)
@@ -33,7 +35,7 @@ get_beta <- function(R0, contact_matrix, N, sigma, gamma,
   GD <- F_mat %*% solve(V)    # next generation matrix
   d <- as.numeric(eigs(GD,1)$values)
   beta <- R0/d
-  
+  #################################################################
   rtn <- list(beta = beta)
   
   if(!is.null(contact_matrix2) & !is.null(init_s) &
