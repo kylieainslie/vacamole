@@ -41,27 +41,31 @@ age_struct_seir_ode <- function(times,init,params){
     tmp <- get_vac_rate(times,params)
     alpha <- c(tmp[[1]][1:9])
     alpha2 <- c(tmp[[1]][10:18])
-    eta <- c(tmp[[1]][19:27]) # (t < 1) * init_eta + (t >= 1) * 
-    eta2 <- c(tmp[[1]][28:36]) # (t < 1) * init_eta2 + (t >= 1) * 
+    eta <- c(tmp[[1]][19:27])  
+    eta2 <- c(tmp[[1]][28:36]) 
     delay <- tmp[[1]][37]
     delay2 <- tmp[[1]][38]
     
     #print(eta)
     # determine contact matrix based on criteria --------------------
     ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))
-    #print(sum(ic_admin))
+    
     cases <- sum(sigma * (E + Ev_1d + Ev_2d) * p_report)
+    #if(t == 0 ){cases <- sum(init_lambda * ((S + Shold_1d) + eta * (Sv_1d + Shold_2d) + eta2 * Sv_2d))}
     criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
-
+    
     if(t == 0){
       flag_relaxed <- 0
       flag_very_relaxed <- 0
+      flag_normal <- 0
     }
     
-    tmp2 <- choose_contact_matrix(params, times, criteria, flag_relaxed, flag_very_relaxed)
+    tmp2 <- choose_contact_matrix(params, times, criteria, flag_relaxed, 
+                                  flag_very_relaxed, flag_normal)
     contact_mat <- tmp2$contact_matrix
     flag_relaxed <- tmp2$flag_relaxed
-    flag-very_relaxed <- tmp2$flag_very_relaxed
+    flag_very_relaxed <- tmp2$flag_very_relaxed
+    flag_normal <- tmp2$flag_normal
     
     # determine force of infection ----------------------------------
     lambda <- beta * delta * (contact_mat %*% (I + Iv_1d + Iv_2d))
@@ -69,7 +73,6 @@ age_struct_seir_ode <- function(times,init,params){
     
     ################################################################
     # ODEs:
-      
     dS <- -lambda * S - alpha * S
     dShold_1d <- alpha * S - (1/delay) * Shold_1d - lambda * Shold_1d
     dSv_1d <- (1/delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d 
@@ -95,9 +98,11 @@ age_struct_seir_ode <- function(times,init,params){
     dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d
     dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d
     
-    #slope <- (use_cases) * sum(dE + dEv_1d + dEv_2d) + (!use_cases) * sum(dH + dHv_1d + dHv_2d)
+    #cases <- sum(lambda * ((S + Shold_1d) + eta * (Sv_1d + Shold_2d) + eta2 * Sv_2d))
+    #assign("cases", cases, envir = globalenv())
     assign("flag_relaxed", flag_relaxed, envir = globalenv())
     assign("flag_very_relaxed", flag_very_relaxed, envir = globalenv())
+    assign("flag_normal", flag_normal, envir = globalenv())
     ################################################################
     dt <- 1
     list(c(dt,dS,dShold_1d,dSv_1d,dShold_2d,dSv_2d,dE,dEv_1d,dEv_2d,
