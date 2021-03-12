@@ -59,9 +59,14 @@ c3 <- as.matrix(contact_matrices_all$june2020_sym[,-1])
 c4 <- as.matrix(contact_matrices_all$september2020_sym[,-1])
 c5 <- as.matrix(contact_matrices_all$february2021_sym[,-1])
 
-# make number of contacts rate of contacts --------------------------
-c5_rate <- sweep(c5, 2, n_vec, "/")
-
+# Convert from number of contacts to rate of contacts ---------------
+N_diag <- diag(1/n_vec)
+m1 <- c1 %*% N_diag
+m2 <- c2 %*% N_diag
+m3 <- c3 %*% N_diag
+m4 <- c4 %*% N_diag
+m5 <- c5 %*% N_diag
+  
 # relative susceptibility/infectiousness ----------------------------
 rel_trans <- c(1.000, 3.051, 5.751, 3.538, 3.705, 4.365, 5.688, 5.324, 7.211)
 get_transmission_matrix <- function(x, contact_mat){
@@ -73,13 +78,11 @@ get_transmission_matrix <- function(x, contact_mat){
   return(rtn)
 }
 
-t1 <- get_transmission_matrix(rel_trans, c1)
-t2 <- get_transmission_matrix(rel_trans, c2)
-t3 <- get_transmission_matrix(rel_trans, c3)
-t4 <- get_transmission_matrix(rel_trans, c4)
-t5 <- get_transmission_matrix(rel_trans, c5)
-
-t5_rate <- get_transmission_matrix(rel_trans, c5_rate)
+t1 <- get_transmission_matrix(rel_trans, m1)
+t2 <- get_transmission_matrix(rel_trans, m2)
+t3 <- get_transmission_matrix(rel_trans, m3)
+t4 <- get_transmission_matrix(rel_trans, m4)
+t5 <- get_transmission_matrix(rel_trans, m5)
 
 # parameter inputs -------------------------------------------------
 s <- 0.5
@@ -137,7 +140,7 @@ init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "4
                               # from NICE data: people with length of stay >= 9 days
                               n_hosp_after_ic = c(2, 2, 9, 15, 45, 158, 321, 392, 266) 
                               ) %>%
-  mutate(n_infections = n_cases * 3,
+  mutate(n_infections = n_cases * p_reported_by_age,
          init_E = n_infections * (2/7),
          init_I = n_infections * (2/7),
          init_S = n - n_recovered - init_E - init_I  - n_hosp - n_ic - n_hosp_after_ic)
@@ -146,10 +149,10 @@ init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "4
 reff <- 1.04 # from RIVM open data for 1 Feb 2021 (midpoint between 
 #              0.94 (wt) and 1.13 (UK variant))
 S2 = diag(init_states_dat$init_S)
-rho2 = as.numeric(eigs(S2 %*% t5_rate,1)$values)
+rho2 = as.numeric(eigs(S2 %*% t5,1)$values)
 beta2 = reff/rho2 * gamma
 # check
-B <- t5_rate
+B <- t5
 K2 = beta2 * (1/g) * S2 %*% B
 as.numeric(eigs(K2,1)$values) # this should be r0
 
@@ -225,10 +228,10 @@ params <- list(beta = beta2_prime,           # transmission rate
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
                thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
                thresh_u = 35.7/100000 * sum(n_vec),        # 20 for IC admissions
-               no_vac = FALSE,
+               no_vac = TRUE,
                #force_relax = NULL,                          # time step when measures are forced to relax regardless of criteria
-               t_start_end = 29,                           # time step when starting contact matrix ends and criteria are used to decide contact matrix
-               init_lambda = beta2_prime * B_prime %*% init_states_dat$init_I
+               t_start_end = 29#,                           # time step when starting contact matrix ends and criteria are used to decide contact matrix
+               #init_lambda = beta2_prime * B_prime %*% init_states_dat$init_I
 )
 
 # Solve model ------------------------------------------------------
@@ -237,8 +240,10 @@ seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 
 # quick check ------------------------------------------------------
-cases <- (params$sigma * (out$E + out$Ev_1d + out$Ev_2d)) / 3
+cases <- sweep((params$sigma * (out$E + out$Ev_1d + out$Ev_2d)), 2, p_reported_by_age, "*") 
 plot(times, rowSums(cases), type = "l")
+new_infections <- rowSums(params$sigma * (out$E + out$Ev_1d + out$Ev_2d))
+plot(times, new_infections, type = "l")
 ic_admin <- sweep(out$H + out$Hv_1d + out$Hv_2d, 2, i1, "*")
 plot(times, rowSums(ic_admin), type = "l")
 
