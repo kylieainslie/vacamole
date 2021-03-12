@@ -46,7 +46,7 @@ get_vac_rate <- function(times,params){
     select(date, Ja_d1_1:Ja_d1_9)
   ja_dose1_cs <- cumsum(ja_dose1[,-1])
   ja_dose2 <- vac_schedule %>%
-    select(date, ja_d2_1:ja_d2_9)
+    select(date, Ja_d2_1:Ja_d2_9)
   ja_dose2_cs <- cumsum(ja_dose2[,-1])
   
   # calculate composite VE
