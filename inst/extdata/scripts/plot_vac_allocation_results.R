@@ -5,91 +5,94 @@
 # 4) no vaccination (control)
 
 # load results --------------------------------------------------------------------
-# constant contact matrix
-# o2y <- readRDS("inst/extdata/results/res_old_to_young.rds") 
-# y2o <- readRDS("inst/extdata/results/res_young_to_old.rds")
-# alt <- readRDS("inst/extdata/results/res_alternative.rds")
-# nov <- readRDS("inst/extdata/results/res_no_vac.rds")
+# main analysis
+o2y <- readRDS("inst/extdata/results/res_o2y_15March.rds") 
+y2o <- readRDS("inst/extdata/results/res_y2o_15March.rds") 
+alt <- readRDS("inst/extdata/results/res_alt_15March.rds") 
+nov_healthy <- readRDS("inst/extdata/results/res_no_vac_healthy_15March.rds") 
+nov <- readRDS("inst/extdata/results/res_no_vac_15March.rds")
 
-# changing contact matrix
-# cases as criteria
-o2y_ccm <- readRDS("inst/extdata/results/res_ccm_old_to_young.rds") 
-y2o_ccm <- readRDS("inst/extdata/results/res_ccm_young_to_old.rds")
-alt_ccm <- readRDS("inst/extdata/results/res_ccm_alternative.rds")
-nov_ccm <- readRDS("inst/extdata/results/res_ccm_no_vac.rds")
+# sensitivity analysis
+o2y_sa <- readRDS("inst/extdata/results/res_o2y_re-lockdown_15March.rds") 
+y2o_sa <- readRDS("inst/extdata/results/res_y2o_re-lockdown_15March.rds") 
+alt_sa <- readRDS("inst/extdata/results/res_alt_re-lockdown_15March.rds") 
+nov_healthy_sa <- readRDS("inst/extdata/results/res_no_vac_healthy_re-lockdown_15March.rds") 
+nov_sa <- readRDS("inst/extdata/results/res_no_vac_re-lockdown_15March.rds")
 
-# ic as criteria
-o2y_ccm_ic <- readRDS("inst/extdata/results/res_ccm_old_to_young_w_deaths_ic.rds") 
-y2o_ccm_ic <- readRDS("inst/extdata/results/res_ccm_young_to_old_w_deaths_ic.rds")
-alt_ccm_ic <- readRDS("inst/extdata/results/res_ccm_alternative_w_deaths_ic.rds")
-nov_ccm_ic <- readRDS("inst/extdata/results/res_ccm_no_vac_w_deaths_ic.rds")
+# 20%
+o2y_sa20 <- readRDS("inst/extdata/results/res_o2y_sa20_14March.rds") 
+y2o_sa20 <- readRDS("inst/extdata/results/res_y2o_sa20_14March.rds") 
+alt_sa20 <- readRDS("inst/extdata/results/res_alt_sa20_14March.rds") 
+nov_healthy_sa20 <- readRDS("inst/extdata/results/res_no_vac_healthy_sa20_14March.rds") 
+nov_sa20 <- readRDS("inst/extdata/results/res_no_vac_sa20_14March.rds")
 
-# by age group
-o2y_ccm_ic_by_ag <- readRDS("inst/extdata/results/res_by_age_group_ccm_old_to_young_w_deaths_ic.rds") %>%
-  mutate(scenario = "old_to_young")
-y2o_ccm_ic_by_ag <- readRDS("inst/extdata/results/res_by_age_group_ccm_young_to_old_w_deaths_ic.rds") %>%
-  mutate(scenario = "young_to_old")
-alt_ccm_ic_by_ag <- readRDS("inst/extdata/results/res_by_age_group_ccm_alternative_w_deaths_ic.rds") %>%
-  mutate(scenario = "alternative")
-nov_ccm_ic_by_ag <- readRDS("inst/extdata/results/res_by_age_group_ccm_no_vac_w_deaths_ic.rds") %>%
-  mutate(scenario = "no_vac")
-
-# deferring second dose
-orig <- readRDS("inst/extdata/results/res_original.rds") %>%
-  mutate(scenario = "original")
-no2dose <- readRDS("inst/extdata/results/res_no2dose.rds") %>%
-  mutate(scenario = "no2dose")
-delay3mo <- readRDS("inst/extdata/results/res_delay3mo.rds") %>%
-  mutate(scenario = "delay3mo")
-
-# deferring second dose (sensitivity analysis)
-orig_sa <- readRDS("inst/extdata/results/res_original_sa.rds") %>%
-  mutate(scenario = "original")
-no2dose_sa <- readRDS("inst/extdata/results/res_no2dose_sa.rds") %>%
-  mutate(scenario = "no2dose")
-delay3mo_sa <- readRDS("inst/extdata/results/res_delay3mo_sa.rds") %>%
-  mutate(scenario = "delay3mo")
+# 50%
+o2y_sa50 <- readRDS("inst/extdata/results/res_o2y_sa50_14March.rds") 
+y2o_sa50 <- readRDS("inst/extdata/results/res_y2o_sa50_14March.rds") 
+alt_sa50 <- readRDS("inst/extdata/results/res_alt_sa50_14March.rds") 
+nov_healthy_sa50 <- readRDS("inst/extdata/results/res_no_vac_healthy_sa50_14March.rds") 
+nov_sa50 <- readRDS("inst/extdata/results/res_no_vac_sa50_14March.rds")
 
 # data wrangle for plotting/summary table -----------------------------------------
-results_cases_thresh <- bind_rows(o2y_ccm, y2o_ccm, alt_ccm, nov_ccm)
-results_ic_thresh <- bind_rows(o2y_ccm_ic, y2o_ccm_ic, alt_ccm_ic, nov_ccm_ic)
-results_ic_by_age_group <- bind_rows(o2y_ccm_ic_by_ag, y2o_ccm_ic_by_ag, alt_ccm_ic_by_ag, nov_ccm_ic_by_ag)
-results_deferral <- bind_rows(orig, no2dose, delay3mo)
-results_deferral_sa <- bind_rows(orig_sa, no2dose_sa, delay3mo_sa)
-# calculate life years lost
-life_expectancy <- c(77.89, 67.93, 58.08, 48.28, 38.6, 29.22, 20.52, 12.76, 4.35)
-deaths_by_ag <- results_ic_by_age_group %>%
-  group_by(scenario, outcome, age_group) %>%
-  summarise_at(.vars = "value", .funs = sum) %>%
-  filter(outcome == "new_deaths")
+results_main <- bind_rows(o2y$df_summary,
+                     y2o$df_summary,
+                     alt$df_summary,
+                     nov_healthy$df_summary,
+                     nov$df_summary,
+                     .id = "scenario") %>%
+  mutate(scenario = case_when(
+    scenario == 1 ~ "old to young",
+    scenario == 2 ~ "young to old",
+    scenario == 3 ~ "alternative",
+    scenario == 4 ~ "no vaccination (healthy adults)",
+    scenario == 5 ~ "no vaccination (at all)"
+  ),
+  analysis = "main")
 
-no_vac_deaths_by_ag <- deaths_by_ag %>%
-  filter(scenario == "no_vac")
+results_sa <- bind_rows(o2y_sa$df_summary,
+                     y2o_sa$df_summary,
+                     alt_sa$df_summary,
+                     nov_healthy_sa$df_summary,
+                     nov_sa$df_summary,
+                     .id = "scenario") %>%
+  mutate(scenario = case_when(
+    scenario == 1 ~ "old to young",
+    scenario == 2 ~ "young to old",
+    scenario == 3 ~ "alternative",
+    scenario == 4 ~ "no vaccination (healthy adults)",
+    scenario == 5 ~ "no vaccination (at all)"
+  ),
+  analysis = "sa20")
 
-deaths_prevented <- deaths_by_ag %>%
-  mutate(deaths_prevented = no_vac_deaths_by_ag$value - value,
-         life_years_lost_prevented = deaths_prevented * life_expectancy,
-         life_years_lost = value * life_expectancy)
-  
-total_life_years_lost <- deaths_prevented %>%
-  group_by(scenario) %>%
-  summarise_at(.vars = c("value","life_years_lost", "life_years_lost_prevented"), .funs = sum) %>%
-  mutate(perc_diff = ((life_years_lost*100)/44505) - 100)
+results_sa50 <- bind_rows(o2y_sa50$df_summary,
+                          y2o_sa50$df_summary,
+                          alt_sa50$df_summary,
+                          nov_healthy_sa50$df_summary,
+                          .id = "scenario") %>%
+  mutate(scenario = case_when(
+    scenario == 1 ~ "old to young",
+    scenario == 2 ~ "young to old",
+    scenario == 3 ~ "alternative",
+    scenario == 4 ~ "no vaccination (healthy adults)"
+  ),
+  analysis = "sa50")
 
+results_all <- bind_rows(results_main, results_sa20, results_sa50)
 # summary table -------------------------------------------------------------------
-results_dat <- results_deferral_sa
-# change data frame in summary tab for summary results from ic_thresh
+results_dat <- results_sa
+
 summary_tab <- results_dat %>%
-  group_by(scenario, outcome) %>%
+  group_by(analysis, scenario, outcome) %>%
   summarise_at(.vars = "value", .funs = sum)
 
 ref_no_vac <- summary_tab %>%
-  filter(scenario == "ccm_no_vac_w_deaths_ic") %>%
-  group_by(outcome) %>%
+  filter(scenario == "no vaccination (healthy adults)") %>%
+  group_by(analysis, outcome) %>%
   summarise_at(.vars = "value", .funs = sum)
 
 infections_sum <- summary_tab %>%
   filter(outcome == "new_infections") %>%
+  group_by(analysis) %>%
   mutate(perc_diff = ((value*100)/ref_no_vac$value[8]) - 100)
 
 cases_sum <- summary_tab %>%
@@ -110,117 +113,91 @@ deaths_sum <- summary_tab %>%
 
 # plot ----------------------------------------------------------------------------
 # subset for plotting
-for_plot <- results_cases_thresh %>%
-  filter(outcome %in% c("new_infections", "new_cases", "hospital_admissions", "ic_admissions")) %>%
+for_plot <- results_dat %>%
+  filter(outcome %in% c("new_infections", "new_cases", "hospital_admissions", 
+                        "ic_admissions", "new_deaths")) %>%
   group_by(outcome, scenario) %>%
   mutate(rolling_avg = zoo::rollmean(value, k = 7, fill = NA),
          outcome = case_when(
            outcome == "hospital_admissions" ~ "Hospital Admissions",
            outcome == "ic_admissions" ~ "IC Admissions",
            outcome == "new_cases" ~ "New Cases",
-           outcome == "new_infections" ~ "New Infections"
+           outcome == "new_infections" ~ "New Infections",
+           outcome == "new_deaths" ~ "New Deaths"
          ),
-         outcome = factor(outcome, levels = c("New Infections", "New Cases", "Hospital Admissions", "IC Admissions")),
+         outcome = factor(outcome, levels = c("New Infections", "New Cases", "Hospital Admissions", 
+                                              "IC Admissions", "New Deaths")),
          scenario = case_when(
-           scenario == "ccm_alternative" ~ "Alternative",
-           scenario == "ccm_no_vac" ~ "No Vaccination",
-           scenario == "ccm_old_to_young" ~ "Old to Young",
-           scenario == "ccm_young_to_old" ~ "Young to Old"
+           scenario == "alternative" ~ "Alternative",
+           scenario == "no vaccination (healthy adults)" ~ "No Vaccination (Healthy Adults)",
+           scenario == "old to young" ~ "Old to Young",
+           scenario == "young to old" ~ "Young to Old",
+           scenario == "no vaccination (at all)" ~ "No Vaccination (At All)"
          ),
-         scenario = factor(scenario, levels = c("Old to Young", "Young to Old", "Alternative", "No Vaccination")))
+         scenario = factor(scenario, levels = c("Old to Young", "Young to Old", "Alternative", 
+                                                "No Vaccination (Healthy Adults)", "No Vaccination (At All)")))
   
-# cases threshhold
-g_sum <- ggplot(for_plot, aes(x = date, y = rolling_avg, color = scenario)) +
-  geom_line(position=position_dodge(width=2.5)) +
+# plot
+for_plot1 <- for_plot %>% 
+  filter(scenario != "No Vaccination (At All)")
+g_sum <- ggplot(for_plot1, 
+                aes(x = date, y = rolling_avg, color = scenario)) +
+  geom_line(#aes(linetype = "Main"),
+            position=position_dodge(width=2.5)
+            ) +
+  # geom_line(data = for_plot1 %>% filter(analysis == "sa20"), 
+  #           aes(x = date, y = value, color = scenario, linetype = "Reduction of 20%"), 
+  #           #linetype = "dashed", 
+  #           position=position_dodge(width=2.5)) +
+  # geom_line(data = for_plot1 %>% filter(analysis == "sa50"), 
+  #           aes(x = date, y = value, color = scenario, linetype = "Reduction of 50%"), 
+  #           #linetype = "dotted", 
+  #           position=position_dodge(width=2.5)) +
   labs(y = "Value", x = "Time (days)", color = "Vaccination Scenario") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
-  #geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
+  geom_vline(xintercept = as.Date("2021-04-25"),linetype="dashed", color = "grey70") +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1)) +
   facet_wrap(~outcome, scales = "free")
 g_sum
 
-ggsave("inst/extdata/results/vac_alloc_results_cases_thresh.jpg",
+# save plot to file
+ggsave("inst/extdata/results/vac_alloc_plot_sa_15March.jpg",
        plot = g_sum,
        height = 6,
        width = 12,
        dpi = 300)
 
-# ic threshhold
-for_plot2 <- results_ic_thresh %>%
-  filter(outcome %in% c("new_infections", "new_cases", "hospital_admissions", "ic_admissions", "new_deaths")) %>%
-  group_by(outcome, scenario) %>%
-  mutate(rolling_avg = zoo::rollmean(value, k = 7, fill = NA),
-         outcome = case_when(
-           outcome == "hospital_admissions" ~ "Hospital Admissions",
-           outcome == "ic_admissions" ~ "IC Admissions",
-           outcome == "new_cases" ~ "New Cases",
-           outcome == "new_infections" ~ "New Infections",
-           outcome == "new_deaths" ~ "New Deaths"
-         ),
-         outcome = factor(outcome, levels = c("New Infections", "New Cases", "Hospital Admissions", "IC Admissions", "New Deaths")),
-         scenario = case_when(
-           scenario == "ccm_alternative_w_deaths_ic" ~ "Alternative",
-           scenario == "ccm_no_vac_w_deaths_ic" ~ "No Vaccination",
-           scenario == "ccm_old_to_young_w_deaths_ic" ~ "Old to Young",
-           scenario == "ccm_young_to_old_w_deaths_ic" ~ "Young to Old"
-         ),
-         scenario = factor(scenario, levels = c("Old to Young", "Young to Old", "Alternative", "No Vaccination")))
+# calculate life years lost ---------------------------------------------------------
+# data wrangling --------------------------------------------------------------------
+results_by_ag <- bind_rows(o2y_sa$df,y2o_sa$df,alt_sa$df,nov_healthy_sa$df, nov_sa$df,.id = "scenario") %>%
+  mutate(scenario = case_when(
+    scenario == 1 ~ "old to young",
+    scenario == 2 ~ "young to old",
+    scenario == 3 ~ "alternative",
+    scenario == 4 ~ "no vaccination (healthy adults)",
+    scenario == 5 ~ "no vaccination (at all)"
+  ))
 
-g_sum2 <- ggplot(for_plot2, aes(x = date, y = value, color = scenario)) +
-  geom_line(position=position_dodge(width=2.5)) +
-  labs(y = "Value", x = "Time (days)", color = "Vaccination Scenario") +
-  ylim(0,NA) +
-  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
-  #geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
-  theme(legend.position = "bottom",
-        panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~outcome, scales = "free")
-g_sum2
+# calculation -----------------------------------------------------------------------
+life_expectancy <- c(77.89, 67.93, 58.08, 48.28, 38.6, 29.22, 20.52, 12.76, 4.35)
+deaths_by_ag <- results_by_ag %>%
+  group_by(scenario, outcome, age_group) %>%
+  summarise_at(.vars = "value", .funs = sum) %>%
+  filter(outcome == "new_deaths")
 
-ggsave("inst/extdata/results/vac_alloc_results_ic_w_deaths.jpg",
-       plot = g_sum2,
-       height = 6,
-       width = 12,
-       dpi = 300)
+no_vac_deaths_by_ag <- deaths_by_ag %>%
+  filter(scenario == "no vaccination (at all)")
 
-# defer second dose
-for_plot3 <- results_dat %>%
-  filter(outcome %in% c("new_infections", "new_cases", "hospital_admissions", "ic_admissions", "new_deaths")) %>%
-  group_by(outcome, scenario) %>%
-  mutate(rolling_avg = zoo::rollmean(value, k = 7, fill = NA),
-         outcome = case_when(
-           outcome == "hospital_admissions" ~ "Hospital Admissions",
-           outcome == "ic_admissions" ~ "IC Admissions",
-           outcome == "new_cases" ~ "New Cases",
-           outcome == "new_infections" ~ "New Infections",
-           outcome == "new_deaths" ~ "New Deaths"
-         ),
-         outcome = factor(outcome, levels = c("New Infections", "New Cases", "Hospital Admissions", "IC Admissions", "New Deaths")),
-         scenario = case_when(
-           scenario == "original" ~ "Original",
-           scenario == "no2dose" ~ "No Second Dose",
-           scenario == "delay3mo" ~ "Second Dose Delayed 3 Months"
-         ),
-         scenario = factor(scenario, levels = c("Original", "Second Dose Delayed 3 Months", "No Second Dose")))
+deaths_prevented <- deaths_by_ag %>%
+  mutate(deaths_prevented = no_vac_deaths_by_ag$value - value,
+         life_years_lost_prevented = deaths_prevented * life_expectancy,
+         life_years_lost = value * life_expectancy)
 
-g_sum3 <- ggplot(for_plot3, aes(x = date, y = value, color = scenario)) +
-  geom_line(position=position_dodge(width=2.5)) +
-  labs(y = "Value", x = "Time (days)", color = "Vaccination Scenario") +
-  ylim(0,NA) +
-  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
-  #geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
-  theme(legend.position = "bottom",
-        panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~outcome, scales = "free")
-g_sum3
+total_life_years_lost <- deaths_prevented %>%
+  group_by(scenario) %>%
+  summarise_at(.vars = c("value","life_years_lost", "life_years_lost_prevented"), .funs = sum) %>%
+  mutate(perc_diff = ((life_years_lost*100)/life_years_lost[2]) - 100)
 
-ggsave("inst/extdata/results/second_dose_deferred_sa.jpg",
-       plot = g_sum3,
-       height = 6,
-       width = 12,
-       dpi = 300)
