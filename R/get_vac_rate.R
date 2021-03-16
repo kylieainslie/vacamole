@@ -10,8 +10,8 @@ get_vac_rate <- function(times,params){
   with(as.list(c(times,params)),{
     #print(times)
   if (no_vac){
-    total_dose1 <- c(rep(0,9))
-    total_dose2 <- c(rep(0,9))
+    alpha_dose1 <- c(rep(0,9))
+    alpha_dose2 <- c(rep(0,9))
     eta_vec <- c(rep(1,9))
     eta2_vec <- c(rep(1,9))
     delay_dose1 <- 1
@@ -51,6 +51,11 @@ get_vac_rate <- function(times,params){
   
   # calculate composite VE
   time_point <- floor(times) + 1
+  
+  alpha_dose1 <- unlist(pf_dose1[time_point,-1] + mo_dose1[time_point,-1] + 
+                          az_dose1[time_point,-1] + ja_dose1[time_point,-1])
+  alpha_dose2 <- unlist(pf_dose2[time_point,-1] + mo_dose2[time_point,-1] + 
+                          az_dose2[time_point,-1] + ja_dose2[time_point,-1])
   
   total_dose1 <- unlist(pf_dose1_cs[time_point,] + mo_dose1_cs[time_point,] + 
                           az_dose1_cs[time_point,] + ja_dose1_cs[time_point,])
@@ -105,7 +110,7 @@ get_vac_rate <- function(times,params){
   eta2_vec <- 1- ifelse(is.nan(comp_ve_dose2), 0, comp_ve_dose2)
   names(eta2_vec) <- paste0("eta2_",1:9)
   }
-  list(c(total_dose1,total_dose2,eta_vec,eta2_vec,
+  list(c(alpha_dose1,alpha_dose2,eta_vec,eta2_vec,
          delay_dose1, delay_dose2))
   
   }) 
