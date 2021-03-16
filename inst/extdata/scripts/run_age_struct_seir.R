@@ -14,11 +14,12 @@ library(readr)
 # Source functions -------------------------------------------------
 source("R/age_struct_seir_ode.R")
 source("R/postprocess_age_struct_model_output.R")
+source("R/choose_contact_matrix.R")
 source("R/get_foi.R")
-source("R/get_beta.R")
 source("R/get_vac_rate.R")
 source("R/get_vac_rate_2.R")
 source("R/summarise_results.R")
+source("inst/extdata/scripts/convert_vac_schedule.R")
 
 # load data ---------------------------------------------------------
 # probabilities -----------------------------------------------------
@@ -92,7 +93,7 @@ r0 <- 2.3
 # determine transmission rate (beta) for r0 ------------------------
 S = diag(n_vec - 1)
 rho = as.numeric(eigs(S %*% t1,1)$values)
-beta = (r0/rho) * gamma
+beta = (r0/rho) * g
 # check
 K = (1/g) * beta * S %*% t1
 as.numeric(eigs(K,1)$values) # this should be r0
@@ -109,18 +110,30 @@ r_ic <- (1 - p_IC2death)/time_hospital2discharge
 
 # read in vac schedules --------------------------------------------
 # this now comes from convert_vac_schedule.R
-vac_schedule <- vac_schedule_orig_new
+# prop_o2y
+# prop_y2o
+# prop_alt
 
 # vaccinations params ----------------------------------------------
 ve <- list(pfizer = c(0.926, 0.948), 
            moderna = c(0.896, 0.941), 
            astrazeneca = c(0.583, 0.621),
-           jansen = c(0.66))
+           jansen = c(0.661))
 
 delays <- list(pfizer = c(14, 7), 
                moderna = c(14, 14), 
                astrazeneca = c(21,14),
                jansen = c(14))
+
+ve_sa20 <- list(pfizer = c(0.741, 0.758), 
+           moderna = c(0.717, 0.753), 
+           astrazeneca = c(0.466, 0.497),
+           jansen = c(0.529))
+
+ve_sa50 <- list(pfizer = c(0.463, 0.474), 
+                moderna = c(0.448, 0.471), 
+                astrazeneca = c(0.269, 0.311),
+                jansen = c(0.331))
 
 # initial states ---------------------------------------------------
 # Jacco's suggested way to determine initial conditions
@@ -140,7 +153,7 @@ init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "4
                               # from NICE data: people with length of stay >= 9 days
                               n_hosp_after_ic = c(2, 2, 9, 15, 45, 158, 321, 392, 266) 
                               ) %>%
-  mutate(n_infections = n_cases * p_reported_by_age,
+  mutate(n_infections = n_cases * 3, #p_reported_by_age,
          init_E = n_infections * (2/7),
          init_I = n_infections * (2/7),
          init_S = n - n_recovered - init_E - init_I  - n_hosp - n_ic - n_hosp_after_ic)
@@ -150,7 +163,7 @@ reff <- 1.04 # from RIVM open data for 1 Feb 2021 (midpoint between
 #              0.94 (wt) and 1.13 (UK variant))
 S2 = diag(init_states_dat$init_S)
 rho2 = as.numeric(eigs(S2 %*% t5,1)$values)
-beta2 = reff/rho2 * gamma
+beta2 = reff/rho2 * g
 # check
 B <- t5
 K2 = beta2 * (1/g) * S2 %*% B
@@ -162,7 +175,7 @@ x <- init_states_dat$n_cases / sum(init_states_dat$n_cases)
 A <- diag(x/w)
 B_prime <- A %*% B
 rho2_prime = as.numeric(eigs(S2 %*% B_prime,1)$values)
-beta2_prime = reff/rho2_prime * gamma
+beta2_prime = reff/rho2_prime * g
 K2_prime <- beta2_prime * (1/g) * S2 %*% B_prime
 dom_eig_vec <- eigen(K2_prime)$vectors[,1]
 w_prime <- dom_eig_vec/sum(dom_eig_vec)
@@ -171,7 +184,7 @@ as.numeric(eigs(K2_prime,1)$values)
 # Specify initial values -------------------------------------------
 empty_state <- c(rep(0,9))
 t_max <- dim(vac_schedule)[1] - 1
-times <- seq(0,100, by = 1)     # Vector of times 242 = Sept 30, 2021
+times <- seq(0,t_max, by = 1)     # Vector of times 242 = Sept 30, 2021
 timeInt <- times[2]-times[1]      # Time interval (for technical reasons)
 init <- c(t = times[1],                  
           S = init_states_dat$init_S,
@@ -214,13 +227,13 @@ params <- list(beta = beta2_prime,           # transmission rate
                d_hic = d_hic,
                r = r,
                r_ic = r_ic,
-               p_report = p_reported_by_age,
+               p_report = 1/3, #p_reported_by_age,
                c_start = B_prime,
                c_lockdown = B_prime,
                c_relaxed = t4,
                c_very_relaxed = t3,
                c_normal = t1,
-               vac_schedule = vac_schedule,
+               vac_schedule = prop_no_vac_healthy,
                ve = ve,
                delay = delays,
                use_cases = TRUE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
@@ -230,7 +243,7 @@ params <- list(beta = beta2_prime,           # transmission rate
                thresh_u = 35.7/100000 * sum(n_vec),        # 20 for IC admissions
                no_vac = TRUE,
                #force_relax = NULL,                          # time step when measures are forced to relax regardless of criteria
-               t_start_end = 29#,                           # time step when starting contact matrix ends and criteria are used to decide contact matrix
+               t_start_end = 0#,                           # time step when starting contact matrix ends and criteria are used to decide contact matrix
                #init_lambda = beta2_prime * B_prime %*% init_states_dat$init_I
 )
 
@@ -240,27 +253,28 @@ seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 
 # quick check ------------------------------------------------------
-cases <- sweep((params$sigma * (out$E + out$Ev_1d + out$Ev_2d)), 2, p_reported_by_age, "*") 
+cases <- (params$sigma * (out$E + out$Ev_1d + out$Ev_2d)) / 3
 plot(times, rowSums(cases), type = "l")
-new_infections <- rowSums(params$sigma * (out$E + out$Ev_1d + out$Ev_2d))
-plot(times, new_infections, type = "l")
+hosp_admin <- sweep((out$I + out$Iv_1d + out$Iv_2d), 2, h, "*")
+plot(times, rowSums(hosp_admin), type = "l")
 ic_admin <- sweep(out$H + out$Hv_1d + out$Hv_2d, 2, i1, "*")
 plot(times, rowSums(ic_admin), type = "l")
 
 # Summarise results ------------------------------------------------
-tag <- "o2y_new_params"
-
-results <- summarise_results(out, params, start_date = "2021-02-01")
-saveRDS(results$df_summary, paste0("inst/extdata/results/res_",tag,".rds"))
+tag <- "no_vac_re-lockdown_15March"
+results <- summarise_results(out, params, start_date = "2021-01-31", times = times)
+saveRDS(results, paste0("inst/extdata/results/res_",tag,".rds"))
 
 # Make summary table ------------------------------------------------
 summary_tab <- results$df_summary %>%
   group_by(outcome) %>%
   summarise_at(.vars = "value", .funs = sum) 
+summary_tab
 
 # Make plot ---------------------------------------------------------
 # summary over all age groups
-p <- ggplot(results$df_summary, aes(x = date, y = value, color = outcome)) +
+p <- ggplot(results$df_summary %>%
+              filter(outcome == "new_infections"), aes(x = date, y = value, color = outcome)) +
   geom_line() +
   labs(y = "Value", x = "Time (days)", color = "Outcome") +
   ylim(0,NA) +
@@ -284,4 +298,16 @@ p2 <- ggplot(results$df, aes(x = date, y = value, color = age_group)) +
         axis.text.x = element_text(angle = 45, hjust = 1)) +
   facet_wrap(~outcome, scales = "free")
 p2
+
+# plot vaccination
+ggplot(results$df_vac, aes(x = date, y = value, color = dose)) +
+  geom_line() +
+  labs(y = "Value", x = "Time (days)", color = "Dose") +
+  ylim(0,NA) +
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
+  #geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
+  theme(legend.position = "bottom",
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1)) #+
+  #facet_wrap(~outcome, scales = "free")
 
