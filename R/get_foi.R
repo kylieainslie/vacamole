@@ -8,7 +8,6 @@
 #' @export
 get_foi <- function(dat, params){
 
-    # define objects from params
     
     # sum over different I states for each time step and age group
     # S <- as.matrix(dat$S)
@@ -28,6 +27,9 @@ get_foi <- function(dat, params){
     criteria <- rep(0, length(time_vec))
     #slope    <- rep(0, length(time_vec))
     cm_check <- rep(NA, length(time_vec))
+    flag_relaxed <- 0
+    flag_very_relaxed <- 0
+    flag_normal <- 0
     
     for(t in time_vec){
       ic_admin[t] <- sum(params$i1 * H_all[t,])
@@ -38,17 +40,11 @@ get_foi <- function(dat, params){
       #if(t == 0 ){cases <- sum(init_lambda * ((S[t,] + Shold_1d[t,]) + eta * (Sv_1d[t,] + Shold_2d[t,]) + eta2 * Sv_2d[t,]))}
       #criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
       
-      if(t == 0){
-        flag_relaxed <- 0
-        flag_very_relaxed <- 0
-        flag_normal <- 0
-      }
-      
-      tmp2 <- choose_contact_matrix(params, times, criteria, flag_relaxed, 
+      tmp2 <- choose_contact_matrix(params, t, criteria[t], flag_relaxed, 
                                     flag_very_relaxed, flag_normal)
       contact_mat <- tmp2$contact_matrix
-      flag_relaxed <- tmp2$flag_relaxed
-      flag_very_relaxed <- tmp2$flag_very_relaxed
+      flag_relaxed <- tmp2$flag_relaxed 
+      flag_very_relaxed <- tmp2$flag_very_relaxed 
       flag_normal <- tmp2$flag_normal
       
       # determine force of infection ----------------------------------
@@ -69,7 +65,8 @@ get_foi <- function(dat, params){
   
     rtn2 <- list(check = data.frame(time = time_vec - 1, 
                                 criteria = criteria,
-                                #slope = slope,
+                                new_cases = cases,
+                                ic_admin = ic_admin,
                                 cm_check = cm_check),
                  lambda = rtn)
   
