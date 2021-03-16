@@ -26,9 +26,14 @@ choose_contact_matrix <- function(params, times, criteria, flag_relaxed,
   } else{
     # use simpler conditions where measures are only relaxed and not re-tightened
     # for flags
+      if(criteria >= thresh_u){
+        flag_relaxed <- 0
+        flag_very_relaxed <- 0
+        flag_normal <- 0
+      }
       if(criteria <= thresh_m){flag_relaxed <- flag_relaxed + 1}
       if(criteria <= thresh_l){flag_very_relaxed <- flag_very_relaxed + 1}
-      if(criteria <= thresh_n){flag_normal <- flag_normal +1 }
+      if(criteria <= thresh_n){flag_normal <- flag_normal + 1 }
     # for contact matrix
       if (flag_relaxed > 0 & flag_very_relaxed == 0) {contact_matrix <- c_relaxed
       } else if (flag_very_relaxed > 0 & flag_normal == 0) { contact_matrix <- c_very_relaxed
