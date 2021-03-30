@@ -45,7 +45,9 @@ age_struct_seir_ode <- function(times,init,params){
     eta2 <- c(tmp[[1]][28:36]) 
     delay <- tmp[[1]][37]
     delay2 <- tmp[[1]][38]
-    
+    # eta_hosp <- c(tmp[[1]][39:47])
+    # eta_hosp2 <- c(tmp[[1]][48:56])
+    # 
     #print(eta)
     # determine contact matrix based on criteria --------------------
     ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))

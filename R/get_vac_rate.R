@@ -93,6 +93,17 @@ get_vac_rate <- function(times,params){
     frac_az_dose2 * ve$astrazeneca[2] +
     frac_ja_dose2 * ve$jansen
   
+  # rate of hospitalisations multiplier
+  # hosp_mult_dose1 <- frac_pf_dose1 * hosp_multiplier$pfizer[1] + 
+  #   frac_mo_dose1 * hosp_multiplier$moderna[1] + 
+  #   frac_az_dose1 * hosp_multiplier$astrazeneca[1] +
+  #   frac_ja_dose1 * hosp_multiplier$jansen
+  # 
+  # hosp_mult_dose2 <- frac_pf_dose2 * hosp_multiplier$pfizer[2] + 
+  #   frac_mo_dose2 * hosp_multiplier$moderna[2] + 
+  #   frac_az_dose2 * hosp_multiplier$astrazeneca[2] +
+  #   frac_ja_dose2 * hosp_multiplier$jansen
+  # 
   # composite delay to protection
   delay_dose1 <- frac_pf_dose1 * delay$pfizer[1] +
     frac_mo_dose1 * delay$moderna[1] +
@@ -109,9 +120,17 @@ get_vac_rate <- function(times,params){
   names(eta_vec) <- paste0("eta_",1:9)
   eta2_vec <- 1- ifelse(is.nan(comp_ve_dose2), 0, comp_ve_dose2)
   names(eta2_vec) <- paste0("eta2_",1:9)
+  
+  # comp_h_mult_dose1 <- 1 - ifelse(is.nan(hosp_mult_dose1), 0, hosp_mult_dose1)
+  # names(comp_h_mult_dose1) <- paste0("hosp_mult_",1:9)
+  # comp_h_mult_dose2 <- 1- ifelse(is.nan(hosp_mult_dose2), 0, hosp_mult_dose2)
+  # names(comp_h_mult_dose2) <- paste0("hosp_mult2_",1:9)
   }
-  list(c(alpha_dose1,alpha_dose2,eta_vec,eta2_vec,
-         delay_dose1, delay_dose2))
+  list(c(alpha_dose1,alpha_dose2,
+         eta_vec,eta2_vec,
+         delay_dose1, delay_dose2 #, 
+         # comp_h_mult_dose1, comp_h_mult_dose2
+         ))
   
   }) 
 }
