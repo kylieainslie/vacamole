@@ -109,18 +109,18 @@ r <- (1 - p_admission2death)/time_admission2discharge
 r_ic <- (1 - p_IC2death)/time_hospital2discharge
 
 # read in vac schedules --------------------------------------------
-# this now comes from convert_vac_schedule.R
-# prop_o2y
-# prop_y2o
-# prop_alt
+basis <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210329 Basis.csv")
+defer_2nd_dose <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210329 deferral 2nd dose.csv")
 
+basis1 <- convert_vac_schedule(basis)
+defer_2nd_dose1 <- convert_vac_schedule(defer_2nd_dose)
 # vaccinations params ----------------------------------------------
-ve <- list(pfizer = c(0.926, 0.948), 
-           moderna = c(0.896, 0.941), 
-           astrazeneca = c(0.583, 0.621),
+ve <- list(pfizer = c(0.7, 0.85), # from SIREN study, estimates from clinical trial: 0.926, 0.948
+           moderna = c(0.896, 0.941), # from clinical trial
+           astrazeneca = c(0.583, 0.621), # from clinical trial
            jansen = c(0.661))
 
-delays <- list(pfizer = c(14, 7), 
+delays <- list(pfizer = c(21, 7), 
                moderna = c(14, 14), 
                astrazeneca = c(21,14),
                jansen = c(14))
@@ -135,6 +135,13 @@ ve_sa50 <- list(pfizer = c(0.463, 0.474),
                 astrazeneca = c(0.269, 0.311),
                 jansen = c(0.331))
 
+# hospitalisations multiplier
+ve_hosp <- list(pfizer = c(0.645, 0),  # zero indicates unknown
+                moderna = c(0, 0),
+                astrazeneca = c(0.805, 0),
+                jansen = c(0))
+
+h_multiplier <- (1 - ve_hosp) / (1- ve)
 # initial states ---------------------------------------------------
 # Jacco's suggested way to determine initial conditions
 init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "40-49", 
@@ -233,7 +240,7 @@ params <- list(beta = beta2_prime,           # transmission rate
                c_relaxed = t4,
                c_very_relaxed = t3,
                c_normal = t1,
-               vac_schedule = prop_no_vac_healthy,
+               vac_schedule = basis1,
                ve = ve,
                delay = delays,
                use_cases = TRUE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
@@ -241,7 +248,7 @@ params <- list(beta = beta2_prime,           # transmission rate
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
                thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
                thresh_u = 35.7/100000 * sum(n_vec),        # 20 for IC admissions
-               no_vac = TRUE,
+               no_vac = FALSE,
                #force_relax = NULL,                          # time step when measures are forced to relax regardless of criteria
                t_start_end = 0#,                           # time step when starting contact matrix ends and criteria are used to decide contact matrix
                #init_lambda = beta2_prime * B_prime %*% init_states_dat$init_I
@@ -261,7 +268,7 @@ ic_admin <- sweep(out$H + out$Hv_1d + out$Hv_2d, 2, i1, "*")
 plot(times, rowSums(ic_admin), type = "l")
 
 # Summarise results ------------------------------------------------
-tag <- "no_vac_re-lockdown_15March"
+tag <- "basis_30March"
 results <- summarise_results(out, params, start_date = "2021-01-31", times = times)
 saveRDS(results, paste0("inst/extdata/results/res_",tag,".rds"))
 
