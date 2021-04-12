@@ -33,6 +33,13 @@ alt_sa50 <- readRDS("inst/extdata/results/res_alt_sa50_14March.rds")
 nov_healthy_sa50 <- readRDS("inst/extdata/results/res_no_vac_healthy_sa50_14March.rds") 
 nov_sa50 <- readRDS("inst/extdata/results/res_no_vac_sa50_14March.rds")
 
+# defer second dose
+basis_res <- readRDS("inst/extdata/results/res_basis_no_interventions_02April.rds") 
+defer_res <- readRDS("inst/extdata/results/res_defer_no_interventions_02April.rds") 
+# with Vasileiou et al. 2021 estimates
+basis_vasileiou_res <- readRDS("inst/extdata/results/res_basis_vasileiou_no_interventions_02April.rds") 
+defer_vasileiou_res <- readRDS("inst/extdata/results/res_defer_vasileiou_no_interventions_02April.rds") 
+
 # data wrangle for plotting/summary table -----------------------------------------
 results_main <- bind_rows(o2y$df_summary,
                      y2o$df_summary,
@@ -77,11 +84,27 @@ results_sa50 <- bind_rows(o2y_sa50$df_summary,
   ),
   analysis = "sa50")
 
+results_defer <- bind_rows(basis_res$df_summary,
+                          defer_res$df_summary,
+                          basis_vasileiou_res$df_summary,
+                          defer_vasileiou_res$df_summary,
+                          .id = "scenario") %>%
+  mutate(scenario = case_when(
+    scenario == 1 ~ "Basis",
+    scenario == 2 ~ "Defer 2nd dose",
+    scenario == 3 ~ "Basis (Vasileiou VE)",
+    scenario == 4 ~ "Defer 2nd dose (Vasileiou VE)"
+  ),
+  analysis = "dose deferral")
+
 results_all <- bind_rows(results_main, results_sa20, results_sa50)
 # summary table -------------------------------------------------------------------
-results_dat <- results_sa
+results_dat <- results_defer
 
 summary_tab <- results_dat %>%
+  filter(date >= as.Date("2021-04-01"),
+         date < as.Date("2021-09-01"),
+         outcome %in% c("new_cases","hospital_admissions")) %>%
   group_by(analysis, scenario, outcome) %>%
   summarise_at(.vars = "value", .funs = sum)
 
@@ -114,36 +137,44 @@ deaths_sum <- summary_tab %>%
 # plot ----------------------------------------------------------------------------
 # subset for plotting
 for_plot <- results_dat %>%
-  filter(outcome %in% c("new_infections", "new_cases", "hospital_admissions", 
-                        "ic_admissions", "new_deaths")) %>%
+  filter(outcome %in% c(#"new_infections", 
+                        #"new_cases", 
+                        "hospital_admissions"#, 
+                        #"ic_admissions", "new_deaths"
+                        )) %>%
   group_by(outcome, scenario) %>%
   mutate(rolling_avg = zoo::rollmean(value, k = 7, fill = NA),
          outcome = case_when(
            outcome == "hospital_admissions" ~ "Hospital Admissions",
-           outcome == "ic_admissions" ~ "IC Admissions",
+           # outcome == "ic_admissions" ~ "IC Admissions",
            outcome == "new_cases" ~ "New Cases",
-           outcome == "new_infections" ~ "New Infections",
-           outcome == "new_deaths" ~ "New Deaths"
-         ),
-         outcome = factor(outcome, levels = c("New Infections", "New Cases", "Hospital Admissions", 
-                                              "IC Admissions", "New Deaths")),
-         scenario = case_when(
-           scenario == "alternative" ~ "Alternative",
-           scenario == "no vaccination (healthy adults)" ~ "No Vaccination (Healthy Adults)",
-           scenario == "old to young" ~ "Old to Young",
-           scenario == "young to old" ~ "Young to Old",
-           scenario == "no vaccination (at all)" ~ "No Vaccination (At All)"
-         ),
-         scenario = factor(scenario, levels = c("Old to Young", "Young to Old", "Alternative", 
-                                                "No Vaccination (Healthy Adults)", "No Vaccination (At All)")))
-  
+           # outcome == "new_infections" ~ "New Infections",
+           # outcome == "new_deaths" ~ "New Deaths"
+         )#,
+         # outcome = factor(outcome, levels = c("New Infections", "New Cases", "Hospital Admissions", 
+         #                                      "IC Admissions", "New Deaths")),
+         # scenario = case_when(
+         #   scenario == "alternative" ~ "Alternative",
+         #   scenario == "no vaccination (healthy adults)" ~ "No Vaccination (Healthy Adults)",
+         #   scenario == "old to young" ~ "Old to Young",
+         #   scenario == "young to old" ~ "Young to Old",
+         #   scenario == "no vaccination (at all)" ~ "No Vaccination (At All)"
+         # ),
+         # scenario = factor(scenario, levels = c("Old to Young", "Young to Old", "Alternative", 
+         #                                        "No Vaccination (Healthy Adults)", "No Vaccination (At All)"))
+         )
 # plot
 for_plot1 <- for_plot %>% 
-  filter(scenario != "No Vaccination (At All)")
+  filter(date >= as.Date("2021-04-01"),
+         date < as.Date("2021-09-01"),
+         scenario %in% c("Basis", "Defer 2nd dose"))
+custom.col <- c("#FFDB6D", "#C4961A", "#F4EDCA", 
+                "#D16103", "#C3D7A4", "#52854C", "#4E84C4", "#293352")
+  #filter(scenario != "No Vaccination (At All)")
 g_sum <- ggplot(for_plot1, 
                 aes(x = date, y = rolling_avg, color = scenario)) +
   geom_line(#aes(linetype = "Main"),
-            position=position_dodge(width=2.5)
+            position=position_dodge(width=1)
             ) +
   # geom_line(data = for_plot1 %>% filter(analysis == "sa20"), 
   #           aes(x = date, y = value, color = scenario, linetype = "Reduction of 20%"), 
@@ -156,7 +187,9 @@ g_sum <- ggplot(for_plot1,
   labs(y = "Value", x = "Time (days)", color = "Vaccination Scenario") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
-  geom_vline(xintercept = as.Date("2021-04-25"),linetype="dashed", color = "grey70") +
+  #scale_color_manual(values = custom.col[c(5,6)]) + #6, 8 
+  #geom_vline(xintercept = as.Date("2021-04-25"),linetype="dashed", color = "grey70") +
+  #geom_hline(yintercept = 6214.508, linetype = "dashed", color = "grey70") +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -164,7 +197,7 @@ g_sum <- ggplot(for_plot1,
 g_sum
 
 # save plot to file
-ggsave("inst/extdata/results/vac_alloc_plot_sa_15March.jpg",
+ggsave("inst/extdata/results/defer_2nd_dose_02April.jpg",
        plot = g_sum,
        height = 6,
        width = 12,

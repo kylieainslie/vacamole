@@ -1,30 +1,29 @@
-july1_orig <- cum_vac_schedule_orig %>% 
+basis_31Aug <- basis %>% 
   mutate(date = as.Date(date, "%m/%d/%Y")) %>%
-  filter(date == as.Date("2021-07-01"))
+  filter(date == as.Date("2021-12-31")) %>%
+  select(date:Ja_d2_10)
 
-july1_delay3mo <- cum_vac_schedule_delay3mo %>% 
+defer_31Aug <- defer_2nd_dose %>% 
   mutate(date = as.Date(date, "%m/%d/%Y")) %>%
-  filter(date == as.Date("2021-07-01"))
+  filter(date == as.Date("2021-12-31")) %>%
+  select(date:Ja_d2_10)
 
-july1_no2dose <- cum_vac_schedule_no2dose %>% 
-  mutate(date = as.Date(date, "%m/%d/%Y")) %>%
-  filter(date == as.Date("2021-07-01"))
-
-total_vac_num <- bind_rows(sweep(july1_orig[,-1], 2, n_vec_10, "*"),
-                           sweep(july1_delay3mo[,-1], 2, n_vec_10, "*"),
-                           sweep(july1_no2dose[,-1], 2, n_vec_10, "*"),
+total_vac_num <- bind_rows(sweep(basis_31Aug[,-1], 2, n_vec_10, "*"),
+                           sweep(defer_31Aug[,-1], 2, n_vec_10, "*"),
+                           #sweep(july1_no2dose[,-1], 2, n_vec_10, "*"),
                            .id = "scenario") %>%
   mutate(scenario = case_when(
-    scenario == 1 ~ "original",
-    scenario == 2 ~ "delay 3 months",
-    scenario == 3 ~ "no 2nd doses"
+    scenario == 1 ~ "basis",
+    scenario == 2 ~ "defer 2nd dose" #,
+    #scenario == 3 ~ "no 2nd doses"
   )) %>%
-  pivot_longer(cols = pf_d1_1:az_d2_10,names_to = c("vaccine", "dose", "age_group"),
+  pivot_longer(cols = pf_d1_1:Ja_d2_10,names_to = c("vaccine", "dose", "age_group"),
                names_pattern = "(.*)_(.*)_(.*)", values_to = "n") %>%
   mutate(vaccine = case_when(
     vaccine == "pf" ~ "pfizer",
     vaccine == "mo" ~ "moderna",
-    vaccine == "az" ~ "astrazeneca"),
+    vaccine == "az" ~ "astrazeneca",
+    vaccine == "Ja" ~ "janssen"),
     dose = case_when(
       dose == "d1" ~ 1,
       dose == "d2" ~ 2),
@@ -44,14 +43,20 @@ total_vac_num <- bind_rows(sweep(july1_orig[,-1], 2, n_vec_10, "*"),
   )
 
 # calculate total pfizer doses
-total_vac_num %>%
-  filter(vaccine == "pfizer") %>%
-  group_by(scenario, dose) %>%
+total_doses <- total_vac_num %>%
+  #filter(vaccine == "pfizer") %>%
+  group_by(scenario, dose, vaccine) %>%
   summarise_at(.vars = "n", sum)
 
+p_total <- ggplot(data = total_doses, aes(x=dose, y=n, fill=vaccine)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  theme(legend.position = "bottom",
+        panel.background = element_blank()) +
+  facet_wrap(~scenario)
+
 # look at doses by week
-delay3mo <- cum_vac_schedule_delay3mo %>% 
-  mutate(date = as.Date(date, "%m/%d/%Y")) %>%
-  filter(date <= as.Date("2021-07-01"))
-vac_num_delay3mo <- sweep(july1_delay3mo[,-1], 2, n_vec_10, "*") %>%
-  mutate(date = as.Date(cum_vac_schedule_delay3mo$date[1:179], "%m/%d/%Y"))
+# delay3mo <- cum_vac_schedule_delay3mo %>% 
+#   mutate(date = as.Date(date, "%m/%d/%Y")) %>%
+#   filter(date <= as.Date("2021-07-01"))
+# vac_num_delay3mo <- sweep(july1_delay3mo[,-1], 2, n_vec_10, "*") %>%
+#   mutate(date = as.Date(cum_vac_schedule_delay3mo$date[1:179], "%m/%d/%Y"))
