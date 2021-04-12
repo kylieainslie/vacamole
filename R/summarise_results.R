@@ -9,7 +9,7 @@
 
 summarise_results <- function(seir_output, params, start_date, times){
 
-res <- get_vac_rate_2(times, params$vac_schedule, params$ve, params$delay)
+res <- get_vac_rate_2(times, params$vac_schedule, params$ve, params$delay, params$hosp_multiplier)
 
 alpha_dose1 <- res %>%
   select(time, age_group, total_dose1) %>%

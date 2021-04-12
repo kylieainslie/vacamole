@@ -5,7 +5,7 @@ library(dplyr)
 library(ggplot2)
 library(cowplot)
 # read in vac schedule file -----------------------------------------------------------------------
-cum_vac_sched <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210329 Basis.csv")
+#cum_vac_sched <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210329 Basis.csv")
 
 convert_vac_schedule <- function(vac_schedule){
 # to combine age groups 9 and 10
@@ -16,8 +16,8 @@ n_vec_10 <- n * age_dist_10
 
 # take the difference for each row
 # original
-vac_schedule_orig <- data.frame(diff(as.matrix(cum_vac_sched[-1,-1]))) %>%
-  add_row(cum_vac_sched[1,-1],.before = 1) %>%
+vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[-1,-1]))) %>%
+  add_row(vac_schedule[1,-1],.before = 1) %>%
   mutate(date = seq.Date(from = as.Date("2021-01-04"), to = as.Date("2021-12-30"), by = 1),
          pf_d1_9 = (pf_d1_9 * n_vec_10[9] + pf_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
          pf_d2_9 = (pf_d2_9 * n_vec_10[9] + pf_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10]),

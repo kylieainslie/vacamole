@@ -135,13 +135,21 @@ ve_sa50 <- list(pfizer = c(0.463, 0.474),
                 astrazeneca = c(0.269, 0.311),
                 jansen = c(0.331))
 
-# hospitalisations multiplier
-ve_hosp <- list(pfizer = c(0.645, 0),  # zero indicates unknown
-                moderna = c(0, 0),
-                astrazeneca = c(0.805, 0),
-                jansen = c(0))
+ve_vasileiou <- list(pfizer = c(0.645, 0.85),  
+                     moderna = c(0.896, 0.941),
+                     astrazeneca = c(0.583, 0.621),
+                     jansen = c(0.661))
+delays_vasileiou <- list(pfizer = c(7, 7), 
+                         moderna = c(14, 14), 
+                         astrazeneca = c(21,14),
+                         jansen = c(14))
 
-h_multiplier <- (1 - ve_hosp) / (1- ve)
+# hospitalisations multiplier
+# calculated as (1-ve_hosp)/(1-ve)
+h_multiplier <- list(pfizer = c(0, 0),  
+                     moderna = c(0, 0),
+                     astrazeneca = c(0.384, 0.384),
+                     jansen = c(0))
 # initial states ---------------------------------------------------
 # Jacco's suggested way to determine initial conditions
 init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "40-49", 
@@ -193,7 +201,7 @@ empty_state <- c(rep(0,9))
 t_max <- dim(vac_schedule)[1] - 1
 times <- seq(0,t_max, by = 1)     # Vector of times 242 = Sept 30, 2021
 timeInt <- times[2]-times[1]      # Time interval (for technical reasons)
-init <- c(t = times[1],                  
+init <- c(t = 0,                  
           S = init_states_dat$init_S,
           Shold_1d = empty_state,
           Sv_1d = empty_state,
@@ -243,6 +251,7 @@ params <- list(beta = beta2_prime,           # transmission rate
                vac_schedule = basis1,
                ve = ve,
                delay = delays,
+               hosp_multiplier = h_multiplier,
                use_cases = TRUE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_n = 0.5/100000 * sum(n_vec),
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
@@ -268,12 +277,14 @@ ic_admin <- sweep(out$H + out$Hv_1d + out$Hv_2d, 2, i1, "*")
 plot(times, rowSums(ic_admin), type = "l")
 
 # Summarise results ------------------------------------------------
-tag <- "basis_30March"
+tag <- "basis_no_interventions_02April"
 results <- summarise_results(out, params, start_date = "2021-01-31", times = times)
 saveRDS(results, paste0("inst/extdata/results/res_",tag,".rds"))
 
 # Make summary table ------------------------------------------------
 summary_tab <- results$df_summary %>%
+  filter(date >= as.Date("2021-04-01"),
+         date < as.Date("2021-09-01")) %>%
   group_by(outcome) %>%
   summarise_at(.vars = "value", .funs = sum) 
 summary_tab
