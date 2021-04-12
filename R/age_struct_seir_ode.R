@@ -8,7 +8,7 @@
 # Define model -----------------------------------------------------
 age_struct_seir_ode <- function(times,init,params){
   with(as.list(c(params,init)), {
-    print(t)
+    #print(t)
     # define initial state vectors from input ----------------------
     S = c(S1, S2, S3, S4, S5, S6, S7, S8, S9)
     Shold_1d = c(Shold_1d1, Shold_1d2, Shold_1d3, Shold_1d4, Shold_1d5, Shold_1d6, 
@@ -43,12 +43,12 @@ age_struct_seir_ode <- function(times,init,params){
     alpha2 <- c(tmp[[1]][10:18])
     eta <- c(tmp[[1]][19:27])  
     eta2 <- c(tmp[[1]][28:36]) 
-    delay <- tmp[[1]][37]
-    delay2 <- tmp[[1]][38]
-    # eta_hosp <- c(tmp[[1]][39:47])
-    # eta_hosp2 <- c(tmp[[1]][48:56])
-    # 
-    #print(eta)
+    delay <- tmp[[1]][37:45]
+    delay2 <- tmp[[1]][46:54]
+    eta_hosp <- c(tmp[[1]][55:63])
+    eta_hosp2 <- c(tmp[[1]][64:72])
+    
+    #print(eta_hosp)
     # determine contact matrix based on criteria --------------------
     ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))
     
@@ -84,11 +84,11 @@ age_struct_seir_ode <- function(times,init,params){
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta2 * lambda * Sv_2d - sigma * Ev_2d 
     dI <- sigma * E - (gamma + h) * I 
-    dIv_1d <- sigma * Ev_1d - (gamma + h) * Iv_1d  
-    dIv_2d <- sigma * Ev_2d - (gamma + h) * Iv_2d
+    dIv_1d <- sigma * Ev_1d - (gamma + eta_hosp * h) * Iv_1d  
+    dIv_2d <- sigma * Ev_2d - (gamma + eta_hosp2 * h) * Iv_2d
     dH <- h * I - (i1 + d + r) * H 
-    dHv_1d <- h * Iv_1d - (i1 + d + r) * Hv_1d
-    dHv_2d <- h * Iv_2d - (i1 + d + r) * Hv_2d
+    dHv_1d <- eta_hosp * h * Iv_1d - (i1 + d + r) * Hv_1d
+    dHv_2d <- eta_hosp2 * h * Iv_2d - (i1 + d + r) * Hv_2d
     dH_IC <- i2 * IC - (r_ic + d_hic) * H_IC               # back to hospital after IC
     dH_ICv_1d <- i2 * ICv_1d - (r_ic + d_hic) * H_ICv_1d
     dH_ICv_2d <- i2 * ICv_2d - (r_ic + d_hic) * H_ICv_2d
