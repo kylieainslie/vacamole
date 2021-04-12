@@ -9,7 +9,12 @@
 #' used and the ve of each vaccine)
 #' @keywords vacamole
 #' @export
-get_vac_rate_2 <- function(times, vac_schedule, ve, delay, no_vac = FALSE){
+get_vac_rate_2 <- function(times, 
+                           vac_schedule, 
+                           ve, 
+                           delay, 
+                           hosp_multiplier,
+                           no_vac = FALSE){
   if (no_vac){
     alpha_dose1 <- c(rep(0,9))
     alpha_dose2 <- c(rep(0,9))
@@ -17,6 +22,8 @@ get_vac_rate_2 <- function(times, vac_schedule, ve, delay, no_vac = FALSE){
     eta2_vec <- c(rep(1,9))
     delay_dose1 <- 1
     delay_dose2 <- 1
+    comp_h_mult_dose1 <- 1
+    comp_h_mult_dose2 <- 1
   } else {
     # pfizer
     pf_dose1 <- vac_schedule %>%
@@ -90,6 +97,17 @@ get_vac_rate_2 <- function(times, vac_schedule, ve, delay, no_vac = FALSE){
         frac_az_dose2 * ve$astrazeneca[2] +
         frac_ja_dose2 * ve$jansen
       
+      # rate of hospitalisations multiplier
+      hosp_mult_dose1 <- frac_pf_dose1 * hosp_multiplier$pfizer[1] +
+        frac_mo_dose1 * hosp_multiplier$moderna[1] +
+        frac_az_dose1 * hosp_multiplier$astrazeneca[1] +
+        frac_ja_dose1 * hosp_multiplier$jansen
+      
+      hosp_mult_dose2 <- frac_pf_dose2 * hosp_multiplier$pfizer[2] +
+        frac_mo_dose2 * hosp_multiplier$moderna[2] +
+        frac_az_dose2 * hosp_multiplier$astrazeneca[2] +
+        frac_ja_dose2 * hosp_multiplier$jansen
+      
       # composite delay to protection
       delay_dose1 <- frac_pf_dose1 * delay$pfizer[1] +
         frac_mo_dose1 * delay$moderna[1] +
@@ -106,6 +124,9 @@ get_vac_rate_2 <- function(times, vac_schedule, ve, delay, no_vac = FALSE){
       eta_dose1 <- 1 - ifelse(is.nan(comp_ve_dose1), 0, comp_ve_dose1)
       eta_dose2 <- 1- ifelse(is.nan(comp_ve_dose2), 0, comp_ve_dose2)
       
+      comp_h_mult_dose1 <- 1 - ifelse(is.nan(hosp_mult_dose1), 0, hosp_mult_dose1)
+      comp_h_mult_dose2 <- 1- ifelse(is.nan(hosp_mult_dose2), 0, hosp_mult_dose2)
+      
       tmp <- data.frame(time = time_point, 
                        age_group = 1:9, 
                        total_dose1 = alpha_dose1, 
@@ -114,6 +135,8 @@ get_vac_rate_2 <- function(times, vac_schedule, ve, delay, no_vac = FALSE){
                        eta_dose2 = eta_dose2,
                        delay_dose1 = delay_dose1,
                        delay_dose2 = delay_dose2,
+                       comp_h_mult_dose1 = comp_h_mult_dose1, 
+                       comp_h_mult_dose2 = comp_h_mult_dose2,
                        row.names = NULL)
     
       if(time_point == 1){
