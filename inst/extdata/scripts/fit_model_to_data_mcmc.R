@@ -25,7 +25,7 @@ mcmcPars <- c("iterations"=2000,"popt"=0.44,"opt_freq"=100,
 ## Putting model solving code in a function for later use
 solve_model <- function(pars, t, params, age_struct_seir_ode){
 
-  beta <- pars["beta"]
+  params$beta <- pars["beta"]
   seir_out <- lsoda(init,t,age_struct_seir_ode,params) #
   seir_out <- as.data.frame(seir_out)
   out <- postprocess_age_struct_model_output(seir_out)
@@ -57,9 +57,10 @@ create_lik <- function(parTab, data, PRIOR_FUNC,...){
     ## Get weekly incidence
     weekly_incidence <- colSums(matrix(incidence,nrow=7/tstep))
     
-    lik <- sum(dpois(x=inc[t+1],lambda=weekly_incidence,log=TRUE))
+    lik <- sum(dpois(x=inc,lambda=weekly_incidence,log=TRUE))
     if(!is.null(PRIOR_FUNC)) lik <- lik + PRIOR_FUNC(pars)
     lik
+    
   }
 }
 
@@ -81,9 +82,9 @@ plot(coda::as.mcmc(chain[,c("beta")]))
 ## Prior function
 my_prior <- function(pars){
   ## Diffuse gaussian priors on both parameters
-  r0_prior <- dnorm(pars[1],1.5,100,1)
-  gamma_prior <- dnorm(pars[2],0.2,100,1)
-  return(r0_prior + gamma_prior)
+  beta_prior <- dgamma(pars[1],0.5,0)
+  #gamma_prior <- dnorm(pars[2],0.2,100,1)
+  return(beta_prior)
 }
 
 ## Use the previous chain to get a good starting

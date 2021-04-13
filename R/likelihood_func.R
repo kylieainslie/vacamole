@@ -24,6 +24,8 @@ likelihood_func <- function(pars){
   lik
 }
 real_pars <- c(params$beta)
-
+test_pars <- c(0.06)
 ## Likelihood of true pars
 print(likelihood_func(real_pars))
+## Likelihood of test pars
+print(likelihood_func(test_pars))
