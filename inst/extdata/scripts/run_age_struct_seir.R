@@ -112,8 +112,6 @@ r_ic <- (1 - p_IC2death)/time_hospital2discharge
 basis <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210329 Basis.csv")
 defer_2nd_dose <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210329 deferral 2nd dose.csv")
 
-basis1 <- convert_vac_schedule(basis)
-defer_2nd_dose1 <- convert_vac_schedule(defer_2nd_dose)
 # vaccinations params ----------------------------------------------
 ve <- list(pfizer = c(0.7, 0.85), # from SIREN study, estimates from clinical trial: 0.926, 0.948
            moderna = c(0.896, 0.941), # from clinical trial
@@ -229,6 +227,9 @@ init <- c(t = 0,
 )                      
 
 # Input parameters -------------------------------------------------
+basis1 <- convert_vac_schedule(vac_schedule = basis, ve = ve, hosp_multiplier = h_multiplier, delay = delays)
+defer_2nd_dose1 <- convert_vac_schedule(vac_schedule = defer_2nd_dose, ve = ve, hosp_multiplier = h_multiplier, delay = delays)
+
 params <- list(beta = beta2_prime,           # transmission rate
                gamma = g,                      # 1/gamma = infectious period
                sigma = s,                      # 1/sigma = latent period
@@ -248,10 +249,7 @@ params <- list(beta = beta2_prime,           # transmission rate
                c_relaxed = t4,
                c_very_relaxed = t3,
                c_normal = t1,
-               vac_schedule = basis1,
-               ve = ve,
-               delay = delays,
-               hosp_multiplier = h_multiplier,
+               vac_inputs = basis1,
                use_cases = TRUE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_n = 0.5/100000 * sum(n_vec),
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
