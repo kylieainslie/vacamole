@@ -1,10 +1,11 @@
 # Fit model to OSIRIS data using MCMC
+library(lazymcmc)
 # read in OSIRIS data
 osiris <- readRDS("inst/extdata/data/osiris_20210409.rds")
 osiris1 <- osiris %>%
   group_by(date) %>%
   summarise_at(.vars = "n", .funs = "sum") %>%
-  filter(date >= as.Date("2021-02-01")) %>%
+  filter(date >= as.Date("2021-01-31")) %>%
   rename(inc = n)
   # complete(., date = full_seq(date, 1)) %>%
   # mutate(n = ifelse(is.na(n), 0, n))
@@ -18,7 +19,7 @@ parTab <- data.frame(names=c("beta"),
                      upper_bound=c(1))
 
 mcmcPars <- c("iterations"=2000,"popt"=0.44,"opt_freq"=100,
-              "thin"=1,"adaptive_period"=1000,"save_block"=1)
+              "thin"=1,"adaptive_period"=1000,"save_block"=5)
 
 
 ## Putting model solving code in a function for later use
@@ -44,7 +45,7 @@ create_lik <- function(parTab, data, PRIOR_FUNC,...){
   
   ## Get times to solve model over
   tstep <- 1
-  weeks <- floor(dim(dat)[1]/7)
+  weeks <- floor(dim(data)[1]/7)
   t <- seq(0,(weeks*7)-1,by=tstep)
   
   ## We will pass S0, I0, R0 and SIR_odes 
