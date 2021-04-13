@@ -8,11 +8,12 @@ defer_31Aug <- defer_2nd_dose %>%
   filter(date == as.Date("2021-12-31")) %>%
   select(date:Ja_d2_10)
 
-total_vac_num <- bind_rows(sweep(basis_31Aug[,-1], 2, n_vec_10, "*"),
-                           sweep(defer_31Aug[,-1], 2, n_vec_10, "*"),
+total_vac_num <- bind_rows(sweep(basis2[,-1], 2, n_vec_10, "*"),
+                           sweep(defer2[,-1], 2, n_vec_10, "*"),
                            #sweep(july1_no2dose[,-1], 2, n_vec_10, "*"),
                            .id = "scenario") %>%
-  mutate(scenario = case_when(
+  mutate( date = c(rep(basis2$date,2)),
+    scenario = case_when(
     scenario == 1 ~ "basis",
     scenario == 2 ~ "defer 2nd dose" #,
     #scenario == 3 ~ "no 2nd doses"
@@ -45,7 +46,7 @@ total_vac_num <- bind_rows(sweep(basis_31Aug[,-1], 2, n_vec_10, "*"),
 # calculate total pfizer doses
 total_doses <- total_vac_num %>%
   #filter(vaccine == "pfizer") %>%
-  group_by(scenario, dose, vaccine) %>%
+  group_by(date, scenario, dose, vaccine) %>%
   summarise_at(.vars = "n", sum)
 
 p_total <- ggplot(data = total_doses, aes(x=dose, y=n, fill=vaccine)) +
@@ -53,6 +54,20 @@ p_total <- ggplot(data = total_doses, aes(x=dose, y=n, fill=vaccine)) +
   theme(legend.position = "bottom",
         panel.background = element_blank()) +
   facet_wrap(~scenario)
+
+total_doses_cs <- total_doses %>%
+  group_by(date, scenario, dose, vaccine) %>%
+  summarise_at(.vars = "n", cumsum) %>%
+  mutate(date = as.Date(date, "%m/%d/%Y"))
+
+p_line <- ggplot(data = total_doses_cs %>% filter(dose == "1"), aes(x = date, y = n, group = scenario)) +
+  geom_line(aes(color = scenario)) + #position=position_dodge()
+  scale_x_date(date_breaks = "month", date_labels = "%d %b") +
+  theme(legend.position = "bottom",
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_grid(.~vaccine, scales = "free")
+p_line
 
 # look at doses by week
 # delay3mo <- cum_vac_schedule_delay3mo %>% 
