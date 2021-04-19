@@ -18,8 +18,8 @@ parTab <- data.frame(names=c("beta"),
                      lower_bound=c(0),
                      upper_bound=c(1))
 
-mcmcPars <- c("iterations"=2000,"popt"=0.44,"opt_freq"=100,
-              "thin"=1,"adaptive_period"=1000,"save_block"=100)
+mcmcPars <- c("iterations"=150,"popt"=0.44,"opt_freq"=100,
+              "thin"=1,"adaptive_period"=50,"save_block"=50)
 
 
 ## Putting model solving code in a function for later use
@@ -64,6 +64,14 @@ create_lik <- function(parTab, data, PRIOR_FUNC,...){
   }
 }
 
+## Prior function
+my_prior <- function(pars){
+  ## non-informative gamma prior 
+  beta_prior <- dgamma(pars[1],0.001,1000)
+  #gamma_prior <- dnorm(pars[2],0.2,100,1)
+  return(beta_prior)
+}
+
 ## Starting points, chosen pseudo at random
 ## seeding chains for SIR models is hard with deSolve,
 ## so I've chosen points near the true values.
@@ -75,7 +83,7 @@ t <- seq(0,(weeks*7)-1,by=tstep)
 osiris2 <- osiris1[t+1,]
 
 output <- run_MCMC(parTab=startTab, data=osiris2, mcmcPars=mcmcPars, filename="SEIR_fit_no_prior",
-                   CREATE_POSTERIOR_FUNC = create_lik, mvrPars = NULL, PRIOR_FUNC=NULL,
+                   CREATE_POSTERIOR_FUNC = create_lik, mvrPars = NULL, PRIOR_FUNC=my_prior,
                    params = params, age_struct_seir_ode = age_struct_seir_ode)
 #chain <- read.csv(output$file)
 chain <- read.csv("SEIR_fit_no_prior_univariate_chain.csv")
@@ -83,13 +91,7 @@ plot(coda::as.mcmc(chain[,c("beta")]))
 
 chain1 <- chain[chain$sampno >= 200, ] # mcmcPars["adaptive_period"] ,2:(ncol(chain)-1)
 
-## Prior function
-# my_prior <- function(pars){
-#   ## Diffuse gaussian priors on both parameters
-#   beta_prior <- dgamma(pars[1],0.001,1000)
-#   #gamma_prior <- dnorm(pars[2],0.2,100,1)
-#   return(beta_prior)
-# }
+
 
 ## Use the previous chain to get a good starting
 ## covariance matrix

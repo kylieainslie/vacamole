@@ -48,18 +48,7 @@ age_struct_seir_ode <- function(times,init,params){
     delay2 <- vac_inputs$delay_dose2[time_point,]
     eta_hosp <- vac_inputs$eta_hosp_dose1[time_point,]
     eta_hosp2 <- vac_inputs$eta_hosp_dose2[time_point,]
-    
-    # tmp <- get_vac_rate(times,params)
-    # alpha <- c(tmp[[1]][1:9])
-    # alpha2 <- c(tmp[[1]][10:18])
-    # eta <- c(tmp[[1]][19:27])  
-    # eta2 <- c(tmp[[1]][28:36]) 
-    # delay <- tmp[[1]][37:45]
-    # delay2 <- tmp[[1]][46:54]
-    # eta_hosp <- c(tmp[[1]][55:63])
-    # eta_hosp2 <- c(tmp[[1]][64:72])
-    # 
-    #print(eta_hosp)
+
     # determine contact matrix based on criteria --------------------
     ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))
     
@@ -81,7 +70,8 @@ age_struct_seir_ode <- function(times,init,params){
     flag_normal <- tmp2$flag_normal
     
     # determine force of infection ----------------------------------
-    lambda <- beta * delta * (contact_mat %*% (I + Iv_1d + Iv_2d))
+    calendar_day <- t_calendar_start + times
+    lambda <- beta * (1+cos(2 * pi * calendar_day/365.24)) * (contact_mat %*% (I + Iv_1d + Iv_2d))
     # ---------------------------------------------------------------
     
     ################################################################

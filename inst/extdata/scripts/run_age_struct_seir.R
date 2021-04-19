@@ -233,7 +233,7 @@ defer_2nd_dose1 <- convert_vac_schedule(vac_schedule = defer_2nd_dose, ve = ve, 
 params <- list(beta = beta2_prime,           # transmission rate
                gamma = g,                      # 1/gamma = infectious period
                sigma = s,                      # 1/sigma = latent period
-               delta = 1,                      # scaling constant 
+               #delta = 1,                      # scaling constant 
                N = n_vec,                      # Population (no need to change)
                h = h,                          # Rate from infection to hospital admission/ time from infection to hosp admission
                i1 = i1,
@@ -256,9 +256,7 @@ params <- list(beta = beta2_prime,           # transmission rate
                thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
                thresh_u = 35.7/100000 * sum(n_vec),        # 20 for IC admissions
                no_vac = FALSE,
-               #force_relax = NULL,                          # time step when measures are forced to relax regardless of criteria
-               t_start_end = 0#,                           # time step when starting contact matrix ends and criteria are used to decide contact matrix
-               #init_lambda = beta2_prime * B_prime %*% init_states_dat$init_I
+               t_calendar_start = 31,                       # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
 )
 
 # Solve model ------------------------------------------------------
