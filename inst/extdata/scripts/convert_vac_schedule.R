@@ -6,7 +6,7 @@
 #' @return 
 #' @keywords vacamole
 #' @export
-convert_vac_schedule <- function(vac_schedule, ve, hosp_multiplier, delay){
+convert_vac_schedule <- function(vac_schedule, ve, hosp_multiplier, delay, ve_trans){
 # to combine age groups 9 and 10 --------------------------------------------------------------
 age_dist_10 <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463, 
               0.14514332, 0.12092904, 0.08807406, 0.03976755, 0.007398671)
@@ -80,7 +80,7 @@ names(alpha_dose1) <- paste0("alpha", name_suffix_d1)
 alpha_dose2 <- pf_dose2[,-1] + mo_dose2[,-1] + az_dose2[,-1] + ja_dose2[,-1]
 names(alpha_dose2) <- paste0("alpha", name_suffix_d2)
 
-# cumulative vaccination percentate
+# cumulative vaccination percentage
 total_dose1 <- pf_dose1_cs + mo_dose1_cs + az_dose1_cs + ja_dose1_cs
 names(total_dose1) <- paste0("tot", name_suffix_d1)
 total_dose2 <- pf_dose2_cs + mo_dose2_cs + az_dose2_cs + ja_dose2_cs
@@ -107,7 +107,7 @@ frac_ja_dose1 <- ifelse(is.nan(frac_ja_dose1), 0, frac_az_dose1)
 frac_ja_dose2 <- data.matrix(ja_dose2_cs/total_dose2)
 frac_ja_dose2 <- ifelse(is.nan(frac_ja_dose2), 0, frac_ja_dose2)
 
-# composite VE
+# composite VE (against infection)
 comp_ve_dose1 <- frac_pf_dose1 * ve$pfizer[1] + 
   frac_mo_dose1 * ve$moderna[1] + 
   frac_az_dose1 * ve$astrazeneca[1] +
@@ -138,6 +138,23 @@ colnames(hosp_mult_dose2) <- paste0("hosp_mult", name_suffix_d1)
 eta_hosp_dose1 <- 1 - hosp_mult_dose1
 eta_hosp_dose2 <- 1 - hosp_mult_dose2
 
+# composite VE (against transmission)
+comp_ve_trans_dose1 <- frac_pf_dose1 * ve_trans$pfizer[1] + 
+  frac_mo_dose1 * ve_trans$moderna[1] + 
+  frac_az_dose1 * ve_trans$astrazeneca[1] +
+  frac_ja_dose1 * ve_trans$jansen
+colnames(comp_ve_trans_dose1) <- paste0("ve_trans", name_suffix_d1)
+comp_ve_trans_dose2 <- frac_pf_dose2 * ve_trans$pfizer[2] + 
+  frac_mo_dose2 * ve_trans$moderna[2] + 
+  frac_az_dose2 * ve_trans$astrazeneca[2] +
+  frac_ja_dose2 * ve_trans$jansen
+colnames(comp_ve_trans_dose2) <- paste0("ve_trans", name_suffix_d2)
+
+# eta_trans
+eta_trans_dose1 <- 1 - comp_ve_trans_dose1
+eta_trans_dose2 <- 1- comp_ve_trans_dose2
+
+
 # composite delay to protection
 delay_dose1 <- frac_pf_dose1 * delay$pfizer[1] +
   frac_mo_dose1 * delay$moderna[1] +
@@ -159,7 +176,9 @@ rtn <- list(alpha_dose1 = alpha_dose1,
             delay_dose1 = delay_dose1,
             delay_dose2 = delay_dose2,
             eta_hosp_dose1 = eta_hosp_dose1, 
-            eta_hosp_dose2 = eta_hosp_dose2)
+            eta_hosp_dose2 = eta_hosp_dose2,
+            eta_trans_dose1 = eta_trans_dose1, 
+            eta_trans_dose2 = eta_trans_dose2)
 
 return(rtn)
 }
