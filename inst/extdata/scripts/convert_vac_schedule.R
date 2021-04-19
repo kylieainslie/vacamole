@@ -3,10 +3,15 @@
 #' @param ve 
 #' @param hosp_multiplier
 #' @param delay
+#' @param ve_trans
 #' @return 
 #' @keywords vacamole
 #' @export
-convert_vac_schedule <- function(vac_schedule, ve, hosp_multiplier, delay, ve_trans){
+convert_vac_schedule <- function(vac_schedule, 
+                                 ve, 
+                                 hosp_multiplier, 
+                                 delay, 
+                                 ve_trans){
 # to combine age groups 9 and 10 --------------------------------------------------------------
 age_dist_10 <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463, 
               0.14514332, 0.12092904, 0.08807406, 0.03976755, 0.007398671)

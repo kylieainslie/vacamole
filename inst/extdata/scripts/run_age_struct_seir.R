@@ -142,6 +142,11 @@ delays_vasileiou <- list(pfizer = c(7, 7),
                          astrazeneca = c(21,14),
                          jansen = c(14))
 
+ve_trans <- list(pfizer = c(0.3, 0.54),  # from Shah et al. 2021
+                 moderna = c(0.3, 0.54), # assumed to be the same as pfizer
+                 astrazeneca = c(0, 0),  # no available data
+                 jansen = c(0))          # no available data
+
 # hospitalisations multiplier
 # calculated as (1-ve_hosp)/(1-ve)
 h_multiplier <- list(pfizer = c(0, 0),  
@@ -224,11 +229,19 @@ init <- c(t = 0,
           R = init_states_dat$n_recovered,
           Rv_1d = empty_state,
           Rv_2d = empty_state
-)                      
+)   
 
 # Input parameters -------------------------------------------------
-basis1 <- convert_vac_schedule(vac_schedule = basis, ve = ve, hosp_multiplier = h_multiplier, delay = delays)
-defer_2nd_dose1 <- convert_vac_schedule(vac_schedule = defer_2nd_dose, ve = ve, hosp_multiplier = h_multiplier, delay = delays)
+basis1 <- convert_vac_schedule(vac_schedule = basis, 
+                               ve = ve, 
+                               hosp_multiplier = h_multiplier, 
+                               delay = delays, 
+                               ve_trans = ve_trans)
+defer_2nd_dose1 <- convert_vac_schedule(vac_schedule = defer_2nd_dose, 
+                                        ve = ve, 
+                                        hosp_multiplier = h_multiplier, 
+                                        delay = delays,
+                                        ve_trans = ve_trans)
 
 params <- list(beta = beta2_prime,           # transmission rate
                gamma = g,                      # 1/gamma = infectious period
@@ -258,6 +271,11 @@ params <- list(beta = beta2_prime,           # transmission rate
                no_vac = FALSE,
                t_calendar_start = 31,                       # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
 )
+
+# Initial states from model fit
+fit_pars <- best_pars(chain1)
+init_from_fit <- lsoda(init,times,age_struct_seir_ode,params)
+
 
 # Solve model ------------------------------------------------------
 seir_out <- lsoda(init,times,age_struct_seir_ode,params) #
