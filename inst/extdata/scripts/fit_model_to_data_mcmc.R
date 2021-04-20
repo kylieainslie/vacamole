@@ -117,7 +117,7 @@ chain1 <- chain[chain$sampno >= 200, ] # mcmcPars["adaptive_period"] ,2:(ncol(ch
 # plot(coda::as.mcmc(chain2[,c("R0","gamma")]))
 
 ## Get the maximum likelihood parameters and estimate
-## the model trajectory for each week
+## the model trajectory for each day
 best_pars <- get_best_pars(chain1)
 times <- seq(1,weeks*7,by=1)
 best_trajectory <- solve_model(best_pars, times, params, age_struct_seir_ode)

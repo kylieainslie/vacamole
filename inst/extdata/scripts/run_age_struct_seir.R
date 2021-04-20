@@ -10,6 +10,8 @@ library(tidyr)
 library(readxl)
 library(rARPACK)
 library(readr)
+library(lazymcmc)
+library(lubridate)
 
 # Source functions -------------------------------------------------
 source("R/age_struct_seir_ode.R")
@@ -201,9 +203,6 @@ as.numeric(eigs(K2_prime,1)$values)
 
 # Specify initial values -------------------------------------------
 empty_state <- c(rep(0,9))
-t_max <- dim(vac_schedule)[1] - 1
-times <- seq(0,t_max, by = 1)     # Vector of times 242 = Sept 30, 2021
-timeInt <- times[2]-times[1]      # Time interval (for technical reasons)
 init <- c(t = 0,                  
           S = init_states_dat$init_S,
           Shold_1d = empty_state,
@@ -269,29 +268,65 @@ params <- list(beta = beta2_prime,           # transmission rate
                thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
                thresh_u = 35.7/100000 * sum(n_vec),        # 20 for IC admissions
                no_vac = FALSE,
-               t_calendar_start = 31,                       # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
+               t_calendar_start = 31                       # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
 )
 
+t_max <- lubridate::yday(as.Date("2021-04-03")) # last day of osiris data that we fit
+times_fit <- seq(0,t_max - params$t_calendar_start, by = 1)  
+
 # Initial states from model fit
-fit_pars <- best_pars(chain1)
-init_from_fit <- lsoda(init,times,age_struct_seir_ode,params)
-
-
+# chain <- read.csv("SEIR_fit_no_prior_univariate_chain.csv")
+# chain1 <- chain[chain$sampno >= mcmcPars["adaptive_period"],] # mcmcPars["adaptive_period"]
+params$beta <- get_best_pars(chain1)
+init_from_fit <- lsoda(init,times_fit,age_struct_seir_ode,params)
+init_from_fit <- as.data.frame(init_from_fit)
+init_from_fit1 <- postprocess_age_struct_model_output(init_from_fit)
+init_from_fit2 <- c(t = 0,
+                    S = as.numeric(tail(init_from_fit1$S,1)),
+                    Shold_1d = as.numeric(tail(init_from_fit1$Shold_1d,1)),
+                    Sv_1d = as.numeric(tail(init_from_fit1$Sv_1d,1)),
+                    Shold_2d = as.numeric(tail(init_from_fit1$Shold_2d,1)),
+                    Sv_2d = as.numeric(tail(init_from_fit1$Sv_2d,1)),
+                    E = as.numeric(tail(init_from_fit1$E,1)),
+                    Ev_1d = as.numeric(tail(init_from_fit1$Ev_1d,1)),
+                    Ev_2d = as.numeric(tail(init_from_fit1$Ev_2d,1)),
+                    I = as.numeric(tail(init_from_fit1$I,1)),
+                    Iv_1d = as.numeric(tail(init_from_fit1$Iv_1d,1)),
+                    Iv_2d = as.numeric(tail(init_from_fit1$Iv_2d,1)),
+                    H = as.numeric(tail(init_from_fit1$H,1)),
+                    Hv_1d = as.numeric(tail(init_from_fit1$Hv_1d,1)),
+                    Hv_2d = as.numeric(tail(init_from_fit1$Hv_2d,1)),
+                    H_IC = as.numeric(tail(init_from_fit1$H_IC,1)),
+                    H_ICv_1d = as.numeric(tail(init_from_fit1$H_ICv_1d,1)),
+                    H_ICv_2d = as.numeric(tail(init_from_fit1$H_ICv_2d,1)),
+                    IC = as.numeric(tail(init_from_fit1$IC,1)),
+                    ICv_1d = as.numeric(tail(init_from_fit1$ICv_1d,1)),
+                    ICv_2d = as.numeric(tail(init_from_fit1$ICv_2d,1)),
+                    D = as.numeric(tail(init_from_fit1$D,1)),
+                    R = as.numeric(tail(init_from_fit1$R,1)),
+                    Rv_1d = as.numeric(tail(init_from_fit1$Rv_1d,1)),
+                    Rv_2d = as.numeric(tail(init_from_fit1$Rv_2d,1))
+)
+# start date for forward simulation
+params$t_calandar_start = t_max + 1
+end_date <- lubridate::yday(as.Date("2021-08-31"))
+times_forward <- seq(0, end_date - params$t_calandar_start, by = 1)
 # Solve model ------------------------------------------------------
-seir_out <- lsoda(init,times,age_struct_seir_ode,params) #
+seir_out <- lsoda(init_from_fit2,times_forward,age_struct_seir_ode,params) #
 seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 
 # quick check ------------------------------------------------------
+cases_from_fit <- (params$sigma * (init_from_fit1$E + init_from_fit1$Ev_1d + init_from_fit1$Ev_2d)) / 3
 cases <- (params$sigma * (out$E + out$Ev_1d + out$Ev_2d)) / 3
-plot(times, rowSums(cases), type = "l")
-hosp_admin <- sweep((out$I + out$Iv_1d + out$Iv_2d), 2, h, "*")
-plot(times, rowSums(hosp_admin), type = "l")
-ic_admin <- sweep(out$H + out$Hv_1d + out$Hv_2d, 2, i1, "*")
-plot(times, rowSums(ic_admin), type = "l")
+cases_all <- bind_rows(cases_from_fit, cases)
+plot(seq(1, dim(cases_all)[1], by = 1), rowSums(cases_all), type = "l", col = "blue",
+     xlab="Time (days)",ylab="Daily Cases", ylim = c(0,7000))
+points(osiris2$inc~seq(1,weeks*7,by=1),col="red",pch=16) 
+
 
 # Summarise results ------------------------------------------------
-tag <- "basis_no_interventions_02April"
+tag <- "basis_19April"
 results <- summarise_results(out, params, start_date = "2021-01-31", times = times)
 saveRDS(results, paste0("inst/extdata/results/res_",tag,".rds"))
 

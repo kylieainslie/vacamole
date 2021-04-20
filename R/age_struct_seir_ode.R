@@ -50,7 +50,7 @@ age_struct_seir_ode <- function(times,init,params){
     eta_hosp2 <- vac_inputs$eta_hosp_dose2[time_point,]
     eta_trans <- vac_inputs$eta_trans_dose1[time_point,]
     eta_trans2 <- vac_inputs$eta_trans_dose2[time_point,]
-
+    
     # determine contact matrix based on criteria --------------------
     ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))
     
