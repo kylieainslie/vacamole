@@ -20,7 +20,7 @@ eta_hosp2 <- vac_inputs$eta_hosp_dose2
 eta_trans <- vac_inputs$eta_trans_dose1
 eta_trans2 <- vac_inputs$eta_trans_dose2
 
-lambda_est <- get_foi(dat = seir_output, params)
+lambda_est <- get_foi(dat = seir_output, params, vac_inputs)
 
 lambda_est1 <- lambda_est$lambda %>%
   pivot_wider(names_from = age_group, names_prefix = "age_group_", values_from = foi)

@@ -327,7 +327,8 @@ points(osiris2$inc~seq(1,weeks*7,by=1),col="red",pch=16)
 
 # Summarise results ------------------------------------------------
 tag <- "basis_19April"
-results <- summarise_results(out, params, start_date = "2021-01-31", times = times)
+results <- summarise_results(out, params, start_date = "2021-04-04", 
+                             times = times_forward, vac_inputs = basis1)
 saveRDS(results, paste0("inst/extdata/results/res_",tag,".rds"))
 
 # Make summary table ------------------------------------------------

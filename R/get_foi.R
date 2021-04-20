@@ -6,7 +6,7 @@
 #' time point (rows)
 #' @keywords vacamole
 #' @export
-get_foi <- function(dat, params){
+get_foi <- function(dat, params, vac_inputs){
 
     
     # sum over different I states for each time step and age group
@@ -16,7 +16,7 @@ get_foi <- function(dat, params){
     # Shold_2d <- as.matrix(dat$Shold_2d)
     # Sv_2d <- as.matrix(dat$Sv_2d)
     E_all <- as.matrix(dat$E + dat$Ev_1d + dat$Ev_2d)
-    I_all <- as.matrix(dat$I + dat$Iv_1d + dat$Iv_2d)
+    I_all <- as.matrix(dat$I + (vac_inputs$eta_dose1 * dat$Iv_1d) + (vac_inputs$eta_dose2 * dat$Iv_2d))
     H_all <- as.matrix(dat$H + dat$Hv_1d + dat$Hv_2d)
     
     
@@ -25,7 +25,6 @@ get_foi <- function(dat, params){
     ic_admin <- rep(0, length(time_vec))
     cases    <- rep(0, length(time_vec))
     criteria <- rep(0, length(time_vec))
-    #slope    <- rep(0, length(time_vec))
     cm_check <- rep(NA, length(time_vec))
     flag_relaxed <- 0
     flag_very_relaxed <- 0
@@ -48,7 +47,7 @@ get_foi <- function(dat, params){
       flag_normal <- tmp2$flag_normal
       
       # determine force of infection ----------------------------------
-      lambda <- params$beta * params$delta * (contact_mat %*% (I_all[t,]))
+      lambda <- params$beta * (contact_mat %*% (I_all[t,]))
       # ---------------------------------------------------------------
       
       # check for which contact metrix was selected -------------------
