@@ -278,41 +278,41 @@ times_fit <- seq(0,t_max - params$t_calendar_start, by = 1)
 # chain <- read.csv("SEIR_fit_no_prior_univariate_chain.csv")
 # chain1 <- chain[chain$sampno >= mcmcPars["adaptive_period"],] # mcmcPars["adaptive_period"]
 params$beta <- get_best_pars(chain1)
-init_from_fit <- lsoda(init,times_fit,age_struct_seir_ode,params)
-init_from_fit <- as.data.frame(init_from_fit)
-init_from_fit1 <- postprocess_age_struct_model_output(init_from_fit)
-init_from_fit2 <- c(t = 0,
-                    S = as.numeric(tail(init_from_fit1$S,1)),
-                    Shold_1d = as.numeric(tail(init_from_fit1$Shold_1d,1)),
-                    Sv_1d = as.numeric(tail(init_from_fit1$Sv_1d,1)),
-                    Shold_2d = as.numeric(tail(init_from_fit1$Shold_2d,1)),
-                    Sv_2d = as.numeric(tail(init_from_fit1$Sv_2d,1)),
-                    E = as.numeric(tail(init_from_fit1$E,1)),
-                    Ev_1d = as.numeric(tail(init_from_fit1$Ev_1d,1)),
-                    Ev_2d = as.numeric(tail(init_from_fit1$Ev_2d,1)),
-                    I = as.numeric(tail(init_from_fit1$I,1)),
-                    Iv_1d = as.numeric(tail(init_from_fit1$Iv_1d,1)),
-                    Iv_2d = as.numeric(tail(init_from_fit1$Iv_2d,1)),
-                    H = as.numeric(tail(init_from_fit1$H,1)),
-                    Hv_1d = as.numeric(tail(init_from_fit1$Hv_1d,1)),
-                    Hv_2d = as.numeric(tail(init_from_fit1$Hv_2d,1)),
-                    H_IC = as.numeric(tail(init_from_fit1$H_IC,1)),
-                    H_ICv_1d = as.numeric(tail(init_from_fit1$H_ICv_1d,1)),
-                    H_ICv_2d = as.numeric(tail(init_from_fit1$H_ICv_2d,1)),
-                    IC = as.numeric(tail(init_from_fit1$IC,1)),
-                    ICv_1d = as.numeric(tail(init_from_fit1$ICv_1d,1)),
-                    ICv_2d = as.numeric(tail(init_from_fit1$ICv_2d,1)),
-                    D = as.numeric(tail(init_from_fit1$D,1)),
-                    R = as.numeric(tail(init_from_fit1$R,1)),
-                    Rv_1d = as.numeric(tail(init_from_fit1$Rv_1d,1)),
-                    Rv_2d = as.numeric(tail(init_from_fit1$Rv_2d,1))
-)
+# init_from_fit <- lsoda(init,times_fit,age_struct_seir_ode,params)
+# init_from_fit <- as.data.frame(init_from_fit)
+# init_from_fit1 <- postprocess_age_struct_model_output(init_from_fit)
+# init_from_fit2 <- c(t = 0,
+#                     S = as.numeric(tail(init_from_fit1$S,1)),
+#                     Shold_1d = as.numeric(tail(init_from_fit1$Shold_1d,1)),
+#                     Sv_1d = as.numeric(tail(init_from_fit1$Sv_1d,1)),
+#                     Shold_2d = as.numeric(tail(init_from_fit1$Shold_2d,1)),
+#                     Sv_2d = as.numeric(tail(init_from_fit1$Sv_2d,1)),
+#                     E = as.numeric(tail(init_from_fit1$E,1)),
+#                     Ev_1d = as.numeric(tail(init_from_fit1$Ev_1d,1)),
+#                     Ev_2d = as.numeric(tail(init_from_fit1$Ev_2d,1)),
+#                     I = as.numeric(tail(init_from_fit1$I,1)),
+#                     Iv_1d = as.numeric(tail(init_from_fit1$Iv_1d,1)),
+#                     Iv_2d = as.numeric(tail(init_from_fit1$Iv_2d,1)),
+#                     H = as.numeric(tail(init_from_fit1$H,1)),
+#                     Hv_1d = as.numeric(tail(init_from_fit1$Hv_1d,1)),
+#                     Hv_2d = as.numeric(tail(init_from_fit1$Hv_2d,1)),
+#                     H_IC = as.numeric(tail(init_from_fit1$H_IC,1)),
+#                     H_ICv_1d = as.numeric(tail(init_from_fit1$H_ICv_1d,1)),
+#                     H_ICv_2d = as.numeric(tail(init_from_fit1$H_ICv_2d,1)),
+#                     IC = as.numeric(tail(init_from_fit1$IC,1)),
+#                     ICv_1d = as.numeric(tail(init_from_fit1$ICv_1d,1)),
+#                     ICv_2d = as.numeric(tail(init_from_fit1$ICv_2d,1)),
+#                     D = as.numeric(tail(init_from_fit1$D,1)),
+#                     R = as.numeric(tail(init_from_fit1$R,1)),
+#                     Rv_1d = as.numeric(tail(init_from_fit1$Rv_1d,1)),
+#                     Rv_2d = as.numeric(tail(init_from_fit1$Rv_2d,1))
+# )
 # start date for forward simulation
-params$t_calandar_start = t_max + 1
+#params$t_calandar_start = t_max + 1
 end_date <- lubridate::yday(as.Date("2021-08-31"))
 times_forward <- seq(0, end_date - params$t_calandar_start, by = 1)
 # Solve model ------------------------------------------------------
-seir_out <- lsoda(init_from_fit2,times_forward,age_struct_seir_ode,params) #
+seir_out <- lsoda(init,times_forward,age_struct_seir_ode,params) #
 seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 
