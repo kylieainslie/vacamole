@@ -28,11 +28,11 @@ vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[-1,-1]))) %>%
          mo_d2_9 = (mo_d2_9 * n_vec_10[9] + mo_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
          az_d1_9 = (az_d1_9 * n_vec_10[9] + az_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
          az_d2_9 = (az_d2_9 * n_vec_10[9] + az_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
-         Ja_d1_9 = (Ja_d1_9 * n_vec_10[9] + Ja_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
-         Ja_d2_9 = (Ja_d2_9 * n_vec_10[9] + Ja_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10])
+         ja_d1_9 = (ja_d1_9 * n_vec_10[9] + ja_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
+         ja_d2_9 = (ja_d2_9 * n_vec_10[9] + ja_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10])
          ) %>%
-  select(date, pf_d1_1:Ja_d2_9, -pf_d1_10, -pf_d2_10, -mo_d1_10, -mo_d2_10, -az_d1_10, 
-         -az_d2_10, -Ja_d1_10, -Ja_d2_10) 
+  select(date, pf_d1_1:ja_d2_9, -pf_d1_10, -pf_d2_10, -mo_d1_10, -mo_d2_10, -az_d1_10, 
+         -az_d2_10, -ja_d1_10, -ja_d2_10) 
 
 # filter for dates before 1 February 2021 -----------------------------------------------------
 before_feb <- vac_schedule_orig %>%
@@ -40,7 +40,7 @@ before_feb <- vac_schedule_orig %>%
   select(-date) %>%
   summarise_all(sum) %>%
   mutate(date = as.Date("2021-01-31")) %>%
-  select(date, pf_d1_1:Ja_d2_9)
+  select(date, pf_d1_1:ja_d2_9)
 
 # filter so start date is 1 Feb 2021 with row for Jan 31 to reflect 
 # people who have already been vaccinated -----------------------------------------------------
@@ -70,10 +70,10 @@ az_dose2 <- vac_schedule_orig_new %>% select(date, az_d2_1:az_d2_9)
 az_dose2_cs <- vac_schedule_new_cs %>% select(az_d2_1:az_d2_9)
 
 # jansen
-ja_dose1 <- vac_schedule_orig_new %>% select(date, Ja_d1_1:Ja_d1_9)
-ja_dose1_cs <- vac_schedule_new_cs %>% select(Ja_d1_1:Ja_d1_9)
-ja_dose2 <- vac_schedule_orig_new %>% select(date, Ja_d2_1:Ja_d2_9)
-ja_dose2_cs <- vac_schedule_new_cs %>% select(Ja_d2_1:Ja_d2_9)
+ja_dose1 <- vac_schedule_orig_new %>% select(date, ja_d1_1:ja_d1_9)
+ja_dose1_cs <- vac_schedule_new_cs %>% select(ja_d1_1:ja_d1_9)
+ja_dose2 <- vac_schedule_orig_new %>% select(date, ja_d2_1:ja_d2_9)
+ja_dose2_cs <- vac_schedule_new_cs %>% select(ja_d2_1:ja_d2_9)
 
 # calculate composite VE ---------------------------------------------------------------------
 name_suffix_d1 <- c(substr(names(pf_dose1[,-1]), 3, 7))
