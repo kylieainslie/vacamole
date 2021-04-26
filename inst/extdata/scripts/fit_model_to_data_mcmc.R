@@ -18,8 +18,8 @@ parTab <- data.frame(names=c("beta"),
                      lower_bound=c(0),
                      upper_bound=c(1))
 
-mcmcPars <- c("iterations"=150,"popt"=0.44,"opt_freq"=100,
-              "thin"=1,"adaptive_period"=50,"save_block"=50)
+mcmcPars <- c("iterations"=3000,"popt"=0.44,"opt_freq"=100,
+              "thin"=1,"adaptive_period"=1000,"save_block"=50)
 
 
 ## Putting model solving code in a function for later use
@@ -78,20 +78,17 @@ my_prior <- function(pars){
 startTab <- parTab
 startTab$values <- c(0.0006)
 tstep <- 1
-weeks <- floor(dim(osiris1)[1]/7)
-t <- seq(0,(weeks*7)-1,by=tstep)
-osiris2 <- osiris1[t+1,]
+t <- seq(0,dim(osiris1)[1]-1,by=tstep)
+#osiris2 <- osiris1[t+1,]
 
-output <- run_MCMC(parTab=startTab, data=osiris2, mcmcPars=mcmcPars, filename="SEIR_fit_no_prior",
+output <- run_MCMC(parTab=startTab, data=osiris1, mcmcPars=mcmcPars, filename="SEIR_fit_no_prior",
                    CREATE_POSTERIOR_FUNC = create_lik, mvrPars = NULL, PRIOR_FUNC=my_prior,
                    params = params, age_struct_seir_ode = age_struct_seir_ode)
 #chain <- read.csv(output$file)
-chain <- read.csv("SEIR_fit_no_prior_univariate_chain.csv")
+chain <- read.csv("inst/extdata/results/SEIR_fit_poisson_univariate_chain.csv")
 plot(coda::as.mcmc(chain[,c("beta")]))
 
-chain1 <- chain[chain$sampno >= 200, ] # mcmcPars["adaptive_period"] ,2:(ncol(chain)-1)
-
-
+chain1 <- chain[chain$sampno >= mcmcPars["adaptive_period"], ] #  ,2:(ncol(chain)-1)
 
 ## Use the previous chain to get a good starting
 ## covariance matrix
@@ -119,30 +116,27 @@ chain1 <- chain[chain$sampno >= 200, ] # mcmcPars["adaptive_period"] ,2:(ncol(ch
 ## Get the maximum likelihood parameters and estimate
 ## the model trajectory for each day
 best_pars <- get_best_pars(chain1)
-times <- seq(1,weeks*7,by=1)
-best_trajectory <- solve_model(best_pars, times, params, age_struct_seir_ode)
-best_incidence <- colSums(matrix(best_trajectory,nrow=7))
-best_dat <- data.frame(t=seq(1,weeks,by=1), y=best_incidence)
+best_trajectory <- solve_model(best_pars, t, params, age_struct_seir_ode)
+#best_incidence <- colSums(matrix(best_trajectory,nrow=7))
+best_dat <- data.frame(t = t, y = best_trajectory)
 
 ## Bit of code to generate prediction intervals
-n_samps <- 100 #100
-trajectories <- matrix(nrow=n_samps,ncol=weeks)
+n_samps <- 100
+trajectories <- matrix(nrow = n_samps,ncol = length(t))
 samps <- sample(nrow(chain1),n_samps)
 for(i in 1:n_samps){
   print(i)
   pars <- as.numeric(chain1[samps[i],c("beta")])
   names(pars) <- c("beta")
-  tmp <- solve_model(pars, t, params, age_struct_seir_ode)
-  trajectories[i,] <- colSums(matrix(tmp, nrow=7))
+  trajectories[i,] <- solve_model(pars, t, params, age_struct_seir_ode)
 }
 bounds <- apply(trajectories,2,function(x) quantile(x, c(0.025,0.975)))
 
-osiris_weekly_inc <- colSums(matrix(osiris2$inc,nrow=7))
-plot(osiris_weekly_inc~seq(1,weeks,by=1),col="red",pch=16, 
-     xlab="Time (weeks)",ylab="Incidence", ylim=c(0,42000)) 
-lines(best_dat,col="blue")
-lines(bounds[1,],col="blue",lty=2,lwd=0.5)
-lines(bounds[2,],col="blue",lty=2,lwd=0.5)
-legend("topright",c("Data","Model","95% credible intervals"),
-       col=c("red","blue","blue"),lty=c(0,1,2),pch=c(16,NA,NA))
+plot(osiris1$inc ~ t, col = "red", pch = 16, 
+     xlab = "Time (days)",ylab = "Daily Cases", ylim = c(0,7000)) 
+lines(best_dat,col = "blue")
+lines(bounds[1,], col = "blue", lty = 2, lwd = 0.5)
+lines(bounds[2,], col = "blue", lty = 2, lwd = 0.5)
+legend("topright", c("Data","Model","95% credible intervals"),
+       col = c("red","blue","blue"), lty = c(0,1,2), pch = c(16,NA,NA))
 
