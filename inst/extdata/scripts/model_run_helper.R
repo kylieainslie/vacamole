@@ -18,8 +18,6 @@ source("R/age_struct_seir_ode.R")
 source("R/postprocess_age_struct_model_output.R")
 source("R/choose_contact_matrix.R")
 source("R/get_foi.R")
-# source("R/get_vac_rate.R")
-# source("R/get_vac_rate_2.R")
 source("R/summarise_results.R")
 source("R/convert_vac_schedule.R")
 
