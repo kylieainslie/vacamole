@@ -1,5 +1,5 @@
-# Simulate age-structured SEIR compartmental model with 2 vaccine doses
-
+# Load packages/functions and define parameter values to run 
+# age-structured SEIR model
 # Load packages ----------------------------------------------------
 library(deSolve)
 library(reshape2)
@@ -18,8 +18,8 @@ source("R/age_struct_seir_ode.R")
 source("R/postprocess_age_struct_model_output.R")
 source("R/choose_contact_matrix.R")
 source("R/get_foi.R")
-source("R/get_vac_rate.R")
-source("R/get_vac_rate_2.R")
+# source("R/get_vac_rate.R")
+# source("R/get_vac_rate_2.R")
 source("R/summarise_results.R")
 source("R/convert_vac_schedule.R")
 
@@ -36,7 +36,7 @@ p_reported_by_age <- c(0.29, 0.363, 0.381, 0.545, 0.645, 0.564, 0.365, 0.33, 0.4
 p_reported_all <- 0.428 # from Jantien
 p_inf_by_age <- c(0.018, 0.115, 0.156, 0.118, 0.142, 0.199, 0.114, 0.062, 0.054 + 0.023)          
 p_recovered <- c(0.01120993, 0.09663659, 0.24141186, 0.11004723, 0.10677859, 0.11977255, 
-                0.11904044, 0.11714503, 0.11347191)
+                 0.11904044, 0.11714503, 0.11347191)
 
 # delays ------------------------------------------------------------
 time_symptom2admission <- c(2.29, 5.51, 5.05, 5.66, 6.55, 5.88, 5.69, 5.09, 4.33) # assume same as infectious2admission
@@ -69,7 +69,7 @@ m2 <- c2 %*% N_diag
 m3 <- c3 %*% N_diag
 m4 <- c4 %*% N_diag
 m5 <- c5 %*% N_diag
-  
+
 # relative susceptibility/infectiousness ----------------------------
 rel_trans <- c(1.000, 3.051, 5.751, 3.538, 3.705, 4.365, 5.688, 5.324, 7.211)
 get_transmission_matrix <- function(x, contact_mat){
@@ -110,11 +110,6 @@ d_hic <- p_hospital2death/time_hospital2death
 r <- (1 - p_admission2death)/time_admission2discharge
 r_ic <- (1 - p_IC2death)/time_hospital2discharge
 
-# read in vac schedules --------------------------------------------
-basis <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210422.csv") %>%
-  select(-starts_with("X"))
-# defer_2nd_dose <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210329 deferral 2nd dose.csv")
-
 # vaccinations params ----------------------------------------------
 ve <- list(pfizer = c(0.7, 0.85), # from SIREN study, estimates from clinical trial: 0.926, 0.948
            moderna = c(0.896, 0.941), # from clinical trial
@@ -127,9 +122,9 @@ delays <- list(pfizer = c(21, 7),
                jansen = c(14))
 
 ve_sa20 <- list(pfizer = c(0.741, 0.758), 
-           moderna = c(0.717, 0.753), 
-           astrazeneca = c(0.466, 0.497),
-           jansen = c(0.529))
+                moderna = c(0.717, 0.753), 
+                astrazeneca = c(0.466, 0.497),
+                jansen = c(0.529))
 
 ve_sa50 <- list(pfizer = c(0.463, 0.474), 
                 moderna = c(0.448, 0.471), 
@@ -173,7 +168,7 @@ init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "4
                               n_ic = c(0, 2, 6, 9, 25, 83, 181, 150, 12),
                               # from NICE data: people with length of stay >= 9 days
                               n_hosp_after_ic = c(2, 2, 9, 15, 45, 158, 321, 392, 266) 
-                              ) %>%
+) %>%
   mutate(n_infections = n_cases * 3, #p_reported_by_age,
          init_E = n_infections * (2/7),
          init_I = n_infections * (2/7),
@@ -231,152 +226,12 @@ init <- c(t = 0,
           Rv_2d = empty_state
 )   
 
-# Input parameters -------------------------------------------------
+# read in vac schedules --------------------------------------------
+basis <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210422.csv") %>%
+  select(-starts_with("X"))
+
 basis1 <- convert_vac_schedule(vac_schedule = basis, 
                                ve = ve, 
                                hosp_multiplier = h_multiplier, 
                                delay = delays, 
                                ve_trans = ve_trans)
-# defer_2nd_dose1 <- convert_vac_schedule(vac_schedule = defer_2nd_dose, 
-#                                         ve = ve, 
-#                                         hosp_multiplier = h_multiplier, 
-#                                         delay = delays,
-#                                         ve_trans = ve_trans)
-
-params <- list(beta = beta2_prime,           # transmission rate
-               gamma = g,                      # 1/gamma = infectious period
-               sigma = s,                      # 1/sigma = latent period
-               #delta = 1,                      # scaling constant 
-               N = n_vec,                      # Population (no need to change)
-               h = h,                          # Rate from infection to hospital admission/ time from infection to hosp admission
-               i1 = i1,
-               i2 = i2,
-               d = d, 
-               d_ic = d_ic,
-               d_hic = d_hic,
-               r = r,
-               r_ic = r_ic,
-               p_report = 1/3, #p_reported_by_age,
-               c_start = B_prime,
-               c_lockdown = B_prime,
-               c_relaxed = t4,
-               c_very_relaxed = t3,
-               c_normal = t1,
-               vac_inputs = basis1,
-               use_cases = TRUE,              # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
-               thresh_n = 0.5/100000 * sum(n_vec),
-               thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
-               thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
-               thresh_u = 35.7/100000 * sum(n_vec),        # 20 for IC admissions
-               no_vac = FALSE,
-               t_calendar_start = 31                       # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
-)
-
-t_max <- lubridate::yday(as.Date("2021-04-03")) # last day of osiris data that we fit
-times_fit <- seq(0,t_max - params$t_calendar_start, by = 1)  
-
-# Initial states from model fit
-# chain <- read.csv("SEIR_fit_no_prior_univariate_chain.csv")
-# chain1 <- chain[chain$sampno >= mcmcPars["adaptive_period"],] # mcmcPars["adaptive_period"]
-params$beta <- get_best_pars(chain1)
-# init_from_fit <- lsoda(init,times_fit,age_struct_seir_ode,params)
-# init_from_fit <- as.data.frame(init_from_fit)
-# init_from_fit1 <- postprocess_age_struct_model_output(init_from_fit)
-# init_from_fit2 <- c(t = 0,
-#                     S = as.numeric(tail(init_from_fit1$S,1)),
-#                     Shold_1d = as.numeric(tail(init_from_fit1$Shold_1d,1)),
-#                     Sv_1d = as.numeric(tail(init_from_fit1$Sv_1d,1)),
-#                     Shold_2d = as.numeric(tail(init_from_fit1$Shold_2d,1)),
-#                     Sv_2d = as.numeric(tail(init_from_fit1$Sv_2d,1)),
-#                     E = as.numeric(tail(init_from_fit1$E,1)),
-#                     Ev_1d = as.numeric(tail(init_from_fit1$Ev_1d,1)),
-#                     Ev_2d = as.numeric(tail(init_from_fit1$Ev_2d,1)),
-#                     I = as.numeric(tail(init_from_fit1$I,1)),
-#                     Iv_1d = as.numeric(tail(init_from_fit1$Iv_1d,1)),
-#                     Iv_2d = as.numeric(tail(init_from_fit1$Iv_2d,1)),
-#                     H = as.numeric(tail(init_from_fit1$H,1)),
-#                     Hv_1d = as.numeric(tail(init_from_fit1$Hv_1d,1)),
-#                     Hv_2d = as.numeric(tail(init_from_fit1$Hv_2d,1)),
-#                     H_IC = as.numeric(tail(init_from_fit1$H_IC,1)),
-#                     H_ICv_1d = as.numeric(tail(init_from_fit1$H_ICv_1d,1)),
-#                     H_ICv_2d = as.numeric(tail(init_from_fit1$H_ICv_2d,1)),
-#                     IC = as.numeric(tail(init_from_fit1$IC,1)),
-#                     ICv_1d = as.numeric(tail(init_from_fit1$ICv_1d,1)),
-#                     ICv_2d = as.numeric(tail(init_from_fit1$ICv_2d,1)),
-#                     D = as.numeric(tail(init_from_fit1$D,1)),
-#                     R = as.numeric(tail(init_from_fit1$R,1)),
-#                     Rv_1d = as.numeric(tail(init_from_fit1$Rv_1d,1)),
-#                     Rv_2d = as.numeric(tail(init_from_fit1$Rv_2d,1))
-# )
-# start date for forward simulation
-#params$t_calandar_start = t_max + 1
-end_date <- lubridate::yday(as.Date("2021-08-31"))
-times_forward <- seq(0, end_date - params$t_calandar_start, by = 1)
-# Solve model ------------------------------------------------------
-seir_out <- lsoda(init,times_forward,age_struct_seir_ode,params) #
-seir_out <- as.data.frame(seir_out)
-out <- postprocess_age_struct_model_output(seir_out)
-
-# quick check ------------------------------------------------------
-cases_from_fit <- (params$sigma * (init_from_fit1$E + init_from_fit1$Ev_1d + init_from_fit1$Ev_2d)) / 3
-cases <- (params$sigma * (out$E + out$Ev_1d + out$Ev_2d)) / 3
-cases_all <- bind_rows(cases_from_fit, cases)
-plot(seq(1, dim(cases_all)[1], by = 1), rowSums(cases_all), type = "l", col = "blue",
-     xlab="Time (days)",ylab="Daily Cases", ylim = c(0,7000))
-points(osiris2$inc~seq(1,weeks*7,by=1),col="red",pch=16) 
-
-
-# Summarise results ------------------------------------------------
-tag <- "basis_19April"
-results <- summarise_results(out, params, start_date = "2021-04-04", 
-                             times = times_forward, vac_inputs = basis1)
-saveRDS(results, paste0("inst/extdata/results/res_",tag,".rds"))
-
-# Make summary table ------------------------------------------------
-summary_tab <- results$df_summary %>%
-  filter(date >= as.Date("2021-04-01"),
-         date < as.Date("2021-09-01")) %>%
-  group_by(outcome) %>%
-  summarise_at(.vars = "value", .funs = sum) 
-summary_tab
-
-# Make plot ---------------------------------------------------------
-# summary over all age groups
-p <- ggplot(results$df_summary %>%
-              filter(outcome == "new_infections"), aes(x = date, y = value, color = outcome)) +
-  geom_line() +
-  labs(y = "Value", x = "Time (days)", color = "Outcome") +
-  ylim(0,NA) +
-  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
-  #geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
-  theme(legend.position = "bottom",
-        panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~outcome, scales = "free")
-p
-
-# by age group
-p2 <- ggplot(results$df, aes(x = date, y = value, color = age_group)) +
-  geom_line() +
-  labs(y = "Value", x = "Time (days)", color = "Outcome") +
-  ylim(0,NA) +
-  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
-  geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
-  theme(legend.position = "bottom",
-        panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~outcome, scales = "free")
-p2
-
-# plot vaccination
-ggplot(results$df_vac, aes(x = date, y = value, color = dose)) +
-  geom_line() +
-  labs(y = "Value", x = "Time (days)", color = "Dose") +
-  ylim(0,NA) +
-  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
-  #geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
-  theme(legend.position = "bottom",
-        panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1)) #+
-  #facet_wrap(~outcome, scales = "free")
-

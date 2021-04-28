@@ -25,7 +25,7 @@ choose_contact_matrix <- function(params, times, criteria, flag_relaxed,
   # } else{
   #   # use simpler conditions where measures are only relaxed and not re-tightened
     # for flags
-      if(criteria >= thresh_u){ # fix it so no strict measures after April 1
+      if(criteria >= thresh_u){ 
         flag_relaxed <- 0
         flag_very_relaxed <- 0
         flag_normal <- 0

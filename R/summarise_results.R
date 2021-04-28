@@ -7,29 +7,20 @@
 #' @keywords vacamole
 #' @export
 
-summarise_results <- function(seir_output, params, start_date, times){
+summarise_results <- function(seir_output, params, start_date, times, vac_inputs){
 
-res <- get_vac_rate_2(times, params$vac_schedule, params$ve, params$delay, params$hosp_multiplier)
+alpha_dose1 <- vac_inputs$alpha_dose1
+alpha_dose2 <- vac_inputs$alpha_dose2
+eta_dose1 <- vac_inputs$eta_dose1
+eta_dose2 <- vac_inputs$eta_dose2
+delay <- vac_inputs$delay_dose1
+delay2 <- vac_inputs$delay_dose2
+eta_hosp <- vac_inputs$eta_hosp_dose1
+eta_hosp2 <- vac_inputs$eta_hosp_dose2
+eta_trans <- vac_inputs$eta_trans_dose1
+eta_trans2 <- vac_inputs$eta_trans_dose2
 
-alpha_dose1 <- res %>%
-  select(time, age_group, total_dose1) %>%
-  pivot_wider(names_from = age_group, names_prefix = "alpha_dose1_",
-              values_from = total_dose1)
-alpha_dose2 <- res %>%
-  select(time, age_group, total_dose2) %>%
-  pivot_wider(names_from = age_group, names_prefix = "alpha_dose2_",
-              values_from = total_dose2)
-
-eta_dose1 <- res %>%
-  select(time, age_group, eta_dose1) %>%
-  pivot_wider(names_from = age_group, names_prefix = "eta_dose1_",
-              values_from = eta_dose1)
-eta_dose2 <- res %>%
-  select(time, age_group, eta_dose2) %>%
-  pivot_wider(names_from = age_group, names_prefix = "eta_dose2_",
-              values_from = eta_dose2)
-
-lambda_est <- get_foi(dat = seir_output, params)
+lambda_est <- get_foi(dat = seir_output, params, vac_inputs)
 
 lambda_est1 <- lambda_est$lambda %>%
   pivot_wider(names_from = age_group, names_prefix = "age_group_", values_from = foi)
@@ -40,7 +31,9 @@ first_doses_administered <- alpha_dose1[,-1] * seir_out$S
 second_doses_administered <- alpha_dose2[,-1] * seir_out$Sv_1d 
 
 # infections
-new_infections <- (seir_output$S + seir_output$Shold_1d + (eta_dose1[,-1] * (seir_output$Sv_1d + seir_output$Shold_2d)) + (eta_dose2[,-1] * seir_output$Sv_2d)) * lambda_est1[,-1]
+new_infections <- (seir_output$S + seir_output$Shold_1d + 
+                     (eta_dose1[,-1] * (seir_output$Sv_1d + seir_output$Shold_2d)) + 
+                     (eta_dose2[,-1] * seir_output$Sv_2d)) * lambda_est1[,-1]
 infections <- (seir_output$E + seir_output$Ev_1d + seir_output$Ev_2d)
 
 #infectious/cases
@@ -62,7 +55,6 @@ total_hosp_occ <- (seir_output$H + seir_output$Hv_1d + seir_output$Hv_2d) + (sei
 daily_deaths <- sweep(ic_occ, 2, d_ic, "*") + sweep(hosp_occ, 2, d, "*") + sweep(hosp_after_ic_occ, 2, d_hic, "*")
 
 # Create object for plotting ---------------------------------------
-time_vec <- seq(0:(dim(params$vac_schedule)[1] - 1))
 # convert from wide to long format
 # first_dose_long <- first_doses_administered %>% 
 #   mutate(time = time_vec) %>%
