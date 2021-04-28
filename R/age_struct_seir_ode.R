@@ -64,7 +64,7 @@ age_struct_seir_ode <- function(times,init,params){
     }
     
     tmp2 <- choose_contact_matrix(params, times, criteria, flag_relaxed, 
-                                  flag_very_relaxed, flag_normal)
+                                  flag_very_relaxed, flag_normal, keep_fixed = keep_cm_fixed)
     contact_mat <- tmp2$contact_matrix
     flag_relaxed <- tmp2$flag_relaxed
     flag_very_relaxed <- tmp2$flag_very_relaxed
@@ -72,8 +72,8 @@ age_struct_seir_ode <- function(times,init,params){
     
     # determine force of infection ----------------------------------
     calendar_day <- t_calendar_start + times
-    # lambda <- beta * (1 + cos(2 * pi * calendar_day/365.24)) * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
     lambda <- beta * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
+    # lambda <- beta * (1 + cos(2 * pi * calendar_day/365.24)) * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
     # ---------------------------------------------------------------
     
     ################################################################
@@ -103,6 +103,8 @@ age_struct_seir_ode <- function(times,init,params){
     dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d
     dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d
     
+    #cases <- sum(lambda * ((S + Shold_1d) + eta * (Sv_1d + Shold_2d) + eta2 * Sv_2d))
+    #assign("cases", cases, envir = globalenv())
     assign("flag_relaxed", flag_relaxed, envir = globalenv())
     assign("flag_very_relaxed", flag_very_relaxed, envir = globalenv())
     assign("flag_normal", flag_normal, envir = globalenv())
