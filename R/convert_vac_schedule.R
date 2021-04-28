@@ -48,6 +48,20 @@ vac_schedule_orig_new <- vac_schedule_orig %>%
   filter(date > as.Date("2021-01-31")) %>%
   add_row(before_feb, .before = 1)
 
+# add vaccination of children 12 - 17 starting September 1, 2021
+# assume 50,000 vaccines per day for 21 days to get 85% coverage in this age group
+# this equates to an increase in vaccination coverage in this age group of 
+# 0.0243 per day for a total of 0.51 after 21 days.
+# we assume the second dose is given 6 weeks after the first dose
+p_child_12_17_doses <- 0.6 * 0.85
+n_child_12_17_doses <- n_vec_10[2] * p_child_12_17_doses
+days_child_12_17 <- n_child_12_17_doses/50000
+p_child_12_17_doses_per_day <- p_child_12_17_doses/days_child_12_17
+
+vac_schedule_orig_new <- vac_schedule_orig_new %>%
+  mutate(pf_d1_2 = ifelse(date >= as.Date("2021-09-01") & date <= as.Date("2021-09-21"), pf_d1_2 + p_child_12_17_doses_per_day, pf_d1_2),
+         pf_d2_2 = ifelse(date >= as.Date("2021-10-13") & date <= as.Date("2021-11-02"), pf_d2_2 + p_child_12_17_doses_per_day, pf_d2_2))
+
 vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
 
 # create separate data frame for each vaccine -------------------------------------------------
