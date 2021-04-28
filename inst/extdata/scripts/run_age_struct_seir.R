@@ -21,7 +21,7 @@ source("R/get_foi.R")
 source("R/get_vac_rate.R")
 source("R/get_vac_rate_2.R")
 source("R/summarise_results.R")
-source("inst/extdata/scripts/convert_vac_schedule.R")
+source("R/convert_vac_schedule.R")
 
 # load data ---------------------------------------------------------
 # probabilities -----------------------------------------------------
@@ -111,8 +111,9 @@ r <- (1 - p_admission2death)/time_admission2discharge
 r_ic <- (1 - p_IC2death)/time_hospital2discharge
 
 # read in vac schedules --------------------------------------------
-basis <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210329 Basis.csv")
-defer_2nd_dose <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210329 deferral 2nd dose.csv")
+basis <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210422.csv") %>%
+  select(-starts_with("X"))
+# defer_2nd_dose <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210329 deferral 2nd dose.csv")
 
 # vaccinations params ----------------------------------------------
 ve <- list(pfizer = c(0.7, 0.85), # from SIREN study, estimates from clinical trial: 0.926, 0.948
@@ -236,11 +237,11 @@ basis1 <- convert_vac_schedule(vac_schedule = basis,
                                hosp_multiplier = h_multiplier, 
                                delay = delays, 
                                ve_trans = ve_trans)
-defer_2nd_dose1 <- convert_vac_schedule(vac_schedule = defer_2nd_dose, 
-                                        ve = ve, 
-                                        hosp_multiplier = h_multiplier, 
-                                        delay = delays,
-                                        ve_trans = ve_trans)
+# defer_2nd_dose1 <- convert_vac_schedule(vac_schedule = defer_2nd_dose, 
+#                                         ve = ve, 
+#                                         hosp_multiplier = h_multiplier, 
+#                                         delay = delays,
+#                                         ve_trans = ve_trans)
 
 params <- list(beta = beta2_prime,           # transmission rate
                gamma = g,                      # 1/gamma = infectious period
