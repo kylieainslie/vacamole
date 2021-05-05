@@ -225,7 +225,7 @@ init <- c(t = 0,
 )   
 
 # read in vac schedules --------------------------------------------
-basis <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210422.csv") %>%
+basis <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210429.csv") %>%
   select(-starts_with("X"))
 
 basis1 <- convert_vac_schedule(vac_schedule = basis, 
@@ -233,3 +233,11 @@ basis1 <- convert_vac_schedule(vac_schedule = basis,
                                hosp_multiplier = h_multiplier, 
                                delay = delays, 
                                ve_trans = ve_trans)
+
+# load model fits --------------------------------------------------
+daily_cases_from_fit <- readRDS("inst/extdata/results/daily_cases_from_model_fit_2021-04-20.rds")
+mle_betas <- read_csv("inst/extdata/results/mle_betas_2021-04-26.csv")
+initial_conditions <- readRDS("inst/extdata/results/init_conditions_2021-04-20.rds")
+
+
+
