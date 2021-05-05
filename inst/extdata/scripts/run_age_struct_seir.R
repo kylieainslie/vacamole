@@ -1,6 +1,7 @@
 # Simulate age-structured SEIR compartmental model with 2 vaccine doses
 
 # Data and model parameters are loaded/defined in the script inst/extdata/scripts/model_run_helper.R
+source("inst/extdata/scripts/model_run_helper.R")
 
 # Determine time points over which to solve model
 start_date <- yday(as.Date("2021-01-31"))
