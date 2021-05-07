@@ -58,7 +58,7 @@ age_struct_seir_ode <- function(times,init,params){
     criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
     
     # initialise flags
-    if(t == 0){
+    if(times == 0){
       flag_relaxed <- 0
       flag_very_relaxed <- 0
       flag_normal <- 0
@@ -75,8 +75,8 @@ age_struct_seir_ode <- function(times,init,params){
     # determine force of infection ----------------------------------
     calendar_day <- t_calendar_start + times
     
-    # lambda <- beta * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
-    lambda <- beta * (1 + cos(2 * pi * calendar_day/365.24)) * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
+    lambda <- beta * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
+    # lambda <- beta * (1 + cos(2 * pi * calendar_day/365.24)) * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
     # ---------------------------------------------------------------
     
     ################################################################
