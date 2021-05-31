@@ -20,7 +20,7 @@ choose_contact_matrix <- function(params, times, criteria, flag_relaxed,
   c_normal <- params$c_normal
   keep_cm_fixed <- params$keep_cm_fixed
   
-  if(keep_fixed){
+  if(keep_cm_fixed){
      contact_matrix <- c_start
   } else{
     # use simpler conditions where measures are only relaxed and not re-tightened
