@@ -4,6 +4,7 @@
 #' @param hosp_multiplier
 #' @param delay
 #' @param ve_trans
+#' @param add_child_vac
 #' @return 
 #' @keywords vacamole
 #' @export
@@ -11,7 +12,8 @@ convert_vac_schedule <- function(vac_schedule,
                                  ve, 
                                  hosp_multiplier, 
                                  delay, 
-                                 ve_trans){
+                                 ve_trans,
+                                 add_child_vac = FALSE){
 # to combine age groups 9 and 10 --------------------------------------------------------------
 age_dist_10 <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463, 
               0.14514332, 0.12092904, 0.08807406, 0.03976755, 0.007398671)
@@ -53,17 +55,21 @@ vac_schedule_orig_new <- vac_schedule_orig %>%
 # this equates to an increase in vaccination coverage in this age group of 
 # 0.0243 per day for a total of 0.51 after 21 days.
 # we assume the second dose is given 6 weeks after the first dose
-p_child_12_17_doses <- 0.6 * 0.85
-n_child_12_17_doses <- n_vec_10[2] * p_child_12_17_doses
-days_child_12_17 <- n_child_12_17_doses/50000
-p_child_12_17_doses_per_day <- p_child_12_17_doses/days_child_12_17
+if(add_child_vac){
+  p_child_12_17_doses <- 0.6 * 0.85
+  n_child_12_17_doses <- n_vec_10[2] * p_child_12_17_doses
+  days_child_12_17 <- n_child_12_17_doses/50000
+  p_child_12_17_doses_per_day <- p_child_12_17_doses/days_child_12_17
 
-vac_schedule_orig_new <- vac_schedule_orig_new %>%
-  mutate(pf_d1_2 = ifelse(date >= as.Date("2021-09-01") & date <= as.Date("2021-09-21"), pf_d1_2 + p_child_12_17_doses_per_day, pf_d1_2),
-         pf_d2_2 = ifelse(date >= as.Date("2021-10-13") & date <= as.Date("2021-11-02"), pf_d2_2 + p_child_12_17_doses_per_day, pf_d2_2))
+  vac_schedule_orig_new <- vac_schedule_orig_new %>%
+    mutate(pf_d1_2 = ifelse(date >= as.Date("2021-09-01") & date <= as.Date("2021-09-21"), pf_d1_2 + p_child_12_17_doses_per_day, pf_d1_2),
+          pf_d2_2 = ifelse(date >= as.Date("2021-10-13") & date <= as.Date("2021-11-02"), pf_d2_2 + p_child_12_17_doses_per_day, pf_d2_2))
 
-vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
-
+  vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
+} else {
+  vac_schedule_new <- vac_schedule_orig_new
+  vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
+}
 # create separate data frame for each vaccine -------------------------------------------------
 # pfizer
 pf_dose1 <- vac_schedule_orig_new %>% select(date, pf_d1_1:pf_d1_9)
