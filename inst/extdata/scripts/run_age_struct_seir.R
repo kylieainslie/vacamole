@@ -3,18 +3,9 @@
 # Data and model parameters are loaded/defined in the script inst/extdata/scripts/model_run_helper.R
 source("inst/extdata/scripts/model_run_helper.R")
 
-# Determine time points over which to solve model
-start_date <- yday(as.Date("2021-01-31"))
-breakpoints <- yday(c(as.Date("2021-03-07"), 
-                      as.Date("2021-03-21"),
-                      as.Date("2021-04-01")))
-end_date <- lubridate::yday(as.Date("2021-12-31"))
-times_forward <- seq(0, end_date - start_date, by = 1)
-
-# define time varying parameters
-deltas <- c(1, 3.5, 0.5, 1.4)
-beta_mle <- 0.0004
-
+beta_mle <- 0.00046
+start_date <- lubridate::yday(as.Date("2021-04-20"))
+end_date <- lubridate::yday(as.Date("2021-09-30"))
 # Create list of parameter values for input into model solver
 params <- list(beta = beta_mle,           # transmission rate
                gamma = g,                      # 1/gamma = infectious period
@@ -30,12 +21,12 @@ params <- list(beta = beta_mle,           # transmission rate
                r = r,
                r_ic = r_ic,
                p_report = 1/3, #p_reported_by_age,
-               c_start = B_prime,
-               c_lockdown = B_prime,
+               c_start = t4,
+               c_lockdown = t4,
                c_relaxed = t4,
                c_very_relaxed = t3,
                c_normal = t1,
-               keep_cm_fixed = TRUE,
+               keep_cm_fixed = FALSE,
                vac_inputs = basis1,
                use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_n = 0.5/100000 * sum(n_vec),
@@ -43,12 +34,19 @@ params <- list(beta = beta_mle,           # transmission rate
                thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
                thresh_u = 35.7/100000 * sum(n_vec),        # 20 for IC admissions
                no_vac = FALSE,
-               t_calendar_start = start_date,              # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
+               t_calendar_start = yday(as.Date("2021-01-31")),              # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
                breakpoints = NULL  # breakpoints - start_date    # time points when parameters can change (if NULL, then beta is constant over time)
                )
 
+times <- seq(start_date, end_date, by = 1) - yday(as.Date("2021-01-31"))
+# set initial_conditions start time the first time point
+initial_conditions["t"] <- times[1]
+# if time doesn't start at 0 we need to initialise the contact matrices flags
+flag_relaxed <- 0 # start with relaxed contact matrix
+flag_very_relaxed <- 0
+flag_normal <- 0
 # Solve model ------------------------------------------------------
-seir_out <- lsoda(init,times,age_struct_seir_ode,params) #
+seir_out <- lsoda(initial_conditions,times,age_struct_seir_ode,params) #
 seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 
@@ -56,20 +54,20 @@ out <- postprocess_age_struct_model_output(seir_out)
 # cases_from_fit <- (params$sigma * (init_from_fit1$E + init_from_fit1$Ev_1d + init_from_fit1$Ev_2d)) / 3
 cases <- (params$sigma * (out$E + out$Ev_1d + out$Ev_2d)) * params$p_report
 plot(seq(1, dim(cases)[1], by = 1), rowSums(cases), type = "l", col = "blue",
-     xlab="Time (days)",ylab="Daily Cases", ylim = c(0,7000))
-points(osiris2$inc~times,col="red",pch=16) 
+     xlab="Time (days)",ylab="Daily Cases")
+# points(osiris2$inc~times,col="red",pch=16) 
 
 
 # Summarise results ------------------------------------------------
-tag <- "basis_19April"
-results <- summarise_results(out, params, start_date = "2021-04-04", 
-                             times = times_forward, vac_inputs = basis1)
-saveRDS(results, paste0("inst/extdata/results/res_",tag,".rds"))
+tag <- "basis_main_10May"
+results <- summarise_results(out, params, start_date = "2021-01-31", 
+                             times = times, vac_inputs = params$vac_inputs)
+saveRDS(results, paste0("inst/extdata/results/",tag,".rds"))
 
 # Make summary table ------------------------------------------------
 summary_tab <- results$df_summary %>%
-  filter(date >= as.Date("2021-04-01"),
-         date < as.Date("2021-09-01")) %>%
+  # filter(date >= as.Date("2021-04-01"),
+  #        date < as.Date("2021-09-01")) %>%
   group_by(outcome) %>%
   summarise_at(.vars = "value", .funs = sum) 
 summary_tab
@@ -77,7 +75,7 @@ summary_tab
 # Make plot ---------------------------------------------------------
 # summary over all age groups
 p <- ggplot(results$df_summary %>%
-              filter(outcome == "new_infections"), aes(x = date, y = value, color = outcome)) +
+              filter(outcome == "new_cases"), aes(x = date, y = value, color = outcome)) +
   geom_line() +
   labs(y = "Value", x = "Time (days)", color = "Outcome") +
   ylim(0,NA) +
@@ -89,28 +87,35 @@ p <- ggplot(results$df_summary %>%
   facet_wrap(~outcome, scales = "free")
 p
 
-# by age group
-p2 <- ggplot(results$df, aes(x = date, y = value, color = age_group)) +
-  geom_line() +
-  labs(y = "Value", x = "Time (days)", color = "Outcome") +
-  ylim(0,NA) +
-  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
-  geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
-  theme(legend.position = "bottom",
-        panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~outcome, scales = "free")
-p2
+# combine with model fit
+basis_cases <- basis_res$df %>%
+  filter(outcome == "new_cases") %>%
+  select(time, age_group, outcome, value) %>%
+  group_by(time) %>%
+  summarise_at(.vars = "value", .funs = "sum") %>%
+  filter(time != 79) %>% # remove first time point because it's a repeat of the last time point of the data fit
+  rename(cases = value)
 
-# plot vaccination
-ggplot(results$df_vac, aes(x = date, y = value, color = dose)) +
+cases_all <- bind_rows(daily_cases_from_fit, basis_cases) %>%
+  mutate(date = time + as.Date("2021-01-31"))
+
+p_fit <- ggplot(cases_all, aes(x = date, y = cases)) +
   geom_line() +
-  labs(y = "Value", x = "Time (days)", color = "Dose") +
+  geom_point(data = osiris_dat %>% filter(date < as.Date("2021-04-28")), aes(x = date, y = inc, color = "Osiris data")) +
+  labs(y = "Daily Cases", x = "Time (days)") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
   #geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1)) #+
-  #facet_wrap(~outcome, scales = "free")
+        axis.text.x = element_text(angle = 45, hjust = 1))
+p_fit
+
+# save plot to file
+ggsave("inst/extdata/results/model_fit_plot_07May.jpg",
+       plot = p_fit,
+       height = 6,
+       width = 12,
+       dpi = 300)
+
 
