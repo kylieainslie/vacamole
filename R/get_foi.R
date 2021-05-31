@@ -10,13 +10,8 @@ get_foi <- function(dat, params, vac_inputs){
 
     
     # sum over different I states for each time step and age group
-    # S <- as.matrix(dat$S)
-    # Shold_1d <- as.matrix(dat$Shold_1d)
-    # Sv_1d <- as.matrix(dat$Sv_1d)
-    # Shold_2d <- as.matrix(dat$Shold_2d)
-    # Sv_2d <- as.matrix(dat$Sv_2d)
     E_all <- as.matrix(dat$E + dat$Ev_1d + dat$Ev_2d)
-    I_all <- as.matrix(dat$I + (vac_inputs$eta_dose1 * dat$Iv_1d) + (vac_inputs$eta_dose2 * dat$Iv_2d))
+    I_all <- as.matrix(dat$I + (vac_inputs$eta_trans_dose1 * dat$Iv_1d) + (vac_inputs$eta_trans_dose2 * dat$Iv_2d))
     H_all <- as.matrix(dat$H + dat$Hv_1d + dat$Hv_2d)
     
     
@@ -35,9 +30,6 @@ get_foi <- function(dat, params, vac_inputs){
       cases[t] <- sum(params$sigma * E_all[t,] * params$p_report)
       
       criteria[t] <- (params$use_cases) * cases[t] + (!params$use_cases) * ic_admin[t] 
-      
-      #if(t == 0 ){cases <- sum(init_lambda * ((S[t,] + Shold_1d[t,]) + eta * (Sv_1d[t,] + Shold_2d[t,]) + eta2 * Sv_2d[t,]))}
-      #criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
       
       tmp2 <- choose_contact_matrix(params, t, criteria[t], flag_relaxed, 
                                     flag_very_relaxed, flag_normal)
