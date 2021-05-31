@@ -1,76 +1,8 @@
-# likelihood function for SEIR model to fit to real data
-tstep <- 1
-times <- seq(0,dim(osiris1)[1]-7,by=tstep)
-osiris2 <- osiris1[times+1,]
+# find mle of beta from SEIR model fit to real data
 
-
-likelihood_func <- function(pars, dat, times){
-  params$beta <- pars[1]
-  #gamma <- pars[2]
-  seir_out <- lsoda(init,times,age_struct_seir_ode,params) #
-  seir_out <- as.data.frame(seir_out)
-  out <- postprocess_age_struct_model_output(seir_out)
-  
-  # results <- as.data.frame(deSolve::ode(y=c(S=S0,I=I0,R=R0),
-  #                                       times=t, func=SIR_odes,
-  #                                       parms=c(beta,gamma)))
-  # incidence <- c(0,-diff(results$S))
-  daily_cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d) * params$p_report
-  
-  ## Get weekly incidence
-  #weekly_cases <- colSums(matrix(daily_cases,nrow=7))
-  
-  lik <- sum(dpois(dat$inc,daily_cases,log=TRUE))
-  lik
-}
-
-real_pars <- c(params$beta)
-test_pars <- c(0.06)
-## Likelihood of true pars
-print(likelihood_func(real_pars))
-## Likelihood of test pars
-print(likelihood_func(test_pars))
-
-## Maximise likelihood function
-
-beta_range <- seq(0.00001, 0.002, by = 0.00001)
-lik_out <- data.frame(beta = beta_range, lnlike = c(rep(NA, length(beta_range))))
-# modify(beta_range, likelihood_func2(val = beta_range, dat = osiris1, times = times))
-for (i in 1:length(beta_range)){
-  print(i)
-  params$beta <- beta_range[i]
-  
-  seir_out <- lsoda(init,times,age_struct_seir_ode,params) #
-  seir_out <- as.data.frame(seir_out)
-  out <- postprocess_age_struct_model_output(seir_out)
-  
-  daily_cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d) * params$p_report
-  
-  lik <- sum(dpois(osiris2$inc,daily_cases,log=TRUE))
-  print(lik)
-  lik_out[i,2] <- lik
-}
-
-mle_beta <- lik_out[which(lik_out$lnlik == max(lik_out$lnlik)),1]
-
-plot(lik_out$beta,lik_out$lnlike, type = "l")
-abline(v = mle_beta, col = "blue")
-
-# run model with mle
-params$beta <- mle_beta # 0.00042
-
-seir_out <- lsoda(init,times,age_struct_seir_ode,params) #
-seir_out <- as.data.frame(seir_out)
-out <- postprocess_age_struct_model_output(seir_out)
-
-daily_cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d) * params$p_report
-plot(osiris2$inc~times,col="red",pch=16, 
-     xlab="Time (days)",ylab="Incidence", ylim = c(0,7000)) 
-lines(daily_cases,col="blue")
-legend("topright",c("Data","Model"),
-       col=c("red","blue"),lty=c(0,1),pch=c(16,NA))
-
-# breakpoint analysis
+# --------------------------------------------------
+# First perform a breakpoint analysis to find time 
+# points over which to separately maximise likelihood
 library(segmented)
 library(ggplot2)
 
@@ -87,7 +19,6 @@ p1 <- p + geom_abline(intercept = my_coef[1],
 p1
 
 # now for the actual breakpoint analysis
-
 my_seg <- segmented(my_glm,
                     seg.Z = ~ date,
                     psi = list(date = c(as.Date("2021-03-07"), 
@@ -105,8 +36,9 @@ beta_mult <- (my_slopes$date[,1]/my_slopes$date[1,1])
 my_fitted <- fitted(my_seg)
 my_model <- data.frame(Date = osiris2$date, Daily_Cases = my_fitted)
 p + geom_line(data = my_model, aes(x = Date, y = Daily_Cases), color = "blue") 
+# --------------------------------------------------
 
-
+# --------------------------------------------------
 # re-run mle for each set of time points
 beta_range <- seq(0.00001, 0.002, by = 0.00001)
 
@@ -203,12 +135,13 @@ write.csv(lik_out, file = paste0("mle_betas_", last_date_in_osiris, ".csv"))
 
 mle_pos <- apply(lik_out[,-1], 2, function(x) which(x == max(x)))
 # 40, 47, 41, 46
-mle_betas <- lik_out$beta[c(mle_pos$lnlike_t1, mle_pos$lnlike_t2, mle_pos$lnlike_t3)] 
-
-  
+# mle_betas <- lik_out$beta[c(mle_pos$lnlike_t1, mle_pos$lnlike_t2, mle_pos$lnlike_t3)] 
+mle_betas <- beta_range[c(40, 47, 41, 46)]
 plot(lik_out$beta,lik_out$lnlike_t1, type = "l")
 abline(v = mle_betas[1], col = "blue")
+# --------------------------------------------------
 
+# --------------------------------------------------
 # run model for mles
 # must do it piecewise
 rtn <- list()
@@ -406,7 +339,9 @@ init1 <- c(t = 0,
   
   daily_cases4 <- params$sigma * rowSums(out4$E + out4$Ev_1d + out4$Ev_2d) * params$p_report
   rtn[[4]] <- daily_cases4
-  
+# --------------------------------------------------
+
+# --------------------------------------------------
 # save initial conditions for forward simulation
   init_forward <- c(t = times4[length(times4)],
              S = as.numeric(tail(out4$S,1)),
@@ -447,4 +382,5 @@ plot(osiris2$inc~seq(1, dim(osiris2)[1], by = 1),col="red",pch=16,
 lines(times_all, cases_all, col="blue")
 legend("bottomright",c("Osiris Data","Model Fit"),
        col=c("red","blue"),lty=c(0,1),pch=c(16,NA))
+# --------------------------------------------------
 
