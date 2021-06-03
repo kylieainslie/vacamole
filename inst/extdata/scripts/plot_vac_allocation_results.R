@@ -6,12 +6,12 @@
 
 # load results --------------------------------------------------------------------
 # main analysis
-basis_res <- readRDS("inst/extdata/results/basis_main_10May.rds") 
-az_res <- readRDS("inst/extdata/results/az_main_10May.rds") 
-mRNA_res <- readRDS("inst/extdata/results/mRNA_main_10May.rds") 
-janssen60_res <- readRDS("inst/extdata/results/janssen60_main_10May.rds") 
-janssen50_res <- readRDS("inst/extdata/results/janssen50_main_10May.rds") 
-janssen40_res <- readRDS("inst/extdata/results/janssen40_main_10May.rds") 
+basis_res <- readRDS("inst/extdata/results/basis_10May.rds") 
+az_res <- readRDS("inst/extdata/results/az_10May.rds") 
+mRNA_res <- readRDS("inst/extdata/results/mRNA_10May.rds") 
+janssen60_res <- readRDS("inst/extdata/results/janssen60_10May.rds") 
+janssen50_res <- readRDS("inst/extdata/results/janssen50_10May.rds") 
+janssen40_res <- readRDS("inst/extdata/results/janssen40_10May.rds") 
 
 # data wrangle for plotting/summary table -----------------------------------------
 results_all <- bind_rows(basis_res$df_summary,
@@ -28,7 +28,9 @@ results_all <- bind_rows(basis_res$df_summary,
     scenario == 4 ~ "Janssen60",
     scenario == 5 ~ "Janssen50",
     scenario == 6 ~ "Janssen40"
-  ))
+  ),
+   scenario = factor(scenario, levels = c("Basis", "AZ", "mRNA",
+                                          "Janssen60", "Janssen50", "Janssen40")),)
 
 # by age group
 results_ag <- bind_rows(basis_res$df,
@@ -46,6 +48,8 @@ results_ag <- bind_rows(basis_res$df,
     scenario == 5 ~ "Janssen50",
     scenario == 6 ~ "Janssen40"
   ),
+    scenario = factor(scenario, levels = c("Basis", "AZ", "mRNA",
+                                           "Janssen60", "Janssen50", "Janssen40")),
     age_group = case_when(
       age_group == 1 ~ "0-9",
       age_group == 2 ~ "10-19",
@@ -80,7 +84,8 @@ for_plot <- results_all %>% #results_ag
                         "hospital_admissions", 
                         #"ic_admissions", 
                         "new_deaths"
-                        )) %>%
+                        ),
+         scenario %in% c("Basis", "Janssen40")) %>%
   group_by(outcome, scenario) %>%
   mutate(rolling_avg = zoo::rollmean(value, k = 7, fill = NA),
          outcome = case_when(
@@ -113,12 +118,12 @@ g_sum <- ggplot(for_plot,
   ) +
   facet_wrap(~ outcome, 
              scales = "free", 
-             ncol = 3
+             ncol = 1
   )
 g_sum
 
 # save plot to file
-ggsave("inst/extdata/results/res_plot_main_10May.jpg",
+ggsave("inst/extdata/results/res_plot_basis_and_janssen40_1june.jpg",
        plot = g_sum,
        height = 8,
        width = 12,
