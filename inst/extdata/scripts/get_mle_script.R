@@ -6,6 +6,14 @@
 library(segmented)
 library(ggplot2)
 
+# read in OSIRIS data
+osiris <- readRDS("inst/extdata/data/Osiris_Data_20210602_1041_agg.rds")
+osiris1 <- osiris %>%
+  group_by(date) %>%
+  summarise_at(.vars = "n", .funs = "sum") %>%
+  filter(date >= as.Date("2021-01-31")) %>%
+  rename(inc = n)
+
 # plot data
 p <- ggplot(osiris2, aes(x = date, y = inc)) +
   geom_point()
