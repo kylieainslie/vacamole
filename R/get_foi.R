@@ -39,7 +39,11 @@ get_foi <- function(dat, params, vac_inputs){
       flag_normal <- tmp2$flag_normal
       
       # determine force of infection ----------------------------------
-      lambda <- params$beta * (contact_mat %*% (I_all[t,]))
+      calendar_day <- params$t_calendar_start + t
+      
+      #lambda <- params$beta * (contact_mat %*% (I_all[t,]))
+      lambda <- params$beta * (1 + cos(2 * pi * calendar_day/365.24)) * (contact_mat %*% I_all[t,])
+      
       # ---------------------------------------------------------------
       
       # check for which contact metrix was selected -------------------
