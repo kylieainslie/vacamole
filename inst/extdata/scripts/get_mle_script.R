@@ -17,12 +17,16 @@ osiris <- readRDS("inst/extdata/data/Osiris_Data_20210602_1041_agg.rds")
 #   filter(date >= as.Date("2021-01-31")) %>%
 #   rename(inc = n)
 
+# remove last week of points
+osiris1 <- osiris %>% 
+  filter(date <= tail(date,1) - 7)
+
 # plot data
-p <- ggplot(osiris, aes(x = date, y = inc)) +
+p <- ggplot(osiris1, aes(x = date, y = inc)) +
   geom_point()
 p
 
-my_glm <- glm(inc ~ date, data = osiris) 
+my_glm <- glm(inc ~ date, data = osiris1) 
 my_coef <- coef(my_glm)
 
 p1 <- p + geom_abline(intercept = my_coef[1],
@@ -34,18 +38,19 @@ my_seg <- segmented(my_glm,
                     seg.Z = ~ date,
                     psi = list(date = c(as.Date("2021-03-07"), 
                                         as.Date("2021-03-21"),
-                                        as.Date("2021-04-01"))))
+                                        as.Date("2021-04-01"),
+                                        as.Date("2021-04-17"))))
 summary(my_seg)
 # the breakpoints
 my_seg$psi
 
 # the slopes
 my_slopes <- slope(my_seg)
-beta_mult <- (my_slopes$date[,1]/my_slopes$date[1,1])
+#beta_mult <- (my_slopes$date[,1]/my_slopes$date[1,1])
 
 #  get the fitted data
 my_fitted <- fitted(my_seg)
-my_model <- data.frame(Date = osiris2$date, Daily_Cases = my_fitted)
+my_model <- data.frame(Date = osiris1$date, Daily_Cases = my_fitted)
 p + geom_line(data = my_model, aes(x = Date, y = Daily_Cases), color = "blue") 
 # --------------------------------------------------
 
@@ -56,7 +61,7 @@ beta_range <- seq(0.00001, 0.002, by = 0.00001)
 breakpoints <- yday(c(as.Date("2021-03-07"), 
                       as.Date("2021-03-21"),
                       as.Date("2021-04-01"),
-                      as.Date("2021-04-20"),
+                      as.Date("2021-04-17"),
                       as.Date("2021-05-25")
                       )
                     ) - yday(as.Date("2021-01-31"))
@@ -70,7 +75,7 @@ lik_out <- data.frame(beta = beta_range,
 
 for (j in 1:length(breakpoints)) {
   if (j == 1){
-    times <- seq(0, breakpoints[5], by = 1)
+    times <- seq(0, breakpoints[j], by = 1)
     init <- c(t = 0,
               S = init_states_dat$init_S,
               Shold_1d = empty_state,
@@ -130,7 +135,7 @@ for (j in 1:length(breakpoints)) {
     params$c_start <- params$c_relaxed
     params$keep_cm_fixed <- FALSE
   }
-  osiris2 <- osiris[times+1,]
+  osiris2 <- osiris1[times+1,]
   for (i in 1:length(beta_range)){
     print(i)
     params$beta <- beta_range[i]
