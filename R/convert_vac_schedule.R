@@ -155,6 +155,7 @@ calc_ve_w_waning <- function(vac_rate, ve_val){
   return(ve_tot)
 }
 
+# VE against infection
 # dose 1
 ve_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[,-1], ve_val = ve$pfizer[1])
 ve_m_dose1 <- calc_ve_w_waning(vac_rate = mo_dose1[,-1], ve_val = ve$moderna[1])
@@ -173,41 +174,67 @@ comp_ve_dose1 <- frac_pf_dose1 * ve_p_dose1 +
   frac_az_dose1 * ve_a_dose1 +
   frac_ja_dose1 * ve_j_dose1
 colnames(comp_ve_dose1) <- paste0("ve", name_suffix_d1)
-comp_ve_dose2 <- frac_pf_dose2 * ve$pfizer[2] + 
-  frac_mo_dose2 * ve$moderna[2] + 
-  frac_az_dose2 * ve$astrazeneca[2] +
-  frac_ja_dose2 * ve$jansen
+comp_ve_dose2 <- frac_pf_dose2 * ve_p_dose2 + 
+  frac_mo_dose2 * ve_m_dose2 + 
+  frac_az_dose2 * ve_a_dose2 +
+  frac_ja_dose2 * ve_j_dose2
 colnames(comp_ve_dose2) <- paste0("ve", name_suffix_d2)
 
 # eta
 eta_dose1 <- 1 - comp_ve_dose1
-eta_dose2 <- 1- comp_ve_dose2
+eta_dose2 <- 1 - comp_ve_dose2
+
+# VE against hospitalisation
+# dose 1
+ve_hosp_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[,-1], ve_val = hosp_multiplier$pfizer[1])
+ve_hosp_m_dose1 <- calc_ve_w_waning(vac_rate = mo_dose1[,-1], ve_val = hosp_multiplier$moderna[1])
+ve_hosp_a_dose1 <- calc_ve_w_waning(vac_rate = az_dose1[,-1], ve_val = hosp_multiplier$astrazeneca[1])
+ve_hosp_j_dose1 <- calc_ve_w_waning(vac_rate = ja_dose1[,-1], ve_val = hosp_multiplier$jansen[1])
+
+# dose 2
+ve_hosp_p_dose2 <- calc_ve_w_waning(vac_rate = pf_dose2[,-1], ve_val = hosp_multiplier$pfizer[2])
+ve_hosp_m_dose2 <- calc_ve_w_waning(vac_rate = mo_dose2[,-1], ve_val = hosp_multiplier$moderna[2])
+ve_hosp_a_dose2 <- calc_ve_w_waning(vac_rate = az_dose2[,-1], ve_val = hosp_multiplier$astrazeneca[2])
+ve_hosp_j_dose2 <- calc_ve_w_waning(vac_rate = ja_dose2[,-1], ve_val = hosp_multiplier$jansen[2])
 
 # rate of hospitalisations multiplier
-hosp_mult_dose1 <- frac_pf_dose1 * hosp_multiplier$pfizer[1] +
-  frac_mo_dose1 * hosp_multiplier$moderna[1] +
-  frac_az_dose1 * hosp_multiplier$astrazeneca[1] +
-  frac_ja_dose1 * hosp_multiplier$jansen
+hosp_mult_dose1 <- frac_pf_dose1 * ve_hosp_p_dose1 +
+  frac_mo_dose1 * ve_hosp_m_dose1 +
+  frac_az_dose1 * ve_hosp_a_dose1 +
+  frac_ja_dose1 * ve_hosp_j_dose1
 colnames(hosp_mult_dose1) <- paste0("hosp_mult", name_suffix_d1)
-hosp_mult_dose2 <- frac_pf_dose2 * hosp_multiplier$pfizer[2] +
-  frac_mo_dose2 * hosp_multiplier$moderna[2] +
-  frac_az_dose2 * hosp_multiplier$astrazeneca[2] +
-  frac_ja_dose2 * hosp_multiplier$jansen
+hosp_mult_dose2 <- frac_pf_dose2 * ve_hosp_p_dose2 +
+  frac_mo_dose2 * ve_hosp_m_dose2 +
+  frac_az_dose2 * ve_hosp_a_dose2 +
+  frac_ja_dose2 * ve_hosp_j_dose2
 colnames(hosp_mult_dose2) <- paste0("hosp_mult", name_suffix_d1)
 
 eta_hosp_dose1 <- 1 - hosp_mult_dose1
 eta_hosp_dose2 <- 1 - hosp_mult_dose2
 
+# VE against hospitalisation
+# dose 1
+ve_trans_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[,-1], ve_val = ve_trans$pfizer[1])
+ve_trans_m_dose1 <- calc_ve_w_waning(vac_rate = mo_dose1[,-1], ve_val = ve_trans$moderna[1])
+ve_trans_a_dose1 <- calc_ve_w_waning(vac_rate = az_dose1[,-1], ve_val = ve_trans$astrazeneca[1])
+ve_trans_j_dose1 <- calc_ve_w_waning(vac_rate = ja_dose1[,-1], ve_val = ve_trans$jansen[1])
+
+# dose 2
+ve_trans_p_dose2 <- calc_ve_w_waning(vac_rate = pf_dose2[,-1], ve_val = ve_trans$pfizer[2])
+ve_trans_m_dose2 <- calc_ve_w_waning(vac_rate = mo_dose2[,-1], ve_val = ve_trans$moderna[2])
+ve_trans_a_dose2 <- calc_ve_w_waning(vac_rate = az_dose2[,-1], ve_val = ve_trans$astrazeneca[2])
+ve_trans_j_dose2 <- calc_ve_w_waning(vac_rate = ja_dose2[,-1], ve_val = ve_trans$jansen[2])
+
 # composite VE (against transmission)
-comp_ve_trans_dose1 <- frac_pf_dose1 * ve_trans$pfizer[1] + 
-  frac_mo_dose1 * ve_trans$moderna[1] + 
-  frac_az_dose1 * ve_trans$astrazeneca[1] +
-  frac_ja_dose1 * ve_trans$jansen
+comp_ve_trans_dose1 <- frac_pf_dose1 * ve_trans_p_dose1 + 
+  frac_mo_dose1 * ve_trans_m_dose1 + 
+  frac_az_dose1 * ve_trans_a_dose1 +
+  frac_ja_dose1 * ve_trans_j_dose1
 colnames(comp_ve_trans_dose1) <- paste0("ve_trans", name_suffix_d1)
-comp_ve_trans_dose2 <- frac_pf_dose2 * ve_trans$pfizer[2] + 
-  frac_mo_dose2 * ve_trans$moderna[2] + 
-  frac_az_dose2 * ve_trans$astrazeneca[2] +
-  frac_ja_dose2 * ve_trans$jansen
+comp_ve_trans_dose2 <- frac_pf_dose2 * ve_trans_p_dose2 + 
+  frac_mo_dose2 * ve_trans_m_dose2 + 
+  frac_az_dose2 * ve_trans_a_dose2 +
+  frac_ja_dose2 * ve_trans_j_dose2
 colnames(comp_ve_trans_dose2) <- paste0("ve_trans", name_suffix_d2)
 
 # eta_trans
