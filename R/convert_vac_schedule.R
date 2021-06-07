@@ -152,23 +152,6 @@ calc_ve_w_waning <- function(vac_rate, ve_val){
     waning_tot[t_tot,] <- apply(waning_t, 2, sum)
     ve_tot[t_tot,] <- ve_val - (ve_val * waning_tot[t_tot,])
   }
-    #print(t)
-    if (t == 1){ 
-      waning_t <- 0 
-      total_waning <- 
-      # total_vac_t <- vac_rate[1,]
-      # total_vac_t1 <- ifelse(total_vac_t == 0, 1, total_vac_t)
-      # frac_vac_t <- ifelse(is.nan(vac_rate[1,]/total_vac_t), 0, vac_rate[1,]/total_vac_t)
-      # ve_t <- frac_vac_t * ve_val - (ve_val * waning_t)
-    } else {
-      # waning_t <- c(waning[(t-1):(t-(t-1))],0)
-      # total_vac_t <- apply(vac_rate[1:t,],2,sum)
-      # total_vac_t1 <- ifelse(total_vac_t == 0, 1, total_vac_t)
-      # frac_vac_t <- sweep(vac_rate[1:t,], 2, total_vac_t1, "/")
-      # ve_t <- sweep(frac_vac_t, 1, ve_val - (ve_val * waning_t), "*")
-    }
-    
-  }
   return(ve_t)
 }
 # pfizer
