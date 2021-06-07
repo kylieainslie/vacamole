@@ -130,7 +130,7 @@ frac_az_dose2 <- data.matrix(az_dose2_cs/total_dose2)
 frac_az_dose2 <- ifelse(is.nan(frac_az_dose2), 0, frac_az_dose2)
 
 frac_ja_dose1 <- data.matrix(ja_dose1_cs/total_dose1)
-frac_ja_dose1 <- ifelse(is.nan(frac_ja_dose1), 0, frac_az_dose1)
+frac_ja_dose1 <- ifelse(is.nan(frac_ja_dose1), 0, frac_ja_dose1)
 frac_ja_dose2 <- data.matrix(ja_dose2_cs/total_dose2)
 frac_ja_dose2 <- ifelse(is.nan(frac_ja_dose2), 0, frac_ja_dose2)
 
@@ -152,16 +152,26 @@ calc_ve_w_waning <- function(vac_rate, ve_val){
     waning_tot[t_tot,] <- apply(waning_t, 2, sum)
     ve_tot[t_tot,] <- ve_val - (ve_val * waning_tot[t_tot,])
   }
-  return(ve_t)
+  return(ve_tot)
 }
-# pfizer
+
+# dose 1
 ve_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[,-1], ve_val = ve$pfizer[1])
+ve_m_dose1 <- calc_ve_w_waning(vac_rate = mo_dose1[,-1], ve_val = ve$moderna[1])
+ve_a_dose1 <- calc_ve_w_waning(vac_rate = az_dose1[,-1], ve_val = ve$astrazeneca[1])
+ve_j_dose1 <- calc_ve_w_waning(vac_rate = ja_dose1[,-1], ve_val = ve$jansen[1])
+
+# dose 2
+ve_p_dose2 <- calc_ve_w_waning(vac_rate = pf_dose2[,-1], ve_val = ve$pfizer[2])
+ve_m_dose2 <- calc_ve_w_waning(vac_rate = mo_dose2[,-1], ve_val = ve$moderna[2])
+ve_a_dose2 <- calc_ve_w_waning(vac_rate = az_dose2[,-1], ve_val = ve$astrazeneca[2])
+ve_j_dose2 <- calc_ve_w_waning(vac_rate = ja_dose2[,-1], ve_val = ve$jansen[2])
 
 # composite VE (against infection)
-comp_ve_dose1 <- frac_pf_dose1 * ve$pfizer[1] + 
-  frac_mo_dose1 * ve$moderna[1] + 
-  frac_az_dose1 * ve$astrazeneca[1] +
-  frac_ja_dose1 * ve$jansen
+comp_ve_dose1 <- frac_pf_dose1 * ve_p_dose1 + 
+  frac_mo_dose1 * ve_m_dose1 + 
+  frac_az_dose1 * ve_a_dose1 +
+  frac_ja_dose1 * ve_j_dose1
 colnames(comp_ve_dose1) <- paste0("ve", name_suffix_d1)
 comp_ve_dose2 <- frac_pf_dose2 * ve$pfizer[2] + 
   frac_mo_dose2 * ve$moderna[2] + 
