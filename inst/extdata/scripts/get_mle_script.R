@@ -5,21 +5,24 @@
 # points over which to separately maximise likelihood
 library(segmented)
 library(ggplot2)
+library(tidyverse)
+library(lubridate)
 
+source("inst/extdata/scrips/model_run_helper.R")
 # read in OSIRIS data
 osiris <- readRDS("inst/extdata/data/Osiris_Data_20210602_1041_agg.rds")
-osiris1 <- osiris %>%
-  group_by(date) %>%
-  summarise_at(.vars = "n", .funs = "sum") %>%
-  filter(date >= as.Date("2021-01-31")) %>%
-  rename(inc = n)
+# osiris1 <- osiris %>%
+#   group_by(date) %>%
+#   summarise_at(.vars = "n", .funs = "sum") %>%
+#   filter(date >= as.Date("2021-01-31")) %>%
+#   rename(inc = n)
 
 # plot data
-p <- ggplot(osiris2, aes(x = date, y = inc)) +
+p <- ggplot(osiris, aes(x = date, y = inc)) +
   geom_point()
 p
 
-my_glm <- glm(inc ~ date, data = osiris2) 
+my_glm <- glm(inc ~ date, data = osiris) 
 my_coef <- coef(my_glm)
 
 p1 <- p + geom_abline(intercept = my_coef[1],
@@ -53,19 +56,22 @@ beta_range <- seq(0.00001, 0.002, by = 0.00001)
 breakpoints <- yday(c(as.Date("2021-03-07"), 
                       as.Date("2021-03-21"),
                       as.Date("2021-04-01"),
-                      as.Date("2021-04-20"))
+                      as.Date("2021-04-20"),
+                      as.Date("2021-05-25")
+                      )
                     ) - yday(as.Date("2021-01-31"))
 lik_out <- data.frame(beta = beta_range, 
                       lnlike_t1 = c(rep(NA, length(beta_range))),
                       lnlike_t2 = c(rep(NA, length(beta_range))),
                       lnlike_t3 = c(rep(NA, length(beta_range))),
-                      lnlike_t4 = c(rep(NA, length(beta_range))))
+                      lnlike_t4 = c(rep(NA, length(beta_range))),
+                      lnlike_t5 = c(rep(NA, length(beta_range))))
 
 
 for (j in 1:length(breakpoints)) {
-  if (j == 1){ 
-    times <- seq(0, breakpoints[j], by = 1)
-    init <- c(t = 0,                  
+  if (j == 1){
+    times <- seq(0, breakpoints[5], by = 1)
+    init <- c(t = 0,
               S = init_states_dat$init_S,
               Shold_1d = empty_state,
               Sv_1d = empty_state,
@@ -90,8 +96,10 @@ for (j in 1:length(breakpoints)) {
               R = init_states_dat$n_recovered,
               Rv_1d = empty_state,
               Rv_2d = empty_state
-    )   
-  } else { 
+    )
+    params$c_start <- params$c_lockdown
+    params$keep_cm_fixed <- FALSE
+  } else {
     times <- seq(breakpoints[j-1], breakpoints[j], by = 1)
     init <- c(t = times[1],
             S = as.numeric(tail(out$S,1)),
@@ -118,32 +126,43 @@ for (j in 1:length(breakpoints)) {
             R = as.numeric(tail(out$R,1)),
             Rv_1d = as.numeric(tail(out$Rv_1d,1)),
             Rv_2d = as.numeric(tail(out$Rv_2d,1))
-                    )
+            )
+    params$c_start <- params$c_relaxed
+    params$keep_cm_fixed <- FALSE
   }
-  osiris3 <- osiris2[times4+1,]
-  params$c_start <- params$c_relaxed
-  params$keep_cm_fixed <- TRUE
+  osiris2 <- osiris[times+1,]
   for (i in 1:length(beta_range)){
     print(i)
     params$beta <- beta_range[i]
-  
-    seir_out <- lsoda(init4,times4,age_struct_seir_ode,params) #
+
+    seir_out <- lsoda(init,times,age_struct_seir_ode,params) #
     seir_out <- as.data.frame(seir_out)
     out <- postprocess_age_struct_model_output(seir_out)
-  
+
     daily_cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d) * params$p_report
-  
-    lik <- sum(dpois(osiris3$inc,daily_cases,log=TRUE))
+
+    lik <- sum(dpois(osiris2$inc,daily_cases,log=TRUE))
     print(lik)
     lik_out[i,j+1] <- lik
   }
 }
 
+params$beta <- lik_out$beta[45] 
+seir_out <- lsoda(init,times,age_struct_seir_ode,params) #
+seir_out <- as.data.frame(seir_out)
+out <- postprocess_age_struct_model_output(seir_out)
+daily_cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d) * params$p_report
+
+plot(daily_cases~times, type = "l")
+points(osiris2$inc~times, col = "red", pch = 16)
+
+
+last_date_in_osiris <- tail(osiris2)
 write.csv(lik_out, file = paste0("mle_betas_", last_date_in_osiris, ".csv"))
 
 mle_pos <- apply(lik_out[,-1], 2, function(x) which(x == max(x)))
-# 40, 47, 41, 46
-# mle_betas <- lik_out$beta[c(mle_pos$lnlike_t1, mle_pos$lnlike_t2, mle_pos$lnlike_t3)] 
+# # 40, 47, 41, 46
+mle_betas <- lik_out$beta[c(mle_pos)] 
 mle_betas <- beta_range[c(40, 47, 41, 46)]
 plot(lik_out$beta,lik_out$lnlike_t1, type = "l")
 abline(v = mle_betas[1], col = "blue")
@@ -192,73 +211,34 @@ init1 <- c(t = 0,
     daily_cases1 <- params$sigma * rowSums(out1$E + out1$Ev_1d + out1$Ev_2d) * params$p_report
     rtn[[1]] <- daily_cases1
     
-# t = 35 to 49
-    times2 <- seq(breakpoints[1], breakpoints[2], by = 1) - breakpoints[j-1]
-    init2 <- c(t = times[1],
-            S = as.numeric(tail(out1$S,1)),
-            Shold_1d = as.numeric(tail(out1$Shold_1d,1)),
-            Sv_1d = as.numeric(tail(out1$Sv_1d,1)),
-            Shold_2d = as.numeric(tail(out1$Shold_2d,1)),
-            Sv_2d = as.numeric(tail(out1$Sv_2d,1)),
-            E = as.numeric(tail(out1$E,1)),
-            Ev_1d = as.numeric(tail(out1$Ev_1d,1)),
-            Ev_2d = as.numeric(tail(out1$Ev_2d,1)),
-            I = as.numeric(tail(out1$I,1)),
-            Iv_1d = as.numeric(tail(out1$Iv_1d,1)),
-            Iv_2d = as.numeric(tail(out1$Iv_2d,1)),
-            H = as.numeric(tail(out1$H,1)),
-            Hv_1d = as.numeric(tail(out1$Hv_1d,1)),
-            Hv_2d = as.numeric(tail(out1$Hv_2d,1)),
-            H_IC = as.numeric(tail(out1$H_IC,1)),
-            H_ICv_1d = as.numeric(tail(out1$H_ICv_1d,1)),
-            H_ICv_2d = as.numeric(tail(out1$H_ICv_2d,1)),
-            IC = as.numeric(tail(out1$IC,1)),
-            ICv_1d = as.numeric(tail(out1$ICv_1d,1)),
-            ICv_2d = as.numeric(tail(out1$ICv_2d,1)),
-            D = as.numeric(tail(out1$D,1)),
-            R = as.numeric(tail(out1$R,1)),
-            Rv_1d = as.numeric(tail(out1$Rv_1d,1)),
-            Rv_2d = as.numeric(tail(out1$Rv_2d,1))
-            )
-  
-  params$beta <- lik_out$beta[47]
-  params$c_start <- params$c_relaxed
-  params$keep_cm_fixed <- TRUE
-  
-  seir_out <- lsoda(init2,times2,age_struct_seir_ode,params) #
-  seir_out <- as.data.frame(seir_out)
-  out2 <- postprocess_age_struct_model_output(seir_out)
-  
-  daily_cases2 <- params$sigma * rowSums(out2$E + out2$Ev_1d + out2$Ev_2d) * params$p_report
-  rtn[[2]] <- daily_cases2
-  
+
 # t = 35 to 49
   times2 <- seq(breakpoints[1], breakpoints[2], by = 1)
   init2 <- c(t = times2[1],
-             S = as.numeric(tail(out$S,1)),
-             Shold_1d = as.numeric(tail(out$Shold_1d,1)),
-             Sv_1d = as.numeric(tail(out$Sv_1d,1)),
-             Shold_2d = as.numeric(tail(out$Shold_2d,1)),
-             Sv_2d = as.numeric(tail(out$Sv_2d,1)),
-             E = as.numeric(tail(out$E,1)),
-             Ev_1d = as.numeric(tail(out$Ev_1d,1)),
-             Ev_2d = as.numeric(tail(out$Ev_2d,1)),
-             I = as.numeric(tail(out$I,1)),
-             Iv_1d = as.numeric(tail(out$Iv_1d,1)),
-             Iv_2d = as.numeric(tail(out$Iv_2d,1)),
-             H = as.numeric(tail(out$H,1)),
-             Hv_1d = as.numeric(tail(out$Hv_1d,1)),
-             Hv_2d = as.numeric(tail(out$Hv_2d,1)),
-             H_IC = as.numeric(tail(out$H_IC,1)),
-             H_ICv_1d = as.numeric(tail(out$H_ICv_1d,1)),
-             H_ICv_2d = as.numeric(tail(out$H_ICv_2d,1)),
-             IC = as.numeric(tail(out$IC,1)),
-             ICv_1d = as.numeric(tail(out$ICv_1d,1)),
-             ICv_2d = as.numeric(tail(out$ICv_2d,1)),
-             D = as.numeric(tail(out$D,1)),
-             R = as.numeric(tail(out$R,1)),
-             Rv_1d = as.numeric(tail(out$Rv_1d,1)),
-             Rv_2d = as.numeric(tail(out$Rv_2d,1))
+             S = as.numeric(tail(out1$S,1)),
+             Shold_1d = as.numeric(tail(out1$Shold_1d,1)),
+             Sv_1d = as.numeric(tail(out1$Sv_1d,1)),
+             Shold_2d = as.numeric(tail(out1$Shold_2d,1)),
+             Sv_2d = as.numeric(tail(out1$Sv_2d,1)),
+             E = as.numeric(tail(out1$E,1)),
+             Ev_1d = as.numeric(tail(out1$Ev_1d,1)),
+             Ev_2d = as.numeric(tail(out1$Ev_2d,1)),
+             I = as.numeric(tail(out1$I,1)),
+             Iv_1d = as.numeric(tail(out1$Iv_1d,1)),
+             Iv_2d = as.numeric(tail(out1$Iv_2d,1)),
+             H = as.numeric(tail(out1$H,1)),
+             Hv_1d = as.numeric(tail(out1$Hv_1d,1)),
+             Hv_2d = as.numeric(tail(out1$Hv_2d,1)),
+             H_IC = as.numeric(tail(out1$H_IC,1)),
+             H_ICv_1d = as.numeric(tail(out1$H_ICv_1d,1)),
+             H_ICv_2d = as.numeric(tail(out1$H_ICv_2d,1)),
+             IC = as.numeric(tail(out1$IC,1)),
+             ICv_1d = as.numeric(tail(out1$ICv_1d,1)),
+             ICv_2d = as.numeric(tail(out1$ICv_2d,1)),
+             D = as.numeric(tail(out1$D,1)),
+             R = as.numeric(tail(out1$R,1)),
+             Rv_1d = as.numeric(tail(out1$Rv_1d,1)),
+             Rv_2d = as.numeric(tail(out1$Rv_2d,1))
   )
   
   params$beta <- lik_out$beta[47]
@@ -385,7 +365,7 @@ cases_all <- c(rtn[[1]], rtn[[2]], rtn[[3]], rtn[[4]])
 model_fit <- data.frame(time = times_all, cases = cases_all)
 saveRDS(model_fit, file = "daily_cases_from_model_fit_2021-04-20.rds")
 
-plot(osiris2$inc~seq(1, dim(osiris2)[1], by = 1),col="red",pch=16, 
+plot(osiris$inc~seq(1, dim(osiris)[1], by = 1),col="red",pch=16, 
      xlab="Time (days)",ylab="Incidence", ylim = c(0,7000)) 
 lines(times_all, cases_all, col="blue")
 legend("bottomright",c("Osiris Data","Model Fit"),
