@@ -5,7 +5,7 @@ source("inst/extdata/scripts/model_run_helper.R")
 
 beta_mle <- 0.00046
 start_date <- lubridate::yday(as.Date("2021-04-20"))
-end_date <- lubridate::yday(as.Date("2021-09-30"))
+end_date <- lubridate::yday(as.Date("2021-12-30"))
 # Create list of parameter values for input into model solver
 params <- list(beta = beta_mle,           # transmission rate
                gamma = g,                      # 1/gamma = infectious period
@@ -21,13 +21,13 @@ params <- list(beta = beta_mle,           # transmission rate
                r = r,
                r_ic = r_ic,
                p_report = 1/3, #p_reported_by_age,
-               c_start = t4,
-               c_lockdown = t4,
+               c_start = t2,
+               c_lockdown = t2,
                c_relaxed = t4,
                c_very_relaxed = t3,
                c_normal = t1,
                keep_cm_fixed = FALSE,
-               vac_inputs = basis1,
+               vac_inputs = basis_woc1,
                use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_n = 0.5/100000 * sum(n_vec),
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
@@ -55,11 +55,11 @@ out <- postprocess_age_struct_model_output(seir_out)
 cases <- (params$sigma * (out$E + out$Ev_1d + out$Ev_2d)) * params$p_report
 plot(seq(1, dim(cases)[1], by = 1), rowSums(cases), type = "l", col = "blue",
      xlab="Time (days)",ylab="Daily Cases")
-# points(osiris2$inc~times,col="red",pch=16) 
+points(osiris2$inc~times,col="red",pch=16) 
 
 
 # Summarise results ------------------------------------------------
-tag <- "basis_main_10May"
+tag <- "basis_wo_child_3june"
 results <- summarise_results(out, params, start_date = "2021-01-31", 
                              times = times, vac_inputs = params$vac_inputs)
 saveRDS(results, paste0("inst/extdata/results/",tag,".rds"))

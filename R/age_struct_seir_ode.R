@@ -56,7 +56,6 @@ age_struct_seir_ode <- function(times,init,params){
     
     cases <- sum(sigma * (E + Ev_1d + Ev_2d) * p_report)
     criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
-    
     # initialise flags
     if(times == 0){
       flag_relaxed <- 0
