@@ -14,6 +14,9 @@ convert_vac_schedule <- function(vac_schedule,
                                  delay, 
                                  ve_trans,
                                  add_child_vac = FALSE,
+                                 child_vac_coverage = 0.7,
+                                 child_doses_per_day = 50000,
+                                 child_vac_start_date = "2021-09-01",
                                  k = 0.03,
                                  t0 = 180){
 # to combine age groups 9 and 10 --------------------------------------------------------------
@@ -58,14 +61,16 @@ vac_schedule_orig_new <- vac_schedule_orig %>%
 # 0.0243 per day for a total of 0.51 after 21 days.
 # we assume the second dose is given 6 weeks after the first dose
 if(add_child_vac){
-  p_child_12_17_doses <- 0.6 * 0.85
+  p_child_12_17_doses <- 0.6 * child_vac_coverage
   n_child_12_17_doses <- n_vec_10[2] * p_child_12_17_doses
-  days_child_12_17 <- n_child_12_17_doses/50000
+  days_child_12_17 <- ceiling(n_child_12_17_doses/child_doses_per_day)
   p_child_12_17_doses_per_day <- p_child_12_17_doses/days_child_12_17
 
   vac_schedule_orig_new <- vac_schedule_orig_new %>%
-    mutate(pf_d1_2 = ifelse(date >= as.Date("2021-09-01") & date <= as.Date("2021-09-21"), pf_d1_2 + p_child_12_17_doses_per_day, pf_d1_2),
-          pf_d2_2 = ifelse(date >= as.Date("2021-10-13") & date <= as.Date("2021-11-02"), pf_d2_2 + p_child_12_17_doses_per_day, pf_d2_2))
+    mutate(pf_d1_2 = ifelse(date >= as.Date(child_vac_start_date) & date <= (as.Date(child_vac_start_date) + days_child_12_17), 
+                            pf_d1_2 + p_child_12_17_doses_per_day, pf_d1_2),
+          pf_d2_2 = ifelse(date >= (as.Date(child_vac_start_date) + 42) & date <= (as.Date(child_vac_start_date) + days_child_12_17 + 42),
+                           pf_d2_2 + p_child_12_17_doses_per_day, pf_d2_2))
 
   vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
 } else {
