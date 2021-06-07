@@ -13,7 +13,9 @@ convert_vac_schedule <- function(vac_schedule,
                                  hosp_multiplier, 
                                  delay, 
                                  ve_trans,
-                                 add_child_vac = FALSE){
+                                 add_child_vac = FALSE,
+                                 k = 0.03,
+                                 t0 = 180){
 # to combine age groups 9 and 10 --------------------------------------------------------------
 age_dist_10 <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463, 
               0.14514332, 0.12092904, 0.08807406, 0.03976755, 0.007398671)
@@ -131,6 +133,46 @@ frac_ja_dose1 <- data.matrix(ja_dose1_cs/total_dose1)
 frac_ja_dose1 <- ifelse(is.nan(frac_ja_dose1), 0, frac_az_dose1)
 frac_ja_dose2 <- data.matrix(ja_dose2_cs/total_dose2)
 frac_ja_dose2 <- ifelse(is.nan(frac_ja_dose2), 0, frac_ja_dose2)
+
+# calculate amount of waning
+# it is based on the weighted overage of the VE, daily vaccination rate, and 
+# time since vaccination
+t_vec <- seq(1, dim(pf_dose1)[1], by = 1)
+waning <- (1 / (1 + exp(-k * (t_vec - t0))))
+calc_ve_w_waning <- function(vac_rate, ve_val){ 
+
+  vac_rate <- as.matrix(vac_rate)
+  waning_tot <- matrix(, nrow = t_tot, ncol = ncol(vac_rate))
+  ve_tot <- matrix(, nrow = t_tot, ncol = ncol(vac_rate))
+  for (t_tot in 1:nrow(vac_rate)){ #
+    waning_t <- matrix(, nrow = t_tot, ncol = ncol(vac_rate))
+    for (t in 1:t_tot){
+      waning_t[t,] <- ifelse(t_tot - t > 0,waning[t_tot - t], 0) * vac_rate[t,]
+    }
+    waning_tot[t_tot,] <- apply(waning_t, 2, sum)
+    ve_tot[t_tot,] <- ve_val - (ve_val * waning_tot[t_tot,])
+  }
+    #print(t)
+    if (t == 1){ 
+      waning_t <- 0 
+      total_waning <- 
+      # total_vac_t <- vac_rate[1,]
+      # total_vac_t1 <- ifelse(total_vac_t == 0, 1, total_vac_t)
+      # frac_vac_t <- ifelse(is.nan(vac_rate[1,]/total_vac_t), 0, vac_rate[1,]/total_vac_t)
+      # ve_t <- frac_vac_t * ve_val - (ve_val * waning_t)
+    } else {
+      # waning_t <- c(waning[(t-1):(t-(t-1))],0)
+      # total_vac_t <- apply(vac_rate[1:t,],2,sum)
+      # total_vac_t1 <- ifelse(total_vac_t == 0, 1, total_vac_t)
+      # frac_vac_t <- sweep(vac_rate[1:t,], 2, total_vac_t1, "/")
+      # ve_t <- sweep(frac_vac_t, 1, ve_val - (ve_val * waning_t), "*")
+    }
+    
+  }
+  return(ve_t)
+}
+# pfizer
+ve_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[,-1], ve_val = ve$pfizer[1])
 
 # composite VE (against infection)
 comp_ve_dose1 <- frac_pf_dose1 * ve$pfizer[1] + 
