@@ -8,11 +8,12 @@ start_date <- lubridate::yday(as.Date("2021-04-20"))
 end_date <- lubridate::yday(as.Date("2021-12-30"))
 # Create list of parameter values for input into model solver
 params <- list(beta = beta_mle,           # transmission rate
-               gamma = g,                      # 1/gamma = infectious period
-               sigma = s,                      # 1/sigma = latent period
-               delta = NULL,                 # scaling constant for beta (if NULL it is excluded)
-               N = n_vec,                      # Population (no need to change)
-               h = h,                          # Rate from infection to hospital admission/ time from infection to hosp admission
+               beta1 = 0.5,               # amplitude of seasonal forcing
+               gamma = g,                 # 1/gamma = infectious period
+               sigma = s,                 # 1/sigma = latent period
+               delta = NULL,              # scaling constant for beta (if NULL it is excluded)
+               N = n_vec,                 # Population (no need to change)
+               h = h,                     # Rate from infection to hospital admission/ time from infection to hosp admission
                i1 = i1,
                i2 = i2,
                d = d, 
@@ -22,19 +23,19 @@ params <- list(beta = beta_mle,           # transmission rate
                r_ic = r_ic,
                p_report = 1/3, #p_reported_by_age,
                c_start = t2,
-               c_lockdown = t2,
-               c_relaxed = t4,
+               c_lockdown = t3,
+               c_relaxed = t3,
                c_very_relaxed = t3,
                c_normal = t1,
                keep_cm_fixed = FALSE,
-               vac_inputs = basis_woc1,
+               vac_inputs = basis_wc1,
                use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_n = 0.5/100000 * sum(n_vec),
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
                thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
                thresh_u = 35.7/100000 * sum(n_vec),        # 20 for IC admissions
                no_vac = FALSE,
-               t_calendar_start = yday(as.Date("2021-01-31")),              # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
+               t_calendar_start = yday(as.Date("2021-01-31")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
                breakpoints = NULL  # breakpoints - start_date    # time points when parameters can change (if NULL, then beta is constant over time)
                )
 
@@ -56,13 +57,13 @@ cases <- (params$sigma * (out$E + out$Ev_1d + out$Ev_2d)) * params$p_report
 plot(seq(1, dim(cases)[1], by = 1), rowSums(cases), type = "l", col = "blue",
      xlab="Time (days)",ylab="Daily Cases")
 points(osiris2$inc~times,col="red",pch=16) 
-
+#lines(seq(1, dim(cases)[1], by = 1), rowSums(cases), col = "black")
 
 # Summarise results ------------------------------------------------
-tag <- "basis_wo_child_3june"
+#tag <- "basis_wo_child_3june"
 results <- summarise_results(out, params, start_date = "2021-01-31", 
                              times = times, vac_inputs = params$vac_inputs)
-saveRDS(results, paste0("inst/extdata/results/",tag,".rds"))
+#saveRDS(results, paste0("inst/extdata/results/",tag,".rds"))
 
 # Make summary table ------------------------------------------------
 summary_tab <- results$df_summary %>%
@@ -88,7 +89,7 @@ p <- ggplot(results$df_summary %>%
 p
 
 # combine with model fit
-basis_cases <- basis_res$df %>%
+basis_cases <- results$df %>%
   filter(outcome == "new_cases") %>%
   select(time, age_group, outcome, value) %>%
   group_by(time) %>%
@@ -101,7 +102,7 @@ cases_all <- bind_rows(daily_cases_from_fit, basis_cases) %>%
 
 p_fit <- ggplot(cases_all, aes(x = date, y = cases)) +
   geom_line() +
-  geom_point(data = osiris_dat %>% filter(date < as.Date("2021-04-28")), aes(x = date, y = inc, color = "Osiris data")) +
+  geom_point(data = osiris1 %>% filter(date < as.Date("2021-05-26")), aes(x = date, y = inc, color = "Osiris data")) +
   labs(y = "Daily Cases", x = "Time (days)") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
