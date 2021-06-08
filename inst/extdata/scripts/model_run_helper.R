@@ -167,7 +167,7 @@ init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "4
                               # from NICE data: people with length of stay >= 9 days
                               n_hosp_after_ic = c(2, 2, 9, 15, 45, 158, 321, 392, 266) 
 ) %>%
-  mutate(n_infections = n_cases * 3, #p_reported_by_age,
+  mutate(n_infections = n_cases * 2.2, # calibrated to match osiris data
          init_E = n_infections * (2/7),
          init_I = n_infections * (2/7),
          init_S = n - n_recovered - init_E - init_I  - n_hosp - n_ic - n_hosp_after_ic)
@@ -225,23 +225,27 @@ init <- c(t = 0,
 )   
 
 # read in vac schedules --------------------------------------------
-basis_wc <- read_csv("inst/extdata/data/Cum_upt20210527 with 12_17.csv") %>%
-  select(-starts_with("X"))
-
-basis_wc1 <- convert_vac_schedule(vac_schedule = basis_wc, 
-                               ve = ve, 
-                               hosp_multiplier = h_multiplier, 
-                               delay = delays, 
-                               ve_trans = ve_trans)
-
-basis_woc <- read_csv("inst/extdata/data/Cum_upt20210527 without 12_17.csv") %>%
-  select(-starts_with("X"))
-
-basis_woc1 <- convert_vac_schedule(vac_schedule = basis_woc, 
-                                  ve = ve, 
-                                  hosp_multiplier = h_multiplier, 
-                                  delay = delays, 
-                                  ve_trans = ve_trans)
+basis <- read_csv("inst/extdata/data/Cum_upt20210603 BASIS.csv") %>%
+   select(-starts_with("X"))
+# basis_wc <- read_csv("inst/extdata/data/Cum_upt20210527 with 12_17.csv") %>%
+#   select(-starts_with("X"))
+# 
+# basis_wc1 <- convert_vac_schedule(vac_schedule = basis_wc, 
+#                                ve = ve, 
+#                                hosp_multiplier = h_multiplier, 
+#                                delay = delays, 
+#                                ve_trans = ve_trans,
+#                                wane = TRUE)
+# 
+# basis_woc <- read_csv("inst/extdata/data/Cum_upt20210527 without 12_17.csv") %>%
+#   select(-starts_with("X"))
+# 
+# basis_woc1 <- convert_vac_schedule(vac_schedule = basis_woc, 
+#                                   ve = ve, 
+#                                   hosp_multiplier = h_multiplier, 
+#                                   delay = delays, 
+#                                   ve_trans = ve_trans,
+#                                   wane = TRUE)
 
 # az <- read_csv("inst/extdata/data/Cum_upt20210506 AZ.csv") %>%
 #   select(-starts_with("X"))
