@@ -143,8 +143,9 @@ frac_ja_dose2 <- ifelse(is.nan(frac_ja_dose2), 0, frac_ja_dose2)
 # calculate amount of waning
 # it is based on the weighted overage of the VE, daily vaccination rate, and 
 # time since vaccination
+t_vec <- seq(1, dim(pf_dose1)[1], by = 1)
+
 if (wane){
-  t_vec <- seq(1, dim(pf_dose1)[1], by = 1)
   waning <- (1 / (1 + exp(-k * (t_vec - t0))))
 } else {waning <- c(rep(0, length(t_vec)))}
 
