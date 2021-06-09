@@ -43,7 +43,7 @@ get_foi <- function(dat, params, vac_inputs){
       
       # lambda <- params$beta * (contact_mat %*% (I_all[t,]))
       beta_t <- params$beta * (1 + params$beta1 * cos(2 * pi * calendar_day/365.24))
-      lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
+      lambda <- beta_t * (contact_mat %*% I_all[t,])
       
       # ---------------------------------------------------------------
       
