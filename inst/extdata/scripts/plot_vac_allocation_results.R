@@ -6,31 +6,27 @@
 
 # load results --------------------------------------------------------------------
 # main analysis
-basis_res <- readRDS("inst/extdata/results/basis_10May.rds") 
-az_res <- readRDS("inst/extdata/results/az_10May.rds") 
-mRNA_res <- readRDS("inst/extdata/results/mRNA_10May.rds") 
-janssen60_res <- readRDS("inst/extdata/results/janssen60_10May.rds") 
-janssen50_res <- readRDS("inst/extdata/results/janssen50_10May.rds") 
-janssen40_res <- readRDS("inst/extdata/results/janssen40_10May.rds") 
+basis_res <- readRDS("inst/extdata/results/basis_w_waning_no_child_vac_9june.rds") 
+july_res <- readRDS("inst/extdata/results/basis_w_waning_child_vac_july_start_cov07_9june.rds") 
+aug_res <- readRDS("inst/extdata/results/basis_w_waning_child_vac_aug_start_cov07_9june.rds") 
+sept_res <- readRDS("inst/extdata/results/basis_w_waning_child_vac_sept_start_cov07_9june.rds") 
 
 # data wrangle for plotting/summary table -----------------------------------------
 results_all <- bind_rows(basis_res$df_summary,
-                         az_res$df_summary,
-                         mRNA_res$df_summary,
-                         janssen60_res$df_summary,
-                         janssen50_res$df_summary,
-                         janssen40_res$df_summary,
+                         july_res$df_summary,
+                         aug_res$df_summary,
+                         sept_res$df_summary,
                           .id = "scenario") %>%
   mutate(scenario = case_when(
-    scenario == 1 ~ "Basis",
-    scenario == 2 ~ "AZ",
-    scenario == 3 ~ "mRNA",
-    scenario == 4 ~ "Janssen60",
-    scenario == 5 ~ "Janssen50",
-    scenario == 6 ~ "Janssen40"
+    scenario == 1 ~ "No vaccination of 12-17 year olds",
+    scenario == 2 ~ "Vaccination of 12-17 year olds (mid-July start)",
+    scenario == 3 ~ "Vaccination of 12-17 year olds (August start)",
+    scenario == 4 ~ "Vaccination of 12-17 year olds (September start)",
   ),
-   scenario = factor(scenario, levels = c("Basis", "AZ", "mRNA",
-                                          "Janssen60", "Janssen50", "Janssen40")),)
+   scenario = factor(scenario, levels = c("No vaccination of 12-17 year olds",
+                                          "Vaccination of 12-17 year olds (mid-July start)",
+                                          "Vaccination of 12-17 year olds (August start)",
+                                          "Vaccination of 12-17 year olds (September start)")))
 
 # by age group
 results_ag <- bind_rows(basis_res$df,
@@ -80,20 +76,21 @@ summary_tab_ag <- results_ag %>%
 # plot ----------------------------------------------------------------------------
 # subset for plotting 
 for_plot <- results_all %>% #results_ag
-  filter(outcome %in% c("new_cases", 
-                        "hospital_admissions", 
+  filter(outcome %in% c("new_cases"#, 
+                        #"hospital_admissions", 
                         #"ic_admissions", 
-                        "new_deaths"
+                        #"new_deaths"
                         ),
-         scenario %in% c("Basis", "Janssen40")) %>%
+         scenario %in% c("No vaccination of 12-17 year olds",
+                         "Vaccination of 12-17 year olds (mid-July start)")) %>%
   group_by(outcome, scenario) %>%
   mutate(rolling_avg = zoo::rollmean(value, k = 7, fill = NA),
          outcome = case_when(
-           outcome == "hospital_admissions" ~ "Hospital Admissions",
+           #outcome == "hospital_admissions" ~ "Hospital Admissions",
            # outcome == "ic_admissions" ~ "IC Admissions",
-           outcome == "new_cases" ~ "New Cases",
+           outcome == "new_cases" ~ "New Cases"#,
            #outcome == "new_infections" ~ "New Infections",
-           outcome == "new_deaths" ~ "New Deaths"
+           #outcome == "new_deaths" ~ "New Deaths"
          ),
          outcome = factor(outcome, levels = c("New Cases", "Hospital Admissions", 
                                                #"IC Admissions", 
@@ -113,7 +110,7 @@ g_sum <- ggplot(for_plot,
   #geom_vline(xintercept = as.Date("2021-04-25"),linetype="dashed", color = "grey70") +
   #geom_hline(yintercept = 6214.508, linetype = "dashed", color = "grey70") +
   theme(legend.position = "bottom",
-        #panel.background = element_blank(),
+        panel.background = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1, size = 12)
   ) +
   facet_wrap(~ outcome, 
@@ -123,11 +120,57 @@ g_sum <- ggplot(for_plot,
 g_sum
 
 # save plot to file
-ggsave("inst/extdata/results/res_plot_basis_and_janssen40_1june.jpg",
+ggsave("inst/extdata/results/res_plot_figure1_9june.jpg",
        plot = g_sum,
        height = 8,
        width = 12,
        dpi = 300)
+
+# combine with model fit
+model_fit$time <- model_fit$time - 1
+
+model_forward_cases <- results_all %>%
+  ungroup() %>%
+  filter(outcome == "new_cases") %>%
+  select(scenario, time, value) %>%
+  filter(time != tail(model_fit$time,1)) %>% # remove first time point because it's a repeat of the last time point of the data fit
+  rename(cases = value)
+
+no_vac <- model_forward_cases %>%
+  filter(scenario == "No vaccination of 12-17 year olds") %>%
+  select(-scenario) %>%
+  bind_rows(model_fit, .) %>%
+  mutate(date = time + as.Date("2021-01-31"),
+         scenario = "No vaccination of 12-17 year olds") %>%
+  select(date, cases)
+  
+july_start <- model_forward_cases %>%
+  filter(scenario == "Vaccination of 12-17 year olds (mid-July start)") %>%
+  select(-scenario) %>%
+  bind_rows(model_fit, .) %>%
+  mutate(date = time + as.Date("2021-01-31"),
+         scenario = "Vaccination of 12-17 year olds (mid-July start)") %>%
+  select(date, cases)
+
+p_fit <- ggplot(cases_fit_and_model, aes(x = date, y = cases)) +
+  geom_line() +
+  geom_point(data = osiris1 %>% filter(date < as.Date("2021-05-26")), aes(x = date, y = inc, color = "Osiris data")) +
+  labs(y = "Daily Cases", x = "Time (days)") +
+  ylim(0,NA) +
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
+  #geom_vline(xintercept = as.Date("2021-06-07"),linetype="dashed", color = "grey70") +
+  theme(legend.position = "bottom",
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+p_fit
+
+# save plot to file
+ggsave(paste0("inst/extdata/results/plot_",tag,".jpg"),
+       plot = p_fit,
+       height = 6,
+       width = 12,
+       dpi = 300)
+
 
 
 # facet by age group
