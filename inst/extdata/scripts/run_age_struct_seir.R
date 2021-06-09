@@ -3,7 +3,7 @@
 # Data and model parameters are loaded/defined in the script inst/extdata/scripts/model_run_helper.R
 source("inst/extdata/scripts/model_run_helper.R")
 
-beta_mle <- 0.00046
+beta_mle <- 0.00061
 start_date <- lubridate::yday(as.Date("2021-04-20"))
 end_date <- lubridate::yday(as.Date("2021-12-30"))
 # Create list of parameter values for input into model solver
@@ -23,17 +23,17 @@ params <- list(beta = beta_mle,           # transmission rate
                r_ic = r_ic,
                p_report = 1/3, #p_reported_by_age,
                c_start = t2,
-               c_lockdown = t3,
-               c_relaxed = t3,
+               c_lockdown = t5,
+               c_relaxed = t4,
                c_very_relaxed = t3,
                c_normal = t1,
                keep_cm_fixed = FALSE,
-               vac_inputs = basis_wc1,
+               vac_inputs = basis1,
                use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_n = 0.5/100000 * sum(n_vec),
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
                thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
-               thresh_u = 35.7/100000 * sum(n_vec),        # 20 for IC admissions
+               thresh_u = 50/100000 * sum(n_vec),      #35.7  # 20 for IC admissions
                no_vac = FALSE,
                t_calendar_start = yday(as.Date("2021-01-31")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
                breakpoints = NULL  # breakpoints - start_date    # time points when parameters can change (if NULL, then beta is constant over time)
