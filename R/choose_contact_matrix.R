@@ -37,7 +37,7 @@ choose_contact_matrix <- function(params, times, criteria, flag_relaxed,
       if (flag_relaxed > 0 & flag_very_relaxed == 0) {contact_matrix <- c_relaxed
       } else if (flag_very_relaxed > 0 & flag_normal == 0) { contact_matrix <- c_very_relaxed
       } else if( flag_normal > 0 ){ contact_matrix <- c_normal
-      } else {contact_matrix <- c_lockdown}
+      } else {contact_matrix <- c_start}
   } 
   
   # cat("flag_relaxed: ", flag_relaxed, "\n")
