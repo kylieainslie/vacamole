@@ -20,6 +20,7 @@ source("R/choose_contact_matrix.R")
 source("R/get_foi.R")
 source("R/summarise_results.R")
 source("R/convert_vac_schedule.R")
+source("R/calc_ve_w_waning.R")
 
 # load data ---------------------------------------------------------
 # probabilities -----------------------------------------------------
@@ -227,76 +228,53 @@ init <- c(t = 0,
 # read in vac schedules --------------------------------------------
 basis <- read_csv("inst/extdata/data/Cum_upt20210603 BASIS.csv") %>%
    select(-starts_with("X"))
-# basis_wc <- read_csv("inst/extdata/data/Cum_upt20210527 with 12_17.csv") %>%
-#   select(-starts_with("X"))
-# 
-# basis_wc1 <- convert_vac_schedule(vac_schedule = basis_wc, 
-#                                ve = ve, 
-#                                hosp_multiplier = h_multiplier, 
-#                                delay = delays, 
-#                                ve_trans = ve_trans,
-#                                wane = TRUE)
-# 
-# basis_woc <- read_csv("inst/extdata/data/Cum_upt20210527 without 12_17.csv") %>%
-#   select(-starts_with("X"))
-# 
-# basis_woc1 <- convert_vac_schedule(vac_schedule = basis_woc, 
-#                                   ve = ve, 
-#                                   hosp_multiplier = h_multiplier, 
-#                                   delay = delays, 
-#                                   ve_trans = ve_trans,
-#                                   wane = TRUE)
 
-# az <- read_csv("inst/extdata/data/Cum_upt20210506 AZ.csv") %>%
-#   select(-starts_with("X"))
-# 
-# az1 <- convert_vac_schedule(vac_schedule = az, 
-#                                ve = ve, 
-#                                hosp_multiplier = h_multiplier, 
-#                                delay = delays, 
-#                                ve_trans = ve_trans)
-# 
-# mRNA <- read_csv("inst/extdata/data/Cum_upt20210507 BASIS V2 mRNA 2nd dose.csv") %>%
-#   select(-starts_with("X"))
-# 
-# mRNA1 <- convert_vac_schedule(vac_schedule = mRNA, 
-#                                ve = ve, 
-#                                hosp_multiplier = h_multiplier, 
-#                                delay = delays, 
-#                                ve_trans = ve_trans)
-# 
-# janssen60 <- read_csv("inst/extdata/data/Cum_upt20210507 Basis V2 no janssen below 60.csv") %>%
-#   select(-starts_with("X"))
-# 
-# janssen601 <- convert_vac_schedule(vac_schedule = janssen60, 
-#                                ve = ve, 
-#                                hosp_multiplier = h_multiplier, 
-#                                delay = delays, 
-#                                ve_trans = ve_trans)
-# 
-# janssen50 <- read_csv("inst/extdata/data/Cum_upt20210507 BASIS V2 no Janssen below 50.csv") %>%
-#   select(-starts_with("X"))
-# 
-# janssen501 <- convert_vac_schedule(vac_schedule = janssen50, 
-#                                     ve = ve, 
-#                                     hosp_multiplier = h_multiplier, 
-#                                     delay = delays, 
-#                                     ve_trans = ve_trans)
-# 
-# janssen40 <- read_csv("inst/extdata/data/Cum_upt20210507 BASIS V2 no Janssen below 40.csv") %>%
-#   select(-starts_with("X"))
-# 
-# janssen401 <- convert_vac_schedule(vac_schedule = janssen40, 
-#                                    ve = ve, 
-#                                    hosp_multiplier = h_multiplier, 
-#                                    delay = delays, 
-#                                    ve_trans = ve_trans)
+basis1 <- convert_vac_schedule(vac_schedule = basis,
+                               ve = ve,
+                               hosp_multiplier = h_multiplier,
+                               delay = delays,
+                               ve_trans = ve_trans,
+                               wane = TRUE,
+                               add_child_vac = FALSE)
+
+basis1_no_wane_cv_july_start_cov07 <- convert_vac_schedule(vac_schedule = basis,
+                               ve = ve,
+                               hosp_multiplier = h_multiplier,
+                               delay = delays,
+                               ve_trans = ve_trans,
+                               wane = TRUE,
+                               add_child_vac = TRUE,
+                               child_vac_coverage = 0.7,
+                               child_doses_per_day = 50000,
+                               child_vac_start_date = "2021-07-15")
+
+basis1_cv_aug_start_cov07 <- convert_vac_schedule(vac_schedule = basis,
+                                                   ve = ve,
+                                                   hosp_multiplier = h_multiplier,
+                                                   delay = delays,
+                                                   ve_trans = ve_trans,
+                                                   wane = TRUE,
+                                                   add_child_vac = TRUE,
+                                                   child_vac_coverage = 0.7,
+                                                   child_doses_per_day = 50000,
+                                                   child_vac_start_date = "2021-08-01")
+
+basis1_cv_sept_start_cov07 <- convert_vac_schedule(vac_schedule = basis,
+                                                   ve = ve,
+                                                   hosp_multiplier = h_multiplier,
+                                                   delay = delays,
+                                                   ve_trans = ve_trans,
+                                                   wane = TRUE,
+                                                   add_child_vac = TRUE,
+                                                   child_vac_coverage = 0.7,
+                                                   child_doses_per_day = 50000,
+                                                   child_vac_start_date = "2021-09-01")
 
 
 # load model fits --------------------------------------------------
-daily_cases_from_fit <- readRDS("inst/extdata/results/daily_cases_from_model_fit_2021-04-20.rds")
-mle_betas <- read_csv("inst/extdata/results/mle_betas_2021-04-26.csv")
-initial_conditions <- readRDS("inst/extdata/results/init_conditions_2021-04-20.rds")
+# daily_cases_from_fit <- readRDS("inst/extdata/results/daily_cases_from_model_fit_2021-04-20.rds")
+# mle_betas <- read_csv("inst/extdata/results/mle_betas_2021-04-26.csv")
+# initial_conditions <- readRDS("inst/extdata/results/init_conditions_2021-04-20.rds")
 #osiris_dat <- readRDS("inst/extdata/data/Osiris_Data_20210505_1034.rds")
 
 
