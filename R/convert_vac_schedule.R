@@ -19,7 +19,9 @@ convert_vac_schedule <- function(vac_schedule,
                                  child_vac_start_date = "2021-09-01",
                                  wane = TRUE,
                                  k = 0.03,
-                                 t0 = 180){
+                                 t0 = 180,
+                                 add_extra_dates = FALSE,
+                                 extra_end_date = "2022-03-31"){
 # to combine age groups 9 and 10 --------------------------------------------------------------
 age_dist_10 <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463, 
               0.14514332, 0.12092904, 0.08807406, 0.03976755, 0.007398671)
@@ -56,6 +58,16 @@ vac_schedule_orig_new <- vac_schedule_orig %>%
   filter(date > as.Date("2021-01-31")) %>%
   add_row(before_feb, .before = 1)
 
+# add extra rows for dates further in the future (so there's no error when running the model)
+if(add_extra_dates){
+  extra_dates <- seq.Date(from = as.Date("2021-01-31"), to = as.Date(extra_end_date), by = 1)
+  na_to_zero <- function(x){ ifelse(is.na(x), 0, x) }
+  extra_dat <- data.frame(date = extra_dates) %>%
+    full_join(vac_schedule_orig_new, extra_dates, by = "date") %>%
+    mutate_at(vars(-date), na_to_zero)
+  vac_schedule_orig_new <- extra_dat
+}
+
 # add vaccination of children 12 - 17 starting September 1, 2021
 # assume 50,000 vaccines per day for 21 days to get 85% coverage in this age group
 # this equates to an increase in vaccination coverage in this age group of 
@@ -78,6 +90,7 @@ if(add_child_vac){
   vac_schedule_new <- vac_schedule_orig_new
   vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
 }
+
 # create separate data frame for each vaccine -------------------------------------------------
 # pfizer
 pf_dose1 <- vac_schedule_orig_new %>% select(date, pf_d1_1:pf_d1_9)
