@@ -4,7 +4,7 @@
 source("inst/extdata/scripts/model_run_helper.R")
 
 beta_mle <- 0.00061
-start_date <- lubridate::yday(as.Date("2021-04-20"))
+start_date <- lubridate::yday(as.Date("2021-05-25"))
 end_date <- lubridate::yday(as.Date("2021-12-30"))
 # Create list of parameter values for input into model solver
 params <- list(beta = beta_mle,           # transmission rate
@@ -23,17 +23,17 @@ params <- list(beta = beta_mle,           # transmission rate
                r_ic = r_ic,
                p_report = 1/3, #p_reported_by_age,
                c_start = t2,
-               c_lockdown = t5,
-               c_relaxed = t4,
+               c_lockdown = t3,
+               c_relaxed = t3,
                c_very_relaxed = t3,
                c_normal = t1,
                keep_cm_fixed = FALSE,
-               vac_inputs = basis1,
+               vac_inputs = basis1_cv_july_start_cov08,
                use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_n = 0.5/100000 * sum(n_vec),
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
                thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
-               thresh_u = 50/100000 * sum(n_vec),      #35.7  # 20 for IC admissions
+               thresh_u = 1000/100000 * sum(n_vec),      #35.7  # 20 for IC admissions
                no_vac = FALSE,
                t_calendar_start = yday(as.Date("2021-01-31")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
                breakpoints = NULL  # breakpoints - start_date    # time points when parameters can change (if NULL, then beta is constant over time)
@@ -60,10 +60,10 @@ points(osiris2$inc~times,col="red",pch=16)
 #lines(seq(1, dim(cases)[1], by = 1), rowSums(cases), col = "black")
 
 # Summarise results ------------------------------------------------
-#tag <- "basis_wo_child_3june"
+tag <- "basis_child_vac_july_start_cov08_9june"
 results <- summarise_results(out, params, start_date = "2021-01-31", 
                              times = times, vac_inputs = params$vac_inputs)
-#saveRDS(results, paste0("inst/extdata/results/",tag,".rds"))
+saveRDS(results, paste0("inst/extdata/results/",tag,".rds"))
 
 # Make summary table ------------------------------------------------
 summary_tab <- results$df_summary %>%
@@ -97,10 +97,10 @@ basis_cases <- results$df %>%
   filter(time != 79) %>% # remove first time point because it's a repeat of the last time point of the data fit
   rename(cases = value)
 
-cases_all <- bind_rows(daily_cases_from_fit, basis_cases) %>%
+cases_fit_and_model <- bind_rows(daily_cases_from_fit, basis_cases) %>%
   mutate(date = time + as.Date("2021-01-31"))
 
-p_fit <- ggplot(cases_all, aes(x = date, y = cases)) +
+p_fit <- ggplot(cases_fit_and_model, aes(x = date, y = cases)) +
   geom_line() +
   geom_point(data = osiris1 %>% filter(date < as.Date("2021-05-26")), aes(x = date, y = inc, color = "Osiris data")) +
   labs(y = "Daily Cases", x = "Time (days)") +
@@ -113,7 +113,7 @@ p_fit <- ggplot(cases_all, aes(x = date, y = cases)) +
 p_fit
 
 # save plot to file
-ggsave("inst/extdata/results/model_fit_plot_07May.jpg",
+ggsave(paste0("inst/extdata/results/plot_",tag,".jpg"),
        plot = p_fit,
        height = 6,
        width = 12,
