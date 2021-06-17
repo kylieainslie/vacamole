@@ -6,36 +6,38 @@
 
 # load results --------------------------------------------------------------------
 # main analysis
-basis_res <- readRDS("inst/extdata/results/basis_w_waning_no_child_vac_9june.rds") 
-july_res <- readRDS("inst/extdata/results/basis_w_waning_child_vac_july_start_cov07_9june.rds") 
-aug_res <- readRDS("inst/extdata/results/basis_w_waning_child_vac_aug_start_cov07_9june.rds") 
-sept_res <- readRDS("inst/extdata/results/basis_w_waning_child_vac_sept_start_cov07_9june.rds") 
+# basis_res <- readRDS("inst/extdata/results/basis_no_child_vac_14june.rds") 
+# july_res <- readRDS("inst/extdata/results/basis_w_waning_child_vac_july_start_cov07_9june.rds") 
+# aug_res <- readRDS("inst/extdata/results/basis_w_waning_child_vac_aug_start_cov07_9june.rds") 
+# sept_res <- readRDS("inst/extdata/results/basis_w_waning_child_vac_sept_start_cov07_9june.rds") 
 
 # interplay between waning and child vax
-basis_res_no_wane <- readRDS("inst/extdata/results/basis_no_wane_no_child_vac_9june.rds")
-july_res_no_wane <- readRDS("inst/extdata/results/basis_no_wane_child_vac_july_start_cov07_9june.rds")
+basis_no_child_vac <- readRDS("inst/extdata/results/basis_no_child_vac_14june.rds")
+basis_no_wane <- readRDS("inst/extdata/results/basis_no_wane_16june.rds")
+basis_child_vac <- readRDS("inst/extdata/results/basis_child_vac_14june.rds")
+basis_no_wane_child_vac <- readRDS("inst/extdata/results/basis_no_wane_child_vac_16june.rds")
 
 # vac coverage sensitivity analysis
-july_cov07_res <- readRDS("inst/extdata/results/basis_w_waning_child_vac_july_start_cov07_9june.rds") 
-july_cov06_res <- readRDS("inst/extdata/results/basis_child_vac_july_start_cov06_9june.rds") 
-july_cov05_res <- readRDS("inst/extdata/results/basis_child_vac_july_start_cov06_9june.rds") 
-july_cov08_res <- readRDS("inst/extdata/results/basis_child_vac_july_start_cov08_9june.rds") 
+# july_cov07_res <- readRDS("inst/extdata/results/basis_w_waning_child_vac_july_start_cov07_9june.rds") 
+# july_cov06_res <- readRDS("inst/extdata/results/basis_child_vac_july_start_cov06_9june.rds") 
+# july_cov05_res <- readRDS("inst/extdata/results/basis_child_vac_july_start_cov06_9june.rds") 
+# july_cov08_res <- readRDS("inst/extdata/results/basis_child_vac_july_start_cov08_9june.rds") 
 # data wrangle for plotting/summary table -----------------------------------------
-results_all <- bind_rows(basis_res$df_summary,
-                         july_res$df_summary,
-                         # aug_res$df_summary,
-                         # sept_res$df_summary,
+results_all <- bind_rows(#basis_no_child_vac$df_summary,
+                         basis_no_wane$df_summary,
+                         #basis_child_vac$df_summary,
+                         basis_no_wane_child_vac$df_summary,
                           .id = "scenario") %>%
   mutate(scenario = case_when(
-    scenario == 1 ~ "No vaccination of 12-17 year olds",
-    scenario == 2 ~ "Vaccination of 12-17 year olds (mid-July start)"
-    # scenario == 3 ~ "Vaccination of 12-17 year olds (August start)",
-    # scenario == 4 ~ "Vaccination of 12-17 year olds (September start)",
+    #scenario == 1 ~ "No vaccination, waning",
+    scenario == 1 ~ "No vaccination, no waning",
+    #scenario == 3 ~ "Vaccination, waning",
+    scenario == 2 ~ "Vaccination, no waning",
   ),
-   scenario = factor(scenario, levels = c("No vaccination of 12-17 year olds",
-                                          "Vaccination of 12-17 year olds (mid-July start)"#,
-                                          # "Vaccination of 12-17 year olds (August start)",
-                                          # "Vaccination of 12-17 year olds (September start)"
+   scenario = factor(scenario, levels = c(#"No vaccination, waning",
+                                          "No vaccination, no waning",
+                                          #"Vaccination, waning",
+                                          "Vaccination, no waning"
                                           ))
   )
 
@@ -72,21 +74,22 @@ results_sa2 <- bind_rows(july_cov07_res$df_summary,
                                          "Coverage = 80%")))
 
 # by age group
-results_ag <- bind_rows(basis_res$df,
-                        july_res$df,
-                        basis_res_no_wane$df,
-                        july_res_no_wane$df,
+results_ag <- bind_rows(#basis_no_child_vac$df,
+                        basis_no_wane$df,
+                        #basis_child_vac$df,
+                        basis_no_wane_child_vac$df,
                         .id = "scenario") %>%
   mutate(scenario = case_when(
-    scenario == 1 ~ "No vaccination, waning",
-    scenario == 2 ~ "Vaccination, waning",
-    scenario == 3 ~ "No vaccination, no waning",
-    scenario == 4 ~ "Vaccination, no waning"
+    #scenario == 1 ~ "No vaccination, waning",
+    scenario == 1 ~ "No vaccination, no waning",
+    #scenario == 3 ~ "Vaccination, waning",
+    scenario == 2 ~ "Vaccination, no waning",
   ),
-  scenario = factor(scenario, levels = c("No vaccination, waning",
-                                         "Vaccination, waning",
+  scenario = factor(scenario, levels = c(#"No vaccination, waning",
                                          "No vaccination, no waning",
-                                         "Vaccination, no waning")),
+                                         #"Vaccination, waning",
+                                         "Vaccination, no waning"
+  )),
     age_group = case_when(
       age_group == 1 ~ "0-9",
       age_group == 2 ~ "10-19",
@@ -112,7 +115,7 @@ summary_tab_ag <- results_ag %>%
          age_group != "10-19"
          ) %>%
   group_by(scenario,
-           date,
+           #date,
            #age_group, 
            outcome) %>%
   summarise_at(.vars = "value", .funs = sum) 
@@ -127,11 +130,11 @@ for_plot <- summary_tab_ag %>% #results_ag
                         "hospital_admissions", 
                         "ic_admissions", 
                         "new_deaths"
-                        ),
-         #date > as.Date("2021-10-28")#,
-         scenario %in% c("No vaccination, waning",
-                         "Vacination, waning"
-                         ),
+                        )#,
+         # date > as.Date("2021-10-28")#,
+         # scenario %in% c("No vaccination, waning",
+         #                 "Vaccination, waning"
+         #                 ),
          #age_group == "10-19"
          ) %>%
   group_by(outcome, scenario) %>%
@@ -149,12 +152,13 @@ for_plot <- summary_tab_ag %>% #results_ag
                                               "New Deaths"
                                               )),
          scenario = case_when(
-           scenario == "No vaccination, waning" ~ "No vaccination of 12-17 year olds",
-           scenario == "Vacination, waning" ~ "Vaccination of 12-17 year olds (mid-July start)"
+           scenario == "No vaccination, no waning" ~ "No vaccination of 12-17 year olds",
+           scenario == "Vaccination, no waning" ~ "Vaccination of 12-17 year olds (mid-July start)"
          )
          )
 
 # overall
+library(scales)
 custom.col <- hue_pal()(4)
 
 g_sum <- ggplot(for_plot, 
@@ -179,7 +183,7 @@ g_sum <- ggplot(for_plot,
 #g_sum <- g_sum + guides(color=guide_legend(nrow=2,byrow=TRUE))
 g_sum
 # save plot to file
-ggsave("inst/extdata/results/indirect_effects_wo_10-19_plot_10june.jpg",
+ggsave("inst/extdata/results/indirect_effects_no_waning_beta1_0_15_plot_16june.jpg",
        plot = g_sum,
        height = 12,
        width = 12,

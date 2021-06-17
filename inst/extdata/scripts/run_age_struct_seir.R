@@ -5,10 +5,10 @@ source("inst/extdata/scripts/model_run_helper.R")
 
 beta_mle <- 0.00061
 start_date <- lubridate::yday(as.Date("2021-05-25"))
-end_date <- lubridate::yday(as.Date("2021-12-30"))
+end_date <- lubridate::yday(as.Date("2022-03-30")) + 365
 # Create list of parameter values for input into model solver
 params <- list(beta = beta_mle,           # transmission rate
-               beta1 = 0.5,               # amplitude of seasonal forcing
+               beta1 = 0.15,               # amplitude of seasonal forcing
                gamma = g,                 # 1/gamma = infectious period
                sigma = s,                 # 1/sigma = latent period
                delta = NULL,              # scaling constant for beta (if NULL it is excluded)
@@ -28,7 +28,7 @@ params <- list(beta = beta_mle,           # transmission rate
                c_very_relaxed = t3,
                c_normal = t1,
                keep_cm_fixed = FALSE,
-               vac_inputs = basis1_cv_july_start_cov08,
+               vac_inputs = basis1_no_wane,
                use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_n = 0.5/100000 * sum(n_vec),
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
@@ -60,7 +60,7 @@ points(osiris2$inc~times,col="red",pch=16)
 #lines(seq(1, dim(cases)[1], by = 1), rowSums(cases), col = "black")
 
 # Summarise results ------------------------------------------------
-tag <- "basis_child_vac_july_start_cov08_9june"
+tag <- "basis_no_wane_beta1_0_15_16june"
 results <- summarise_results(out, params, start_date = "2021-01-31", 
                              times = times, vac_inputs = params$vac_inputs)
 saveRDS(results, paste0("inst/extdata/results/",tag,".rds"))
