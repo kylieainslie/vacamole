@@ -168,7 +168,7 @@ for (j in 1:length(breakpoints)) {
   
 } # end of for loop over breakpoints
 
-last_date_in_osiris <- "2020-05-25"
+last_date_in_osiris <- "2021-05-25"
 saveRDS(out_mle, file = paste0("output_from_fits_", last_date_in_osiris, ".rds"))
 saveRDS(daily_cases_mle, file = paste0("cases_from_fits_", last_date_in_osiris, ".rds"))
 
