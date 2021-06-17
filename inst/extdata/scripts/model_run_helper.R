@@ -55,11 +55,11 @@ n_vec <- n * age_dist
 
 # contact matrices --------------------------------------------------
 contact_matrices_all <- readRDS("inst/extdata/data/contact_matrices_for_model_input.rds")
-c1 <- as.matrix(contact_matrices_all$baseline_sym[,-1])
-c2 <- as.matrix(contact_matrices_all$april2020_sym[,-1])
-c3 <- as.matrix(contact_matrices_all$june2020_sym[,-1])
-c4 <- as.matrix(contact_matrices_all$september2020_sym[,-1])
-c5 <- as.matrix(contact_matrices_all$february2021_sym[,-1])
+c1 <- as.matrix(contact_matrices_all$baseline_sym[,-1]) # normal contact patterns
+c2 <- as.matrix(contact_matrices_all$april2020_sym[,-1]) # strictest measures
+c3 <- as.matrix(contact_matrices_all$june2020_sym[,-1]) # most relaxed measures
+c4 <- as.matrix(contact_matrices_all$september2020_sym[,-1]) # third strictest
+c5 <- as.matrix(contact_matrices_all$february2021_sym[,-1]) # second strictest
 
 # Convert from number of contacts to rate of contacts ---------------
 N_diag <- diag(1/n_vec)
@@ -118,7 +118,7 @@ betas <- c(rep(beta_mle_vals[1], length(days[1]:breakpoints[1])),
            rep(beta_mle_vals[7], length(breakpoints[6]:breakpoints[7])-1),
            rep(beta_mle_vals[8], length(breakpoints[7]:days[length(days)])-1)
            )
-beta_t_ <- betas * (1 + 0.5 * cos(2 * pi * days/365.24))
+beta_t_ <- betas * (1 + 0.15 * cos(2 * pi * days/365.24))
 R0 <- (beta_t_/g) * rho
 R0_dat <- date <- data.frame(date = seq.Date(as.Date("2021-01-31"), as.Date("2021-12-31"), by = 1),
                              R0 = R0,
@@ -127,12 +127,14 @@ r0_plot <- ggplot(data = R0_dat, aes(x = date, y = roll_mean_R0)) +
   geom_line() +
   labs(y = "Basic reproduction number (R0)", x = "Date") +
   theme(#legend.position = "bottom",
-        panel.background = element_blank()#,
-        #axis.text.x = element_text(angle = 45, hjust = 1, size = 12)
-  )
+        panel.background = element_blank(),
+        axis.text = element_text(size = 14),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14)
+        )
 r0_plot
 
-ggsave("inst/extdata/results/r0_plot_10june.jpg",
+ggsave("inst/extdata/results/r0_plot_16june.jpg",
        plot = r0_plot,
        #height = 8,
        #width = 12,
@@ -268,15 +270,20 @@ init <- c(t = 0,
 basis <- read_csv("inst/extdata/data/Cum_upt20210603 BASIS.csv") %>%
    select(-starts_with("X"))
 
+# no childhood vaccination, waning
 basis1 <- convert_vac_schedule(vac_schedule = basis,
                                ve = ve,
                                hosp_multiplier = h_multiplier,
                                delay = delays,
                                ve_trans = ve_trans,
                                wane = TRUE,
-                               add_child_vac = FALSE)
+                               add_child_vac = FALSE,
+                               add_extra_dates = TRUE,
+                               extra_end_date = "2022-03-31"
+                              )
 
-basis1_no_wane_cv_july_start_cov07 <- convert_vac_schedule(vac_schedule = basis,
+# childhood vaccination, waning
+basis1_child_vac <- convert_vac_schedule(vac_schedule = basis,
                                ve = ve,
                                hosp_multiplier = h_multiplier,
                                delay = delays,
@@ -285,35 +292,40 @@ basis1_no_wane_cv_july_start_cov07 <- convert_vac_schedule(vac_schedule = basis,
                                add_child_vac = TRUE,
                                child_vac_coverage = 0.7,
                                child_doses_per_day = 50000,
-                               child_vac_start_date = "2021-07-15")
+                               child_vac_start_date = "2021-07-15",
+                               add_extra_dates = TRUE,
+                               extra_end_date = "2022-03-31")
 
-basis1_cv_aug_start_cov07 <- convert_vac_schedule(vac_schedule = basis,
+# no childhood vaccination, no waning
+basis1_no_wane <- convert_vac_schedule(vac_schedule = basis,
+                                                  ve = ve,
+                                                  hosp_multiplier = h_multiplier,
+                                                  delay = delays,
+                                                  ve_trans = ve_trans,
+                                                  wane = FALSE,
+                                                  add_child_vac = FALSE,
+                                                  add_extra_dates = TRUE,
+                                                  extra_end_date = "2022-03-31")
+
+# childhood vaccination, no waning
+basis1_no_wane_child_vac <- convert_vac_schedule(vac_schedule = basis,
                                                    ve = ve,
                                                    hosp_multiplier = h_multiplier,
                                                    delay = delays,
                                                    ve_trans = ve_trans,
-                                                   wane = TRUE,
+                                                   wane = FALSE,
                                                    add_child_vac = TRUE,
                                                    child_vac_coverage = 0.7,
                                                    child_doses_per_day = 50000,
-                                                   child_vac_start_date = "2021-08-01")
-
-basis1_cv_sept_start_cov07 <- convert_vac_schedule(vac_schedule = basis,
-                                                   ve = ve,
-                                                   hosp_multiplier = h_multiplier,
-                                                   delay = delays,
-                                                   ve_trans = ve_trans,
-                                                   wane = TRUE,
-                                                   add_child_vac = TRUE,
-                                                   child_vac_coverage = 0.7,
-                                                   child_doses_per_day = 50000,
-                                                   child_vac_start_date = "2021-09-01")
+                                                   child_vac_start_date = "2021-07-15",
+                                                   add_extra_dates = TRUE,
+                                                   extra_end_date = "2022-03-31")
 
 
 # load model fits --------------------------------------------------
-# daily_cases_from_fit <- readRDS("inst/extdata/results/daily_cases_from_model_fit_2021-04-20.rds")
+daily_cases_from_fit <- readRDS("inst/extdata/results/model_fit_df_2021-05-25.rds")
 # mle_betas <- read_csv("inst/extdata/results/mle_betas_2021-04-26.csv")
-# initial_conditions <- readRDS("inst/extdata/results/init_conditions_2021-04-20.rds")
+initial_conditions <- readRDS("inst/extdata/results/init_conditions_2021-05-25.rds")
 #osiris_dat <- readRDS("inst/extdata/data/Osiris_Data_20210505_1034.rds")
 
 
