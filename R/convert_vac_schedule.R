@@ -4,6 +4,7 @@
 #' @param hosp_multiplier
 #' @param delay
 #' @param ve_trans
+#' @param add_child_vac
 #' @return 
 #' @keywords vacamole
 #' @export
@@ -11,7 +12,16 @@ convert_vac_schedule <- function(vac_schedule,
                                  ve, 
                                  hosp_multiplier, 
                                  delay, 
-                                 ve_trans){
+                                 ve_trans,
+                                 add_child_vac = FALSE,
+                                 child_vac_coverage = 0.7,
+                                 child_doses_per_day = 50000,
+                                 child_vac_start_date = "2021-09-01",
+                                 wane = TRUE,
+                                 k = 0.03,
+                                 t0 = 180,
+                                 add_extra_dates = FALSE,
+                                 extra_end_date = "2022-03-31"){
 # to combine age groups 9 and 10 --------------------------------------------------------------
 age_dist_10 <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463, 
               0.14514332, 0.12092904, 0.08807406, 0.03976755, 0.007398671)
@@ -48,7 +58,38 @@ vac_schedule_orig_new <- vac_schedule_orig %>%
   filter(date > as.Date("2021-01-31")) %>%
   add_row(before_feb, .before = 1)
 
-vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
+# add extra rows for dates further in the future (so there's no error when running the model)
+if(add_extra_dates){
+  extra_dates <- seq.Date(from = as.Date("2021-01-31"), to = as.Date(extra_end_date), by = 1)
+  na_to_zero <- function(x){ ifelse(is.na(x), 0, x) }
+  extra_dat <- data.frame(date = extra_dates) %>%
+    full_join(vac_schedule_orig_new, extra_dates, by = "date") %>%
+    mutate_at(vars(-date), na_to_zero)
+  vac_schedule_orig_new <- extra_dat
+}
+
+# add vaccination of children 12 - 17 starting September 1, 2021
+# assume 50,000 vaccines per day for 21 days to get 85% coverage in this age group
+# this equates to an increase in vaccination coverage in this age group of 
+# 0.0243 per day for a total of 0.51 after 21 days.
+# we assume the second dose is given 6 weeks after the first dose
+if(add_child_vac){
+  p_child_12_17_doses <- 0.6 * child_vac_coverage
+  n_child_12_17_doses <- n_vec_10[2] * p_child_12_17_doses
+  days_child_12_17 <- ceiling(n_child_12_17_doses/child_doses_per_day)
+  p_child_12_17_doses_per_day <- p_child_12_17_doses/days_child_12_17
+
+  vac_schedule_orig_new <- vac_schedule_orig_new %>%
+    mutate(pf_d1_2 = ifelse(date >= as.Date(child_vac_start_date) & date <= (as.Date(child_vac_start_date) + days_child_12_17), 
+                            pf_d1_2 + p_child_12_17_doses_per_day, pf_d1_2),
+          pf_d2_2 = ifelse(date >= (as.Date(child_vac_start_date) + 42) & date <= (as.Date(child_vac_start_date) + days_child_12_17 + 42),
+                           pf_d2_2 + p_child_12_17_doses_per_day, pf_d2_2))
+
+  vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
+} else {
+  vac_schedule_new <- vac_schedule_orig_new
+  vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
+}
 
 # create separate data frame for each vaccine -------------------------------------------------
 # pfizer
@@ -108,51 +149,99 @@ frac_az_dose2 <- data.matrix(az_dose2_cs/total_dose2)
 frac_az_dose2 <- ifelse(is.nan(frac_az_dose2), 0, frac_az_dose2)
 
 frac_ja_dose1 <- data.matrix(ja_dose1_cs/total_dose1)
-frac_ja_dose1 <- ifelse(is.nan(frac_ja_dose1), 0, frac_az_dose1)
+frac_ja_dose1 <- ifelse(is.nan(frac_ja_dose1), 0, frac_ja_dose1)
 frac_ja_dose2 <- data.matrix(ja_dose2_cs/total_dose2)
 frac_ja_dose2 <- ifelse(is.nan(frac_ja_dose2), 0, frac_ja_dose2)
 
+# calculate amount of waning
+# it is based on the weighted overage of the VE, daily vaccination rate, and 
+# time since vaccination
+t_vec <- seq(1, dim(pf_dose1)[1], by = 1)
+
+if (wane){
+  waning <- (1 / (1 + exp(-k * (t_vec - t0))))
+} else {waning <- c(rep(0, length(t_vec)))}
+
+# VE against infection
+# dose 1
+ve_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[,-1], ve_val = ve$pfizer[1], waning = waning)
+ve_m_dose1 <- calc_ve_w_waning(vac_rate = mo_dose1[,-1], ve_val = ve$moderna[1], waning = waning)
+ve_a_dose1 <- calc_ve_w_waning(vac_rate = az_dose1[,-1], ve_val = ve$astrazeneca[1], waning = waning)
+ve_j_dose1 <- calc_ve_w_waning(vac_rate = ja_dose1[,-1], ve_val = ve$jansen[1], waning = waning)
+
+# dose 2
+ve_p_dose2 <- calc_ve_w_waning(vac_rate = pf_dose2[,-1], ve_val = ve$pfizer[2], waning = waning)
+ve_m_dose2 <- calc_ve_w_waning(vac_rate = mo_dose2[,-1], ve_val = ve$moderna[2], waning = waning)
+ve_a_dose2 <- calc_ve_w_waning(vac_rate = az_dose2[,-1], ve_val = ve$astrazeneca[2], waning = waning)
+ve_j_dose2 <- calc_ve_w_waning(vac_rate = ja_dose2[,-1], ve_val = ve$jansen[1], waning = waning)
+
 # composite VE (against infection)
-comp_ve_dose1 <- frac_pf_dose1 * ve$pfizer[1] + 
-  frac_mo_dose1 * ve$moderna[1] + 
-  frac_az_dose1 * ve$astrazeneca[1] +
-  frac_ja_dose1 * ve$jansen
+comp_ve_dose1 <- frac_pf_dose1 * ve_p_dose1 + 
+  frac_mo_dose1 * ve_m_dose1 + 
+  frac_az_dose1 * ve_a_dose1 +
+  frac_ja_dose1 * ve_j_dose1
 colnames(comp_ve_dose1) <- paste0("ve", name_suffix_d1)
-comp_ve_dose2 <- frac_pf_dose2 * ve$pfizer[2] + 
-  frac_mo_dose2 * ve$moderna[2] + 
-  frac_az_dose2 * ve$astrazeneca[2] +
-  frac_ja_dose2 * ve$jansen
+comp_ve_dose2 <- frac_pf_dose2 * ve_p_dose2 + 
+  frac_mo_dose2 * ve_m_dose2 + 
+  frac_az_dose2 * ve_a_dose2 +
+  frac_ja_dose2 * ve_j_dose2
 colnames(comp_ve_dose2) <- paste0("ve", name_suffix_d2)
 
 # eta
 eta_dose1 <- 1 - comp_ve_dose1
-eta_dose2 <- 1- comp_ve_dose2
+eta_dose2 <- 1 - comp_ve_dose2
+
+# VE against hospitalisation
+# dose 1
+ve_hosp_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[,-1], ve_val = hosp_multiplier$pfizer[1], waning = waning)
+ve_hosp_m_dose1 <- calc_ve_w_waning(vac_rate = mo_dose1[,-1], ve_val = hosp_multiplier$moderna[1], waning = waning)
+ve_hosp_a_dose1 <- calc_ve_w_waning(vac_rate = az_dose1[,-1], ve_val = hosp_multiplier$astrazeneca[1], waning = waning)
+ve_hosp_j_dose1 <- calc_ve_w_waning(vac_rate = ja_dose1[,-1], ve_val = hosp_multiplier$jansen[1], waning = waning)
+
+# dose 2
+ve_hosp_p_dose2 <- calc_ve_w_waning(vac_rate = pf_dose2[,-1], ve_val = hosp_multiplier$pfizer[2], waning = waning)
+ve_hosp_m_dose2 <- calc_ve_w_waning(vac_rate = mo_dose2[,-1], ve_val = hosp_multiplier$moderna[2], waning = waning)
+ve_hosp_a_dose2 <- calc_ve_w_waning(vac_rate = az_dose2[,-1], ve_val = hosp_multiplier$astrazeneca[2], waning = waning)
+ve_hosp_j_dose2 <- calc_ve_w_waning(vac_rate = ja_dose2[,-1], ve_val = hosp_multiplier$jansen[1], waning = waning)
 
 # rate of hospitalisations multiplier
-hosp_mult_dose1 <- frac_pf_dose1 * hosp_multiplier$pfizer[1] +
-  frac_mo_dose1 * hosp_multiplier$moderna[1] +
-  frac_az_dose1 * hosp_multiplier$astrazeneca[1] +
-  frac_ja_dose1 * hosp_multiplier$jansen
+hosp_mult_dose1 <- frac_pf_dose1 * ve_hosp_p_dose1 +
+  frac_mo_dose1 * ve_hosp_m_dose1 +
+  frac_az_dose1 * ve_hosp_a_dose1 +
+  frac_ja_dose1 * ve_hosp_j_dose1
 colnames(hosp_mult_dose1) <- paste0("hosp_mult", name_suffix_d1)
-hosp_mult_dose2 <- frac_pf_dose2 * hosp_multiplier$pfizer[2] +
-  frac_mo_dose2 * hosp_multiplier$moderna[2] +
-  frac_az_dose2 * hosp_multiplier$astrazeneca[2] +
-  frac_ja_dose2 * hosp_multiplier$jansen
+hosp_mult_dose2 <- frac_pf_dose2 * ve_hosp_p_dose2 +
+  frac_mo_dose2 * ve_hosp_m_dose2 +
+  frac_az_dose2 * ve_hosp_a_dose2 +
+  frac_ja_dose2 * ve_hosp_j_dose2
 colnames(hosp_mult_dose2) <- paste0("hosp_mult", name_suffix_d1)
 
 eta_hosp_dose1 <- 1 - hosp_mult_dose1
 eta_hosp_dose2 <- 1 - hosp_mult_dose2
 
+# VE against hospitalisation
+# dose 1
+ve_trans_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[,-1], ve_val = ve_trans$pfizer[1], waning = waning)
+ve_trans_m_dose1 <- calc_ve_w_waning(vac_rate = mo_dose1[,-1], ve_val = ve_trans$moderna[1], waning = waning)
+ve_trans_a_dose1 <- calc_ve_w_waning(vac_rate = az_dose1[,-1], ve_val = ve_trans$astrazeneca[1], waning = waning)
+ve_trans_j_dose1 <- calc_ve_w_waning(vac_rate = ja_dose1[,-1], ve_val = ve_trans$jansen[1], waning = waning)
+
+# dose 2
+ve_trans_p_dose2 <- calc_ve_w_waning(vac_rate = pf_dose2[,-1], ve_val = ve_trans$pfizer[2], waning = waning)
+ve_trans_m_dose2 <- calc_ve_w_waning(vac_rate = mo_dose2[,-1], ve_val = ve_trans$moderna[2], waning = waning)
+ve_trans_a_dose2 <- calc_ve_w_waning(vac_rate = az_dose2[,-1], ve_val = ve_trans$astrazeneca[2], waning = waning)
+ve_trans_j_dose2 <- calc_ve_w_waning(vac_rate = ja_dose2[,-1], ve_val = ve_trans$jansen[1], waning = waning)
+
 # composite VE (against transmission)
-comp_ve_trans_dose1 <- frac_pf_dose1 * ve_trans$pfizer[1] + 
-  frac_mo_dose1 * ve_trans$moderna[1] + 
-  frac_az_dose1 * ve_trans$astrazeneca[1] +
-  frac_ja_dose1 * ve_trans$jansen
+comp_ve_trans_dose1 <- frac_pf_dose1 * ve_trans_p_dose1 + 
+  frac_mo_dose1 * ve_trans_m_dose1 + 
+  frac_az_dose1 * ve_trans_a_dose1 +
+  frac_ja_dose1 * ve_trans_j_dose1
 colnames(comp_ve_trans_dose1) <- paste0("ve_trans", name_suffix_d1)
-comp_ve_trans_dose2 <- frac_pf_dose2 * ve_trans$pfizer[2] + 
-  frac_mo_dose2 * ve_trans$moderna[2] + 
-  frac_az_dose2 * ve_trans$astrazeneca[2] +
-  frac_ja_dose2 * ve_trans$jansen
+comp_ve_trans_dose2 <- frac_pf_dose2 * ve_trans_p_dose2 + 
+  frac_mo_dose2 * ve_trans_m_dose2 + 
+  frac_az_dose2 * ve_trans_a_dose2 +
+  frac_ja_dose2 * ve_trans_j_dose2
 colnames(comp_ve_trans_dose2) <- paste0("ve_trans", name_suffix_d2)
 
 # eta_trans

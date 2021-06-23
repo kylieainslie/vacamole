@@ -9,26 +9,36 @@
 
 summarise_results <- function(seir_output, params, start_date, times, vac_inputs){
 
-alpha_dose1 <- vac_inputs$alpha_dose1
-alpha_dose2 <- vac_inputs$alpha_dose2
-eta_dose1 <- vac_inputs$eta_dose1
-eta_dose2 <- vac_inputs$eta_dose2
-delay <- vac_inputs$delay_dose1
-delay2 <- vac_inputs$delay_dose2
-eta_hosp <- vac_inputs$eta_hosp_dose1
-eta_hosp2 <- vac_inputs$eta_hosp_dose2
-eta_trans <- vac_inputs$eta_trans_dose1
-eta_trans2 <- vac_inputs$eta_trans_dose2
+alpha_dose1 <- vac_inputs$alpha_dose1[times,]
+alpha_dose2 <- vac_inputs$alpha_dose2[times,]
+eta_dose1 <- vac_inputs$eta_dose1[times,]
+eta_dose2 <- vac_inputs$eta_dose2[times,]
+delay_dose1 <- vac_inputs$delay_dose1[times,]
+delay_dose2 <- vac_inputs$delay_dose2[times,]
+eta_hosp_dose1 <- vac_inputs$eta_hosp_dose1[times,]
+eta_hosp_dose2 <- vac_inputs$eta_hosp_dose2[times,]
+eta_trans_dose1 <- vac_inputs$eta_trans_dose1[times,]
+eta_trans_dose2 <- vac_inputs$eta_trans_dose2[times,]
 
-lambda_est <- get_foi(dat = seir_output, params, vac_inputs)
+vac_inputs_new = list(alpha_dose1 = alpha_dose1, 
+                      alpha_dose2 = alpha_dose2, 
+                      eta_dose1 = eta_dose1, 
+                      eta_dose2 = eta_dose2,
+                      delay_dose1 = delay_dose1,
+                      delay_dose2 = delay_dose2,
+                      eta_hosp_dose1 = eta_hosp_dose1, 
+                      eta_hosp_dose2 = eta_hosp_dose2,
+                      eta_trans_dose1 = eta_trans_dose1, 
+                      eta_trans_dose2 = eta_trans_dose2)
+
+lambda_est <- get_foi(dat = seir_output, params = params, vac_inputs = vac_inputs_new)
 
 lambda_est1 <- lambda_est$lambda %>%
   pivot_wider(names_from = age_group, names_prefix = "age_group_", values_from = foi)
 
 # vaccinations
-# first doses
-first_doses_administered <- alpha_dose1[,-1] * seir_out$S 
-second_doses_administered <- alpha_dose2[,-1] * seir_out$Sv_1d 
+# first_doses_administered <- alpha_dose1[,-1] * seir_out$S 
+# second_doses_administered <- alpha_dose2[,-1] * seir_out$Sv_1d 
 
 # infections
 new_infections <- (seir_output$S + seir_output$Shold_1d + 
@@ -56,26 +66,6 @@ daily_deaths <- sweep(ic_occ, 2, d_ic, "*") + sweep(hosp_occ, 2, d, "*") + sweep
 
 # Create object for plotting ---------------------------------------
 # convert from wide to long format
-# first_dose_long <- first_doses_administered %>% 
-#   mutate(time = time_vec) %>%
-#   pivot_longer(cols = starts_with("alpha_dose1_"), 
-#                names_to = "age_group", 
-#                names_prefix = "alpha_dose1_",
-#                values_to = "first_doses")
-# 
-# second_dose_long <- second_doses_administered %>% 
-#   mutate(time = time_vec) %>%
-#   pivot_longer(cols = starts_with("alpha_dose2_"), 
-#                names_to = "age_group", 
-#                names_prefix = "alpha_dose2_",
-#                values_to = "second_doses")
-# 
-# df_vac <- left_join(first_dose_long, second_dose_long, by = c("time", "age_group")) %>%
-#   pivot_longer(cols = c("first_doses", "second_doses"),
-#                names_to = "dose",
-#                values_to = "value") %>%
-#   mutate(date = time + as.Date(start_date)) %>%
-#   select(time, date, age_group, dose, value)
 
 inf_long <- infections %>% 
   mutate(time = times) %>%

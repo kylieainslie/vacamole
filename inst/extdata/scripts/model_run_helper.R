@@ -18,10 +18,9 @@ source("R/age_struct_seir_ode.R")
 source("R/postprocess_age_struct_model_output.R")
 source("R/choose_contact_matrix.R")
 source("R/get_foi.R")
-# source("R/get_vac_rate.R")
-# source("R/get_vac_rate_2.R")
 source("R/summarise_results.R")
 source("R/convert_vac_schedule.R")
+source("R/calc_ve_w_waning.R")
 
 # load data ---------------------------------------------------------
 # probabilities -----------------------------------------------------
@@ -56,11 +55,11 @@ n_vec <- n * age_dist
 
 # contact matrices --------------------------------------------------
 contact_matrices_all <- readRDS("inst/extdata/data/contact_matrices_for_model_input.rds")
-c1 <- as.matrix(contact_matrices_all$baseline_sym[,-1])
-c2 <- as.matrix(contact_matrices_all$april2020_sym[,-1])
-c3 <- as.matrix(contact_matrices_all$june2020_sym[,-1])
-c4 <- as.matrix(contact_matrices_all$september2020_sym[,-1])
-c5 <- as.matrix(contact_matrices_all$february2021_sym[,-1])
+c1 <- as.matrix(contact_matrices_all$baseline_sym[,-1]) # normal contact patterns
+c2 <- as.matrix(contact_matrices_all$april2020_sym[,-1]) # strictest measures
+c3 <- as.matrix(contact_matrices_all$june2020_sym[,-1]) # most relaxed measures
+c4 <- as.matrix(contact_matrices_all$september2020_sym[,-1]) # third strictest
+c5 <- as.matrix(contact_matrices_all$february2021_sym[,-1]) # second strictest
 
 # Convert from number of contacts to rate of contacts ---------------
 N_diag <- diag(1/n_vec)
@@ -99,6 +98,47 @@ beta = (r0/rho) * g
 # check
 K = (1/g) * beta * S %*% t1
 as.numeric(eigs(K,1)$values) # this should be r0
+
+days <- seq(yday(as.Date("2021-01-31")), yday(as.Date("2021-12-31")), by = 1)
+breakpoints <- yday(c(as.Date("2021-02-28"),
+                      as.Date("2021-03-21"),
+                      as.Date("2021-04-01"),
+                      as.Date("2021-04-08"),
+                      as.Date("2021-04-15"),
+                      as.Date("2021-04-22"),
+                      as.Date("2021-04-30"),
+                      as.Date("2021-05-25")))
+beta_mle_vals <- c(0.00045, 0.00038, 0.00041, 0.00052, 0.00057, 0.00061, 0.00062, 0.00061)
+betas <- c(rep(beta_mle_vals[1], length(days[1]:breakpoints[1])),
+           rep(beta_mle_vals[2], length(breakpoints[1]:breakpoints[2])-1),
+           rep(beta_mle_vals[3], length(breakpoints[2]:breakpoints[3])-1),
+           rep(beta_mle_vals[4], length(breakpoints[3]:breakpoints[4])-1),
+           rep(beta_mle_vals[5], length(breakpoints[4]:breakpoints[5])-1),
+           rep(beta_mle_vals[6], length(breakpoints[5]:breakpoints[6])-1),
+           rep(beta_mle_vals[7], length(breakpoints[6]:breakpoints[7])-1),
+           rep(beta_mle_vals[8], length(breakpoints[7]:days[length(days)])-1)
+           )
+beta_t_ <- betas * (1 + 0.15 * cos(2 * pi * days/365.24))
+R0 <- (beta_t_/g) * rho
+R0_dat <- date <- data.frame(date = seq.Date(as.Date("2021-01-31"), as.Date("2021-12-31"), by = 1),
+                             R0 = R0,
+                             roll_mean_R0 = zoo::rollmean(R0, k = 7, fill = NA))
+r0_plot <- ggplot(data = R0_dat, aes(x = date, y = roll_mean_R0)) +
+  geom_line() +
+  labs(y = "Basic reproduction number (R0)", x = "Date") +
+  theme(#legend.position = "bottom",
+        panel.background = element_blank(),
+        axis.text = element_text(size = 14),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14)
+        )
+r0_plot
+
+ggsave("inst/extdata/results/r0_plot_16june.jpg",
+       plot = r0_plot,
+       #height = 8,
+       #width = 12,
+       dpi = 300)
 
 # define state transition rates ------------------------------------
 h <- p_infection2admission/time_symptom2admission
@@ -169,7 +209,7 @@ init_states_dat <- data.frame(age_group = c("0-9", "10-19", "20-29", "30-39", "4
                               # from NICE data: people with length of stay >= 9 days
                               n_hosp_after_ic = c(2, 2, 9, 15, 45, 158, 321, 392, 266) 
 ) %>%
-  mutate(n_infections = n_cases * 3, #p_reported_by_age,
+  mutate(n_infections = n_cases * 2.2, # calibrated to match osiris data
          init_E = n_infections * (2/7),
          init_I = n_infections * (2/7),
          init_S = n - n_recovered - init_E - init_I  - n_hosp - n_ic - n_hosp_after_ic)
@@ -227,11 +267,65 @@ init <- c(t = 0,
 )   
 
 # read in vac schedules --------------------------------------------
-basis <- read_csv("inst/extdata/data/Cum_upt_B_parallel_20210422.csv") %>%
-  select(-starts_with("X"))
+basis <- read_csv("inst/extdata/data/Cum_upt20210603 BASIS.csv") %>%
+   select(-starts_with("X"))
 
-basis1 <- convert_vac_schedule(vac_schedule = basis, 
-                               ve = ve, 
-                               hosp_multiplier = h_multiplier, 
-                               delay = delays, 
-                               ve_trans = ve_trans)
+# no childhood vaccination, waning
+basis1 <- convert_vac_schedule(vac_schedule = basis,
+                               ve = ve,
+                               hosp_multiplier = h_multiplier,
+                               delay = delays,
+                               ve_trans = ve_trans,
+                               wane = TRUE,
+                               add_child_vac = FALSE,
+                               add_extra_dates = TRUE,
+                               extra_end_date = "2022-03-31"
+                              )
+
+# childhood vaccination, waning
+basis1_child_vac <- convert_vac_schedule(vac_schedule = basis,
+                               ve = ve,
+                               hosp_multiplier = h_multiplier,
+                               delay = delays,
+                               ve_trans = ve_trans,
+                               wane = TRUE,
+                               add_child_vac = TRUE,
+                               child_vac_coverage = 0.7,
+                               child_doses_per_day = 50000,
+                               child_vac_start_date = "2021-07-15",
+                               add_extra_dates = TRUE,
+                               extra_end_date = "2022-03-31")
+
+# no childhood vaccination, no waning
+basis1_no_wane <- convert_vac_schedule(vac_schedule = basis,
+                                                  ve = ve,
+                                                  hosp_multiplier = h_multiplier,
+                                                  delay = delays,
+                                                  ve_trans = ve_trans,
+                                                  wane = FALSE,
+                                                  add_child_vac = FALSE,
+                                                  add_extra_dates = TRUE,
+                                                  extra_end_date = "2022-03-31")
+
+# childhood vaccination, no waning
+basis1_no_wane_child_vac <- convert_vac_schedule(vac_schedule = basis,
+                                                   ve = ve,
+                                                   hosp_multiplier = h_multiplier,
+                                                   delay = delays,
+                                                   ve_trans = ve_trans,
+                                                   wane = FALSE,
+                                                   add_child_vac = TRUE,
+                                                   child_vac_coverage = 0.7,
+                                                   child_doses_per_day = 50000,
+                                                   child_vac_start_date = "2021-07-15",
+                                                   add_extra_dates = TRUE,
+                                                   extra_end_date = "2022-03-31")
+
+
+# load model fits --------------------------------------------------
+daily_cases_from_fit <- readRDS("inst/extdata/results/model_fit_df_2021-05-25.rds")
+# mle_betas <- read_csv("inst/extdata/results/mle_betas_2021-04-26.csv")
+initial_conditions <- readRDS("inst/extdata/results/init_conditions_2021-05-25.rds")
+#osiris_dat <- readRDS("inst/extdata/data/Osiris_Data_20210505_1034.rds")
+
+
