@@ -53,7 +53,75 @@ my_fitted <- fitted(my_seg)
 my_model <- data.frame(Date = osiris1$date, Daily_Cases = my_fitted)
 p + geom_line(data = my_model, aes(x = Date, y = Daily_Cases), color = "blue") 
 # --------------------------------------------------
+# Sangeeta's code from hermione
+# log_likelihood <- function(t, inf_params, ip_params, fun, ...) {
+#   log(fun(t, inf_params, ip_params, ...))
+# }
+# 
+# out <- mapply(
+#   FUN = log_likelihood,
+#   t = tvec,
+#   offset = offset_vec,
+#   MoreArgs = list(
+#     inf_params = inf_params,
+#     ip_params = ip_params,
+#     fun = probability_offset
+#   ),
+#   SIMPLIFY = TRUE
+# )
 
+# --------------------------------------------------
+likelihood_func <- function(x,
+                            #beta1, 
+                            t, 
+                            data,
+                            params, 
+                            init){
+
+  params$beta <- x[1] #pars["beta"]
+  #params$beta1 <- beta1 #pars["beta1"]
+  seir_out <- lsoda(init,t,age_struct_seir_ode,params) #
+  seir_out <- as.data.frame(seir_out)
+  out <- postprocess_age_struct_model_output(seir_out)
+  
+  incidence <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d) * params$p_report
+  inc_obs <- data$inc[t+1]
+  
+  # lik <- sum(dpois(x = inc_obs,lambda = incidence,log=TRUE))
+  alpha <- x[2]
+  size <- 1/alpha
+  prob <- size/(incidence + size)
+  lik <- sum(dnbinom(x = inc_obs,prob = prob,size = size,log = TRUE))
+
+  lik
+  
+}
+
+my_grid <- expand.grid(
+  beta = seq(0.00001, 0.001, by = 0.00001),
+  alpha = seq(0, 1, by = 0.01)
+)
+
+out <- apply(my_grid, 1, likelihood_func, 
+             # other args for likelihood_fun
+             t = seq(0, breakpoints[1], by = 1),
+             data = osiris1,
+             params = params,
+             init = init
+             )
+
+out <- mapply(
+  FUN = likelihood_func,
+  beta = as.list(seq(0.00001, 0.001, by = 0.00001)),
+  alpha = as.list(seq(0, 1, by = 0.01)),
+  t = list(seq(0, breakpoints[1], by = 1)),
+  MoreArgs = list(
+    data = osiris1,
+    params = params,
+    init = init
+  )#,
+  #SIMPLIFY = TRUE
+)
 # --------------------------------------------------
 # re-run mle for each set of time points
 beta_range <- seq(0.00001, 0.001, by = 0.00001)
