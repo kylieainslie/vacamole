@@ -78,18 +78,44 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
     # ---------------------------------------------------------------
     ### probabilities of transitioning
-    p_Sv2E <- 1 - exp(-eta2*lambda)
-    p_EI <- 1 - exp(-sigma)
+    # from S
+    p_S_ <- 1 - exp(-lambda-alpha)      # total probability of moving from S
+    p_SShold <- alpha/(lambda + alpha)  # relative probability of moving from S -> Shold_1d
+    p_SE <- lambda/(lambda + alpha)     # relative probability of moving from S -> E
+    # from Shold_1d
+    p_Shold_1d_ <- 1 - exp(-lambda-(1/delay))           # total probability of moving from Shold_1d
+    p_Shold_1dE <- lambda/(lambda + (1/delay))          # relative probability of moving from Shold_1d -> E
+    p_Shold_1dSv1 <- (1/delay)/(lambda + (1/delay))     # relative probability of moving from Shold_1d -> Sv1
+    # from Sv_1d
+    p_Sv1_ <- 1 - exp(-eta*lambda-alpha2)          # total probability of moving from Sv1
+    p_Sv1Shold_2d <- alpha2/(eta*lambda + alpha2)  # relative probability of moving from Sv1 -> Shold_2d
+    p_Sv1E <- eta*lambda/(eta*lambda + alpha2)     # relative probability of moving from Sv1 -> Ev1
+    # from Shold_2d
+    p_Sv1_ <- 1 - exp(-eta*lambda-alpha2)          # total probability of moving from S
+    p_Sv1Shold_2d <- alpha2/(eta*lambda + alpha2)  # relative probability of moving from S -> Shold_1d
+    p_Sv1E <- eta*lambda/(eta*lambda + alpha2)     # relative probability of moving from S -> Ev1
+    # from Sv_2d
+    p_Sv2E <- 1 - exp(-eta2*lambda)     # probability of moving Sv2 -> E
+    # from E
+    p_EI <- 1 - exp(-sigma)             # probability of moving E -> I (or Ev1 -> Iv1 or Ev2 -> Iv2)
+    # from I
+    p_I_ <- 1 - exp(-gamma-h)           # total probability of moving from I
+    p_IR <- gamma/(gamma + h)           # relative probability of moving from I -> R
+    p_IH <- h / (gamma + h)             # relative probability of moving from I -> H
     
     ### number of individuals transitioning between compartments
     # S
+    n_S_ <- rbinom(S, p_S_)
+    n_SShold1E <- rmultinom(1, size = n_S_,prob = c(p_SShold, p_SE))
     n_Sv2E <- rbinom(Sv_2d, p_Sv2E)
     # E
     n_EI <- rbinom(E, p_EI)
     n_Ev1Iv1 <- rbinom(Ev_1d, p_EI)
     n_Ev2Iv2 <- rbinom(Ev_2d, p_EI)
     # I
-    
+    n_I_ <- rbinom(I, p_I_)
+    n_Iv1_ <- rbinom(Iv1, p_I_)
+    n_Iv2_ <- rbinom(Iv2, p_I_)
     # H
     
     # IC
