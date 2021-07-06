@@ -137,11 +137,26 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     n_Iv2_ <- rbinom(Iv_2d, p_I_)
     n_Iv2Rv2Hv2 <- rmultinom(1, size = n_Iv2_, prob = c(p_IR, p_IH))
     # H
-    
+    n_H_ <- rbinom(H, p_H_)
+    n_HICDR <- rmultinom(1, size = n_H_, prob = c(p_HIC, p_HD, p_HR))
+    n_Hv1_ <- rbinom(Hv1, p_H_)
+    n_Hv1ICv1DRv1 <- rmultinom(1, size = n_Hv1_, prob = c(p_HIC, p_HD, p_HR))
+    n_Hv2_ <- rbinom(Hv2, p_H_)
+    n_Hv2ICv2DRv2 <- rmultinom(1, size = n_Hv2_, prob = c(p_HIC, p_HD, p_HR))
     # IC
-    
+    n_IC_ <- rbinom(IC, p_IC_)
+    n_ICH_ICD <- rmultinom(1, size = n_IC_, prob = c(p_ICH_IC, p_ICD))
+    n_ICv1_ <- rbinom(ICv1, p_IC_)
+    n_ICv1H_ICv1D <- rmultinom(1, size = n_ICv1_, prob = c(p_ICH_IC, p_ICD))
+    n_ICv2_ <- rbinom(ICv2, p_IC_)
+    n_ICv2H_ICv2D <- rmultinom(1, size = n_ICv2_, prob = c(p_ICH_IC, p_ICD))
     # H_IC
-    
+    n_H_IC_ <- rbinom(H_IC, p_H_IC_)
+    n_H_ICDR <- rmultinom(1, size = n_H_IC_, prob = c(p_H_ICD, p_H_ICR))
+    n_H_ICv1_ <- rbinom(H_ICv1, p_H_IC_)
+    n_H_ICv1DRv1 <- rmultinom(1, size = n_H_ICv1_, prob = c(p_H_ICD, p_H_ICR))
+    n_H_ICv2_ <- rbinom(H_ICv2, p_H_IC_)
+    n_H_ICv2DRv2 <- rmultinom(1, size = n_H_ICv2_, prob = c(p_H_ICD, p_H_ICR))
     
     ################################################################
     # ODEs:
