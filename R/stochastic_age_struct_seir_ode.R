@@ -79,88 +79,96 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     # ---------------------------------------------------------------
     ### probabilities of transitioning
     # from S
-    p_S_ <- 1 - exp(-lambda-alpha)      # total probability of moving from S
-    p_SShold <- alpha/(lambda + alpha)  # relative probability of moving from S -> Shold_1d
-    p_SE <- lambda/(lambda + alpha)     # relative probability of moving from S -> E
+    p_S_ <- 1 - exp(-lambda-alpha)                 # total probability of moving from S
+    p_S_Shold1 <- alpha/(lambda + alpha)           # relative probability of moving from S -> Shold_1d
+    p_S_E <- lambda/(lambda + alpha)               # relative probability of moving from S -> E
     # from Shold_1d
-    p_Shold_1d_ <- 1 - exp(-lambda-(1/delay))           # total probability of moving from Shold_1d
-    p_Shold_1dE <- lambda/(lambda + (1/delay))          # relative probability of moving from Shold_1d -> E
-    p_Shold_1dSv1 <- (1/delay)/(lambda + (1/delay))     # relative probability of moving from Shold_1d -> Sv1
+    p_Shold1_ <- 1 - exp(-lambda-(1/delay))        # total probability of moving from Shold_1d
+    p_Shold1_E <- lambda/(lambda + (1/delay))      # relative probability of moving from Shold_1d -> E
+    p_Shold1_Sv1 <- (1/delay)/(lambda + (1/delay)) # relative probability of moving from Shold_1d -> Sv1
     # from Sv_1d
     p_Sv1_ <- 1 - exp(-eta*lambda-alpha2)          # total probability of moving from Sv1
-    p_Sv1Shold_2d <- alpha2/(eta*lambda + alpha2)  # relative probability of moving from Sv1 -> Shold_2d
-    p_Sv1E <- eta*lambda/(eta*lambda + alpha2)     # relative probability of moving from Sv1 -> Ev1
+    p_Sv1_Shold2 <- alpha2/(eta*lambda + alpha2)   # relative probability of moving from Sv1 -> Shold_2d
+    p_Sv1_E <- eta*lambda/(eta*lambda + alpha2)    # relative probability of moving from Sv1 -> Ev1
     # from Shold_2d
     p_Sv1_ <- 1 - exp(-eta*lambda-alpha2)          # total probability of moving from S
-    p_Sv1Shold_2d <- alpha2/(eta*lambda + alpha2)  # relative probability of moving from S -> Shold_1d
-    p_Sv1Ev1 <- eta*lambda/(eta*lambda + alpha2)     # relative probability of moving from S -> Ev1
+    p_Sv1_Shold2 <- alpha2/(eta*lambda + alpha2)   # relative probability of moving from S -> Shold_1d
+    p_Sv1_Ev1 <- eta*lambda/(eta*lambda + alpha2)  # relative probability of moving from S -> Ev1
     # from Sv_2d
-    p_Sv2E <- 1 - exp(-eta2*lambda)     # probability of moving Sv2 -> E
+    p_Sv2_Ev2 <- 1 - exp(-eta2*lambda)             # probability of moving Sv2 -> E
     # from E
-    p_EI <- 1 - exp(-sigma)             # probability of moving E -> I (or Ev1 -> Iv1 or Ev2 -> Iv2)
+    p_E_I <- 1 - exp(-sigma)                       # probability of moving E -> I (or Ev1 -> Iv1 or Ev2 -> Iv2)
     # from I
-    p_I_ <- 1 - exp(-gamma-h)           # total probability of moving from I
-    p_IR <- gamma/(gamma + h)           # relative probability of moving from I -> R
-    p_IH <- h / (gamma + h)             # relative probability of moving from I -> H
+    p_I_ <- 1 - exp(-gamma-h)                      # total probability of moving from I
+    p_I_R <- gamma/(gamma + h)                     # relative probability of moving from I -> R
+    p_I_H <- h / (gamma + h)                       # relative probability of moving from I -> H
+    # from Iv_1d
+    p_Iv1_ <- 1 - exp(-gamma-eta_hosp*h)           # total probability of moving from Iv1
+    p_Iv1_Hv1 <- eta_hosp*h/(eta_hosp*h + gamma)   # relative probability of moving from Iv1 -> Hv1
+    p_Iv1_Rv1 <- gamma/(eta_hosp*h + gamma)        # relative probability of moving from Iv1 -> Rv1
+    # from Iv_2d
+    p_Iv2_ <- 1 - exp(-gamma-eta_hosp2*h)          # total probability of moving from Iv2
+    p_Iv2_Hv2 <- eta_hosp2*h/(eta_hosp2*h + gamma) # relative probability of moving from Iv2 -> Hv2
+    p_Iv2_Rv2 <- gamma/(eta_hosp2*h + gamma)       # relative probability of moving from Iv2 -> Rv2
     # from H
-    p_H_ <- 1 - exp(-i1-d-r)            # total probability of moving from H (or Hv1 or Hv2)
-    p_HIC <- i1/(i1+d+r)                # relative probability of moving from H -> IC
-    p_HD <- d/(i1+d+r)                  # relative probability of moving from H -> D   
-    p_HR <- r/i1+d+r                    # relative probability of moving from H -> R
+    p_H_ <- 1 - exp(-i1-d-r)                       # total probability of moving from H (or Hv1 or Hv2)
+    p_H_IC <- i1/(i1+d+r)                          # relative probability of moving from H -> IC
+    p_H_D <- d/(i1+d+r)                            # relative probability of moving from H -> D   
+    p_H_R <- r/i1+d+r                              # relative probability of moving from H -> R
     # from IC
-    p_IC_ <- 1 - exp(-i2-d_ic)          # total probability of moving from IC
-    p_ICH_IC <- i2/(i2+d_ic)            # relative probability of moving IC -> H_IC
-    p_ICD <- d_ic/(i2+d_ic)             # relative probability of moving from IC -> D
+    p_IC_ <- 1 - exp(-i2-d_ic)                     # total probability of moving from IC
+    p_IC_HIC <- i2/(i2+d_ic)                       # relative probability of moving IC -> HIC
+    p_IC_D <- d_ic/(i2+d_ic)                       # relative probability of moving from IC -> D
     # from H_IC
-    p_H_IC_ <- 1 - exp(-d_hic-r_ic)     # total probability of moving from H_IC
-    p_H_ICD <- d_hic/(d_hic+r_ic)       # relative probability of moving from H_IC -> D
-    p_H_ICR <- r_ic/(d_hic+r_ic)        # relative probability of moving from H_IC -> R
+    p_HIC_ <- 1 - exp(-d_hic-r_ic)                 # total probability of moving from HIC
+    p_HIC_D <- d_hic/(d_hic+r_ic)                  # relative probability of moving from HIC -> D
+    p_HIC_R <- r_ic/(d_hic+r_ic)                   # relative probability of moving from HIC -> R
     
     ### number of individuals transitioning between compartments
     # S
-    n_S_ <- rbinom(S, p_S_)
-    n_SShold1E <- rmultinom(1, size = n_S_,prob = c(p_SShold, p_SE))
-    n_Shold_1d_ <- rbinom(Shold_1d, p_Shold_1d_)
-    n_Shold_1dESv1 <- rmultinom(1, size = n_Shold_1d_, prob = c(p_Shold_1dE, p_Shold_1dSv1))
-    n_Sv1_ <- rbinom(Sv_1d, p_Sv1_)
-    n_Sv1Shold_2dEv1 <- rmultinom(1, size = n_Sv1_, prob = c(p_Sv1Shold_2d, p_Sv1Ev1))
-    n_Sv2E <- rbinom(Sv_2d, p_Sv2E)
+    n_S_ <- mapply(FUN = rbinom, n = 1, size = S, prob = p_S_)
+    n_S_Shold1_E <- rmultinom(1, size = n_S_,prob = c(p_S_Shold1, p_S_E))
+    n_Shold1_ <- mapply(FUN = rbinom, n = 1, size = Shold_1d, prob = p_Shold1_)
+    n_Shold1_E_Sv1 <- rmultinom(1, size = n_Shold1_, prob = c(p_Shold1_E, p_Shold1_Sv1))
+    n_Sv1_ <- rbinom(1, Sv_1d, p_Sv1_)
+    n_Sv1_Shold2_Ev1 <- rmultinom(1, size = n_Sv1_, prob = c(p_Sv1_Shold2, p_Sv1_Ev1))
+    n_Sv2_Ev2 <- rbinom(1, Sv_2d, p_Sv2E)
     # E
-    n_EI <- rbinom(E, p_EI)
-    n_Ev1Iv1 <- rbinom(Ev_1d, p_EI)
-    n_Ev2Iv2 <- rbinom(Ev_2d, p_EI)
+    n_E_I <- rbinom(E, p_E_I)
+    n_Ev1_Iv1 <- rbinom(Ev_1d, p_E_I)
+    n_Ev2_Iv2 <- rbinom(Ev_2d, p_E_I)
     # I
     n_I_ <- rbinom(I, p_I_)
-    n_IRH <- rmultinom(1, size = n_I_, prob = c(p_IR, p_IH))
-    n_Iv1_ <- rbinom(Iv_1d, p_I_)
-    n_Iv1Rv1Hv1 <- rmultinom(1, size = n_Iv1_, prob = c(p_IR, p_IH))
-    n_Iv2_ <- rbinom(Iv_2d, p_I_)
-    n_Iv2Rv2Hv2 <- rmultinom(1, size = n_Iv2_, prob = c(p_IR, p_IH))
+    n_IRH <- rmultinom(1, size = n_I_, prob = c(p_I_R, p_I_H))
+    n_Iv1_ <- rbinom(Iv_1d, p_Iv1_)
+    n_Iv1_Rv1_Hv1 <- rmultinom(1, size = n_Iv1_, prob = c(p_Iv1_Rv1, p_Iv1_Hv1))
+    n_Iv2_ <- rbinom(Iv_2d, p_Iv2_)
+    n_Iv2_Rv2_Hv2 <- rmultinom(1, size = n_Iv2_, prob = c(p_Iv2_Rv2, p_Iv2_Hv2))
     # H
     n_H_ <- rbinom(H, p_H_)
-    n_HICDR <- rmultinom(1, size = n_H_, prob = c(p_HIC, p_HD, p_HR))
+    n_H_IC_D_R <- rmultinom(1, size = n_H_, prob = c(p_H_IC, p_H_D, p_H_R))
     n_Hv1_ <- rbinom(Hv1, p_H_)
-    n_Hv1ICv1DRv1 <- rmultinom(1, size = n_Hv1_, prob = c(p_HIC, p_HD, p_HR))
+    n_Hv1_ICv1_D_Rv1 <- rmultinom(1, size = n_Hv1_, prob = c(p_H_IC, p_H_D, p_H_R))
     n_Hv2_ <- rbinom(Hv2, p_H_)
-    n_Hv2ICv2DRv2 <- rmultinom(1, size = n_Hv2_, prob = c(p_HIC, p_HD, p_HR))
+    n_Hv2_ICv2_D_Rv2 <- rmultinom(1, size = n_Hv2_, prob = c(p_H_IC, p_H_D, p_H_R))
     # IC
     n_IC_ <- rbinom(IC, p_IC_)
-    n_ICH_ICD <- rmultinom(1, size = n_IC_, prob = c(p_ICH_IC, p_ICD))
+    n_IC_HIC_D <- rmultinom(1, size = n_IC_, prob = c(p_IC_HIC, p_IC_D))
     n_ICv1_ <- rbinom(ICv1, p_IC_)
-    n_ICv1H_ICv1D <- rmultinom(1, size = n_ICv1_, prob = c(p_ICH_IC, p_ICD))
+    n_ICv1_HICv1_D <- rmultinom(1, size = n_ICv1_, prob = c(p_IC_HIC, p_IC_D))
     n_ICv2_ <- rbinom(ICv2, p_IC_)
-    n_ICv2H_ICv2D <- rmultinom(1, size = n_ICv2_, prob = c(p_ICH_IC, p_ICD))
+    n_ICv2_HICv2_D <- rmultinom(1, size = n_ICv2_, prob = c(p_IC_HIC, p_IC_D))
     # H_IC
-    n_H_IC_ <- rbinom(H_IC, p_H_IC_)
-    n_H_ICDR <- rmultinom(1, size = n_H_IC_, prob = c(p_H_ICD, p_H_ICR))
-    n_H_ICv1_ <- rbinom(H_ICv1, p_H_IC_)
-    n_H_ICv1DRv1 <- rmultinom(1, size = n_H_ICv1_, prob = c(p_H_ICD, p_H_ICR))
-    n_H_ICv2_ <- rbinom(H_ICv2, p_H_IC_)
-    n_H_ICv2DRv2 <- rmultinom(1, size = n_H_ICv2_, prob = c(p_H_ICD, p_H_ICR))
+    n_HIC_ <- rbinom(H_IC, p_HIC_)
+    n_HIC_D_R <- rmultinom(1, size = n_HIC_, prob = c(p_HIC_D, p_HIC_R))
+    n_HICv1_ <- rbinom(H_ICv1, p_HIC_)
+    n_HICv1_D_Rv1 <- rmultinom(1, size = n_HICv1_, prob = c(p_HIC_D, p_HIC_R))
+    n_HICv2_ <- rbinom(H_ICv2, p_HIC_)
+    n_HICv2_D_Rv2 <- rmultinom(1, size = n_HICv2_, prob = c(p_HIC_D, p_HIC_R))
     
     ################################################################
     # ODEs:
-    dS <- -lambda * S - alpha * S
+    dS <- S - n_S_Shold1_E[1,] - n_S_Shold1_E[2,]
     dShold_1d <- alpha * S - (1/delay) * Shold_1d - lambda * Shold_1d
     dSv_1d <- (1/delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d 
     dShold_2d <- alpha2 * Sv_1d - (1/delay2) * Shold_2d - eta * lambda * Shold_2d
