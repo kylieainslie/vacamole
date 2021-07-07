@@ -127,11 +127,17 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     ### number of individuals transitioning between compartments
     # S
     n_S_ <- mapply(FUN = rbinom, n = 1, size = S, prob = p_S_)
-    n_S_Shold1_E <- rmultinom(1, size = n_S_,prob = c(p_S_Shold1, p_S_E))
+    x_S_ <- cbind(n_S_,p_S_Shold1, p_S_E)
+    n_S_Shold1_E <- apply(x_S_, 1, my_rmultinom)
+    # Shold1
     n_Shold1_ <- mapply(FUN = rbinom, n = 1, size = Shold_1d, prob = p_Shold1_)
-    n_Shold1_E_Sv1 <- rmultinom(1, size = n_Shold1_, prob = c(p_Shold1_E, p_Shold1_Sv1))
+    x_Shold1_ <- cbind(n_Shold1_, p_Shold1_E, p_Shold1_Sv1)
+    n_Shold1_E_Sv1 <- apply(x_Shold1_, 1, my_rmultinom)
+    # Sv1
     n_Sv1_ <- rbinom(1, Sv_1d, p_Sv1_)
-    n_Sv1_Shold2_Ev1 <- rmultinom(1, size = n_Sv1_, prob = c(p_Sv1_Shold2, p_Sv1_Ev1))
+    x_Sv1_ <- cbind(n_Sv1_, p_Sv1_Shold2, p_Sv1_Ev1)
+    n_Sv1_Shold2_Ev1 <- apply(x_Sv1_, 1, my_rmultinom)
+    # Sv2
     n_Sv2_Ev2 <- mapply(FUN = rbinom, n = 1, size = Sv_2d, prob = p_Sv2_Ev2)
     # E
     n_E_I <- mapply(FUN = rbinom, n = 1, size = E, prob = p_E_I)
@@ -139,32 +145,51 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     n_Ev2_Iv2 <- mapply(FUN = rbinom, n = 1, size = Ev_2d, prob = p_E_I)
     # I
     n_I_ <- mapply(FUN = rbinom, n = 1, size = I, prob = p_I_)
-    n_IRH <- rmultinom(1, size = n_I_, prob = c(p_I_R, p_I_H))
+    x_I_ <- cbind(n_I_, p_I_R, p_I_H)
+    n_IRH <- apply(x_I_, 1, my_rmultinom)
+    # Iv1
     n_Iv1_ <- mapply(FUN = rbinom, n = 1, size = Iv_1d, prob = p_Iv1_)
-    n_Iv1_Rv1_Hv1 <- rmultinom(1, size = n_Iv1_, prob = c(p_Iv1_Rv1, p_Iv1_Hv1))
+    x_Iv1_ <- cbind(n_Iv1_, p_Iv1_Rv1, p_Iv1_Hv1)
+    n_Iv1_Rv1_Hv1 <- apply(x_Iv1_, 1, my_rmultinom)
+    # Iv2
     n_Iv2_ <- mapply(FUN = rbinom, n = 1, size = Iv_2d, prob = p_Iv2_)
-    n_Iv2_Rv2_Hv2 <- rmultinom(1, size = n_Iv2_, prob = c(p_Iv2_Rv2, p_Iv2_Hv2))
+    x_Iv2_ <- cbind(n_Iv2_, p_Iv2_Rv2, p_Iv2_Hv2)
+    n_Iv2_Rv2_Hv2 <- apply(x_Iv2_, 1, my_rmultinom)
     # H
     n_H_ <- mapply(FUN = rbinom, n = 1, size = H, prob = p_H_)
-    n_H_IC_D_R <- rmultinom(1, size = n_H_, prob = c(p_H_IC, p_H_D, p_H_R))
+    x_H_ <- cbind(n_H_, p_H_IC, p_H_D, p_H_R)
+    n_H_IC_D_R <- apply(x_H_, 1, my_rmultinom)
+    # Hv1
     n_Hv1_ <- mapply(FUN = rbinom, n = 1, size = Hv1, prob = p_H_)
-    n_Hv1_ICv1_D_Rv1 <- rmultinom(1, size = n_Hv1_, prob = c(p_H_IC, p_H_D, p_H_R))
+    x_Hv1_ <- cbind(n_Hv1_, p_H_IC, p_H_D, p_H_R)
+    n_Hv1_ICv1_D_Rv1 <- apply(x_Hv1_, 1, my_rmultinom)
+    # Hv2
     n_Hv2_ <- mapply(FUN = rbinom, n = 1, size = Hv2, prob = p_H_)
-    n_Hv2_ICv2_D_Rv2 <- rmultinom(1, size = n_Hv2_, prob = c(p_H_IC, p_H_D, p_H_R))
+    x_Hv2_ <- cbind(n_Hv2_, p_H_IC, p_H_D, p_H_R)
+    n_Hv2_ICv2_D_Rv2 <- apply(x_Hv2_, 1, my_rmultinom)
     # IC
     n_IC_ <- mapply(FUN = rbinom, n = 1, size = IC, prob = p_IC_)
-    n_IC_HIC_D <- rmultinom(1, size = n_IC_, prob = c(p_IC_HIC, p_IC_D))
+    x_IC_ <- cbind(n_IC_, p_IC_HIC, p_IC_D)
+    n_IC_HIC_D <- apply(x_IC_, 1, my_rmultinom)
+    # ICv1
     n_ICv1_ <- mapply(FUN = rbinom, n = 1, size = ICv_1d, prob = p_IC_)
-    n_ICv1_HICv1_D <- rmultinom(1, size = n_ICv1_, prob = c(p_IC_HIC, p_IC_D))
+    x_ICv1_ <- cbind(n_ICv1_, p_IC_HIC, p_IC_D)
+    n_ICv1_HICv1_D <- apply(x_ICv1_, 1, my_rmultinom)
+    # ICv2
     n_ICv2_ <- mapply(FUN = rbinom, n = 1, size = ICv_2d, prob = p_IC_)
-    n_ICv2_HICv2_D <- rmultinom(1, size = n_ICv2_, prob = c(p_IC_HIC, p_IC_D))
+    x_ICv2_ <- cbind(n_ICv2_, p_IC_HIC, p_IC_D)
+    n_ICv2_HICv2_D <- apply(x_ICv2_, 1, my_rmultinom)
     # H_IC
     n_HIC_ <- mapply(FUN = rbinom, n = 1, size = H_IC, prob = p_HIC_)
     n_HIC_D_R <- rmultinom(1, size = n_HIC_, prob = c(p_HIC_D, p_HIC_R))
+    # H_ICv1
     n_HICv1_ <- mapply(FUN = rbinom, n = 1, size = H_ICv_1d, prob = p_HIC_)
-    n_HICv1_D_Rv1 <- rmultinom(1, size = n_HICv1_, prob = c(p_HIC_D, p_HIC_R))
+    x_HICv1_ <- cbind(n_HICv1_, p_HIC_D, p_HIC_R)
+    n_HICv1_D_Rv1 <- apply(x_HICv1_, 1, my_rmultinom)
+    # H_ICv2
     n_HICv2_ <- mapply(FUN = rbinom, n = 1, size = H_ICv_2d, prob = p_HIC_)
-    n_HICv2_D_Rv2 <- rmultinom(1, size = n_HICv2_, prob = c(p_HIC_D, p_HIC_R))
+    x_HICv2_ <- cbind(n_HICv2_, p_HIC_D, p_HIC_R)
+    n_HICv2_D_Rv2 <- apply(x_HICv2_, 1, my_rmultinom)
     
     ################################################################
     # ODEs:
