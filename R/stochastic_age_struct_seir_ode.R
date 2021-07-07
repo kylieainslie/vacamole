@@ -1,4 +1,4 @@
-#' Age-structured SEIR ODE model of vaccination with 2 doses and delay to protection
+#' Stochastic Age-structured SEIR ODE model of vaccination with 2 doses and delay to protection
 #' @param times vector of times
 #' @param init list of inititial states
 #' @param params list of parameter values
@@ -79,9 +79,9 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     # ---------------------------------------------------------------
     ### probabilities of transitioning
     # from S
-    p_S_ <- 1 - exp(-lambda-alpha)                    # total probability of moving from S
-    p_S_Shold1 <- alpha/(lambda + alpha)              # relative probability of moving from S -> Shold_1d
-    p_S_E <- lambda/(lambda + alpha)                  # relative probability of moving from S -> E
+    p_S_ <- as.numeric(1 - exp(-lambda-alpha))                    # total probability of moving from S
+    p_S_Shold1 <- as.numeric(alpha/(lambda + alpha))              # relative probability of moving from S -> Shold_1d
+    p_S_E <- as.numeric(lambda/(lambda + alpha))                  # relative probability of moving from S -> E
     # from Shold_1d
     p_Shold1_ <- 1 - exp(-lambda-(1/delay))           # total probability of moving from Shold_1d
     p_Shold1_E <- lambda/(lambda + (1/delay))         # relative probability of moving from Shold_1d -> E
@@ -126,8 +126,12 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     
     ### number of individuals transitioning between compartments
     # S
-    n_S_ <- mapply(FUN = rbinom, n = 1, size = S, prob = p_S_)
+    n_S_ <- mapply(FUN = rbinom, n = 1, size = ceiling(S), prob = p_S_)
     x_S_ <- cbind(n_S_,p_S_Shold1, p_S_E)
+    print(n_S_)
+    print(p_S_Shold1)
+    print(p_S_E)
+    print(x_S_)
     n_S_Shold1_E <- apply(x_S_, 1, my_rmultinom)
     # Shold1
     n_Shold1_ <- mapply(FUN = rbinom, n = 1, size = Shold_1d, prob = p_Shold1_)
