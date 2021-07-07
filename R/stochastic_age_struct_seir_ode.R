@@ -79,50 +79,50 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     # ---------------------------------------------------------------
     ### probabilities of transitioning
     # from S
-    p_S_ <- 1 - exp(-lambda-alpha)                 # total probability of moving from S
-    p_S_Shold1 <- alpha/(lambda + alpha)           # relative probability of moving from S -> Shold_1d
-    p_S_E <- lambda/(lambda + alpha)               # relative probability of moving from S -> E
+    p_S_ <- 1 - exp(-lambda-alpha)                    # total probability of moving from S
+    p_S_Shold1 <- alpha/(lambda + alpha)              # relative probability of moving from S -> Shold_1d
+    p_S_E <- lambda/(lambda + alpha)                  # relative probability of moving from S -> E
     # from Shold_1d
-    p_Shold1_ <- 1 - exp(-lambda-(1/delay))        # total probability of moving from Shold_1d
-    p_Shold1_E <- lambda/(lambda + (1/delay))      # relative probability of moving from Shold_1d -> E
-    p_Shold1_Sv1 <- (1/delay)/(lambda + (1/delay)) # relative probability of moving from Shold_1d -> Sv1
+    p_Shold1_ <- 1 - exp(-lambda-(1/delay))           # total probability of moving from Shold_1d
+    p_Shold1_E <- lambda/(lambda + (1/delay))         # relative probability of moving from Shold_1d -> E
+    p_Shold1_Sv1 <- (1/delay)/(lambda + (1/delay))    # relative probability of moving from Shold_1d -> Sv1
     # from Sv_1d
-    p_Sv1_ <- 1 - exp(-eta*lambda-alpha2)          # total probability of moving from Sv1
-    p_Sv1_Shold2 <- alpha2/(eta*lambda + alpha2)   # relative probability of moving from Sv1 -> Shold_2d
-    p_Sv1_E <- eta*lambda/(eta*lambda + alpha2)    # relative probability of moving from Sv1 -> Ev1
+    p_Sv1_ <- 1 - exp(-eta*lambda-alpha2)             # total probability of moving from Sv1
+    p_Sv1_Shold2 <- alpha2/(eta*lambda + alpha2)      # relative probability of moving from Sv1 -> Shold_2d
+    p_Sv1_E <- eta*lambda/(eta*lambda + alpha2)       # relative probability of moving from Sv1 -> Ev1
     # from Shold_2d
-    p_Sv1_ <- 1 - exp(-eta*lambda-alpha2)          # total probability of moving from S
-    p_Sv1_Shold2 <- alpha2/(eta*lambda + alpha2)   # relative probability of moving from S -> Shold_1d
-    p_Sv1_Ev1 <- eta*lambda/(eta*lambda + alpha2)  # relative probability of moving from S -> Ev1
+    p_Shold2_ <- 1 - exp(-eta*lambda-(1/delay2))          # total probability of moving from Shold_2s
+    p_Shold2_Sv2 <- (1/delay2)/(eta*lambda + (1/delay2))  # relative probability of moving from Shold_2d -> Sv2
+    p_Shold2_Ev1 <- eta*lambda/(eta*lambda + (1/delay2))  # relative probability of moving from Shold_2d -> Ev1
     # from Sv_2d
-    p_Sv2_Ev2 <- 1 - exp(-eta2*lambda)             # probability of moving Sv2 -> E
+    p_Sv2_Ev2 <- 1 - exp(-eta2*lambda)                # probability of moving Sv2 -> E
     # from E
-    p_E_I <- 1 - exp(-sigma)                       # probability of moving E -> I (or Ev1 -> Iv1 or Ev2 -> Iv2)
+    p_E_I <- 1 - exp(-sigma)                          # probability of moving E -> I (or Ev1 -> Iv1 or Ev2 -> Iv2)
     # from I
-    p_I_ <- 1 - exp(-gamma-h)                      # total probability of moving from I
-    p_I_R <- gamma/(gamma + h)                     # relative probability of moving from I -> R
-    p_I_H <- h / (gamma + h)                       # relative probability of moving from I -> H
+    p_I_ <- 1 - exp(-gamma-h)                         # total probability of moving from I
+    p_I_R <- gamma/(gamma + h)                        # relative probability of moving from I -> R
+    p_I_H <- h / (gamma + h)                          # relative probability of moving from I -> H
     # from Iv_1d
-    p_Iv1_ <- 1 - exp(-gamma-eta_hosp*h)           # total probability of moving from Iv1
-    p_Iv1_Hv1 <- eta_hosp*h/(eta_hosp*h + gamma)   # relative probability of moving from Iv1 -> Hv1
-    p_Iv1_Rv1 <- gamma/(eta_hosp*h + gamma)        # relative probability of moving from Iv1 -> Rv1
+    p_Iv1_ <- 1 - exp(-gamma-eta_hosp*h)              # total probability of moving from Iv1
+    p_Iv1_Hv1 <- eta_hosp*h/(eta_hosp*h + gamma)      # relative probability of moving from Iv1 -> Hv1
+    p_Iv1_Rv1 <- gamma/(eta_hosp*h + gamma)           # relative probability of moving from Iv1 -> Rv1
     # from Iv_2d
-    p_Iv2_ <- 1 - exp(-gamma-eta_hosp2*h)          # total probability of moving from Iv2
-    p_Iv2_Hv2 <- eta_hosp2*h/(eta_hosp2*h + gamma) # relative probability of moving from Iv2 -> Hv2
-    p_Iv2_Rv2 <- gamma/(eta_hosp2*h + gamma)       # relative probability of moving from Iv2 -> Rv2
+    p_Iv2_ <- 1 - exp(-gamma-eta_hosp2*h)             # total probability of moving from Iv2
+    p_Iv2_Hv2 <- eta_hosp2*h/(eta_hosp2*h + gamma)    # relative probability of moving from Iv2 -> Hv2
+    p_Iv2_Rv2 <- gamma/(eta_hosp2*h + gamma)          # relative probability of moving from Iv2 -> Rv2
     # from H
-    p_H_ <- 1 - exp(-i1-d-r)                       # total probability of moving from H (or Hv1 or Hv2)
-    p_H_IC <- i1/(i1+d+r)                          # relative probability of moving from H -> IC
-    p_H_D <- d/(i1+d+r)                            # relative probability of moving from H -> D   
-    p_H_R <- r/i1+d+r                              # relative probability of moving from H -> R
+    p_H_ <- 1 - exp(-i1-d-r)                          # total probability of moving from H (or Hv1 or Hv2)
+    p_H_IC <- i1/(i1+d+r)                             # relative probability of moving from H -> IC
+    p_H_D <- d/(i1+d+r)                               # relative probability of moving from H -> D   
+    p_H_R <- r/i1+d+r                                 # relative probability of moving from H -> R
     # from IC
-    p_IC_ <- 1 - exp(-i2-d_ic)                     # total probability of moving from IC
-    p_IC_HIC <- i2/(i2+d_ic)                       # relative probability of moving IC -> HIC
-    p_IC_D <- d_ic/(i2+d_ic)                       # relative probability of moving from IC -> D
+    p_IC_ <- 1 - exp(-i2-d_ic)                        # total probability of moving from IC
+    p_IC_HIC <- i2/(i2+d_ic)                          # relative probability of moving IC -> HIC
+    p_IC_D <- d_ic/(i2+d_ic)                          # relative probability of moving from IC -> D
     # from H_IC
-    p_HIC_ <- 1 - exp(-d_hic-r_ic)                 # total probability of moving from HIC
-    p_HIC_D <- d_hic/(d_hic+r_ic)                  # relative probability of moving from HIC -> D
-    p_HIC_R <- r_ic/(d_hic+r_ic)                   # relative probability of moving from HIC -> R
+    p_HIC_ <- 1 - exp(-d_hic-r_ic)                    # total probability of moving from HIC
+    p_HIC_D <- d_hic/(d_hic+r_ic)                     # relative probability of moving from HIC -> D
+    p_HIC_R <- r_ic/(d_hic+r_ic)                      # relative probability of moving from HIC -> R
     
     ### number of individuals transitioning between compartments
     # S
@@ -137,6 +137,10 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     n_Sv1_ <- rbinom(1, Sv_1d, p_Sv1_)
     x_Sv1_ <- cbind(n_Sv1_, p_Sv1_Shold2, p_Sv1_Ev1)
     n_Sv1_Shold2_Ev1 <- apply(x_Sv1_, 1, my_rmultinom)
+    # Shold2
+    n_Shold2_ <- mapply(FUN = rbinom, n = 1, size = Shold_1d, prob = p_Shold1_)
+    x_Shold2_ <- cbind(n_Shold1_, p_Shold1_E, p_Shold1_Sv1)
+    n_Shold2_Ev1_Sv2 <- apply(x_Shold2_, 1, my_rmultinom)
     # Sv2
     n_Sv2_Ev2 <- mapply(FUN = rbinom, n = 1, size = Sv_2d, prob = p_Sv2_Ev2)
     # E
@@ -194,9 +198,9 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     ################################################################
     # ODEs:
     dS <- S - n_S_Shold1_E[1,] - n_S_Shold1_E[2,]
-    dShold_1d <- alpha * S - (1/delay) * Shold_1d - lambda * Shold_1d
-    dSv_1d <- (1/delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d 
-    dShold_2d <- alpha2 * Sv_1d - (1/delay2) * Shold_2d - eta * lambda * Shold_2d
+    dShold_1d <- Shold_1d - n_Shold1_E_Sv1[1,] - n_Shold1_E_Sv1[2,]
+    dSv_1d <- Sv_1d - n_Sv1_Shold2_Ev1[1,] - n_Sv1_Shold2_Ev1[2,]
+    dShold_2d <- Shold_2d - n_S
     dSv_2d <- (1/delay2) * Shold_2d - eta2 * lambda * Sv_2d
     dE <- lambda * (S + Shold_1d) - sigma * E
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
