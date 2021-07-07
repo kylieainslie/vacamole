@@ -143,12 +143,12 @@ r0_plot <- ggplot(data = R0_dat, aes(x = date, y = roll_mean_R0)) +
   )
 r0_plot
 
-ggsave("inst/extdata/results/r0_plot_16june.jpg",
-  plot = r0_plot,
-  # height = 8,
-  # width = 12,
-  dpi = 300
-)
+# ggsave("inst/extdata/results/r0_plot_16june.jpg",
+#   plot = r0_plot,
+#   # height = 8,
+#   # width = 12,
+#   dpi = 300
+# )
 
 # define state transition rates ------------------------------------
 h <- p_infection2admission / time_symptom2admission
