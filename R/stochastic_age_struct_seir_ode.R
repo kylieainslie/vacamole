@@ -138,8 +138,8 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     x_Sv1_ <- cbind(n_Sv1_, p_Sv1_Shold2, p_Sv1_Ev1)
     n_Sv1_Shold2_Ev1 <- apply(x_Sv1_, 1, my_rmultinom)
     # Shold2
-    n_Shold2_ <- mapply(FUN = rbinom, n = 1, size = Shold_1d, prob = p_Shold1_)
-    x_Shold2_ <- cbind(n_Shold1_, p_Shold1_E, p_Shold1_Sv1)
+    n_Shold2_ <- mapply(FUN = rbinom, n = 1, size = Shold_2d, prob = p_Shold2_)
+    x_Shold2_ <- cbind(n_Shold2_, p_Shold2_Ev1, p_Shold2_Sv2)
     n_Shold2_Ev1_Sv2 <- apply(x_Shold2_, 1, my_rmultinom)
     # Sv2
     n_Sv2_Ev2 <- mapply(FUN = rbinom, n = 1, size = Sv_2d, prob = p_Sv2_Ev2)
@@ -150,7 +150,7 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     # I
     n_I_ <- mapply(FUN = rbinom, n = 1, size = I, prob = p_I_)
     x_I_ <- cbind(n_I_, p_I_R, p_I_H)
-    n_IRH <- apply(x_I_, 1, my_rmultinom)
+    n_I_R_H <- apply(x_I_, 1, my_rmultinom)
     # Iv1
     n_Iv1_ <- mapply(FUN = rbinom, n = 1, size = Iv_1d, prob = p_Iv1_)
     x_Iv1_ <- cbind(n_Iv1_, p_Iv1_Rv1, p_Iv1_Hv1)
@@ -197,30 +197,32 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     
     ################################################################
     # ODEs:
-    dS <- S - n_S_Shold1_E[1,] - n_S_Shold1_E[2,]
-    dShold_1d <- Shold_1d - n_Shold1_E_Sv1[1,] - n_Shold1_E_Sv1[2,]
-    dSv_1d <- Sv_1d - n_Sv1_Shold2_Ev1[1,] - n_Sv1_Shold2_Ev1[2,]
-    dShold_2d <- Shold_2d - n_S
-    dSv_2d <- (1/delay2) * Shold_2d - eta2 * lambda * Sv_2d
-    dE <- lambda * (S + Shold_1d) - sigma * E
-    dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
-    dEv_2d <- eta2 * lambda * Sv_2d - sigma * Ev_2d 
-    dI <- sigma * E - (gamma + h) * I 
-    dIv_1d <- sigma * Ev_1d - (gamma + eta_hosp * h) * Iv_1d  
-    dIv_2d <- sigma * Ev_2d - (gamma + eta_hosp2 * h) * Iv_2d
-    dH <- h * I - (i1 + d + r) * H 
-    dHv_1d <- eta_hosp * h * Iv_1d - (i1 + d + r) * Hv_1d
-    dHv_2d <- eta_hosp2 * h * Iv_2d - (i1 + d + r) * Hv_2d
-    dH_IC <- i2 * IC - (r_ic + d_hic) * H_IC               # back to hospital after IC
-    dH_ICv_1d <- i2 * ICv_1d - (r_ic + d_hic) * H_ICv_1d
-    dH_ICv_2d <- i2 * ICv_2d - (r_ic + d_hic) * H_ICv_2d
-    dIC <- i1 * H - (i2 + d_ic) * IC
-    dICv_1d <- i1 * Hv_1d - (i2 + d_ic) * ICv_1d
-    dICv_2d <- i1 * Hv_2d - (i2 + d_ic) * ICv_2d
-    dD <- d * (H + Hv_1d + Hv_2d) + d_ic * (IC + ICv_1d + ICv_2d) + d_hic * (H_IC + H_ICv_1d + H_ICv_2d)
-    dR <- gamma * I + r * H + r_ic * H_IC
-    dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d
-    dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d
+    dS        <- S - n_S_Shold1_E[1,] - n_S_Shold1_E[2,]
+    dShold_1d <- Shold_1d + n_S_Shold1_E[1,] - n_Shold1_E_Sv1[1,] - n_Shold1_E_Sv1[2,]
+    dSv_1d    <- Sv_1d + n_Shold1_E_Sv1[2,] - n_Sv1_Shold2_Ev1[1,] - n_Sv1_Shold2_Ev1[2,]
+    dShold_2d <- Shold_2d - n_Shold2_Ev1_Sv2[1,] - n_Shold2_Ev1_Sv2[2,]
+    dSv_2d    <- Sv_2d - n_Sv2_Ev2
+    dE        <- E + n_S_Shold1_E[2,] + n_Shold1_E_Sv1[1,] - n_E_I
+    dEv_1d    <- Ev_1d + n_Sv1_Shold2_Ev1[2,] + n_Shold2_Ev1_Sv2[1,] - n_Ev1_Iv1
+    dEv_2d    <- Ev_2d + n_Sv2_Ev2 - n_Ev2_Iv2
+    dI        <- I + n_E_I - n_I_R_H[1,] - n_I_R_H[2,]
+    dIv_1d    <- Iv_1d + n_Ev1_Iv1 - n_Iv1_Rv1_Hv1[1,] - n_Iv1_Rv1_Hv1[2,]  
+    dIv_2d    <- Iv_2d + n_Ev2_Iv2 - n_Iv2_Rv2_Hv2[1,] - n_Iv2_Rv2_Hv2[2,]
+    dH        <- H + n_I_R_H[2,] - n_H_IC_D_R[1,] - n_H_IC_D_R[2,] - n_H_IC_D_R[3,]
+    dHv_1d    <- Hv_1d + n_Iv1_Rv1_Hv1[2,] - n_Hv1_ICv1_D_Rv1[1,] - n_Hv1_ICv1_D_Rv1[2,] - n_Hv1_ICv1_D_Rv1[3,]
+    dHv_2d    <- Hv_2d + n_Iv1_Rv1_Hv1[2,] - n_Hv2_ICv2_D_Rv2[1,] - n_Hv2_ICv2_D_Rv2[2,]- n_Hv2_ICv2_D_Rv2[3,]
+    dIC       <- IC + n_H_IC_D_R[1,] - n_IC_HIC_D[1,] - n_IC_HIC_D[2,]
+    dICv_1d   <- ICv_1d + n_Hv1_ICv1_D_Rv1[1,] - n_ICv1_HICv1_D[1,] - n_ICv1_HICv1_D[2,]
+    dICv_2d   <- ICv_2d + n_Hv2_ICv2_D_Rv2[1,] - n_ICv2_HICv2_D[1,] - n_ICv2_HICv2_D[2,]
+    dH_IC     <- H_IC + n_IC_HIC_D[1,] - n_HIC_D_R[1,] - n_HIC_D_R[2,]
+    dH_ICv_1d <- H_ICv_1d + n_ICv1_HICv1_D[1,] - n_HICv1_D_Rv1[1,] - n_HICv1_D_Rv1[2,]
+    dH_ICv_2d <- H_ICv_2d + n_ICv2_HICv2_D[1,] - n_HICv2_D_Rv2[1,] - n_HICv2_D_Rv2[2,]
+    dD        <- D + n_H_IC_D_R[2,] + n_Hv1_ICv1_D_Rv1[2,] + n_Hv2_ICv2_D_Rv2[2,] +
+                     n_IC_HIC_D[2,] + n_ICv1_HICv1_D[2,] + n_ICv2_HICv2_D[2,] +
+                     n_HIC_D_R[1,] + n_HICv1_D_Rv1[1,] + n_HICv2_D_Rv2[1,]
+    dR        <- R + n_I_R_H[1,] + n_H_IC_D_R[3,] + n_HIC_D_R[2,]
+    dRv_1d    <- Rv_1d + n_Iv1_Rv1_Hv1[1,] + n_Hv1_ICv1_D_Rv1[3,] + n_HICv1_D_Rv1[2,]
+    dRv_2d    <- Rv_2d + n_Iv2_Rv2_Hv2[1,] + n_Hv2_ICv2_D_Rv2[3,] + n_HICv2_D_Rv2[2,]
     
     # assign variables to global environment, so they can be used for next iteration
     assign("flag_relaxed", flag_relaxed, envir = globalenv())
