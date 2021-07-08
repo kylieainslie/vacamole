@@ -79,123 +79,137 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     # ---------------------------------------------------------------
     ### probabilities of transitioning
     # from S
-    p_S_ <- as.numeric(1 - exp(-lambda-alpha))                    # total probability of moving from S
-    p_S_Shold1 <- as.numeric(alpha/(lambda + alpha))              # relative probability of moving from S -> Shold_1d
-    p_S_E <- as.numeric(lambda/(lambda + alpha))                  # relative probability of moving from S -> E
+    p_S_ <- as.numeric(1 - exp(-lambda-alpha))            # total probability of moving from S
+    p_S_Shold1 <- as.numeric(alpha/(lambda + alpha))      # relative probability of moving from S -> Shold_1d
+    p_S_E <- as.numeric(lambda/(lambda + alpha))          # relative probability of moving from S -> E
     # from Shold_1d
-    p_Shold1_ <- 1 - exp(-lambda-(1/delay))           # total probability of moving from Shold_1d
-    p_Shold1_E <- lambda/(lambda + (1/delay))         # relative probability of moving from Shold_1d -> E
-    p_Shold1_Sv1 <- (1/delay)/(lambda + (1/delay))    # relative probability of moving from Shold_1d -> Sv1
+    p_Shold1_ <- as.numeric(1 - exp(-lambda-(1/delay)))               # total probability of moving from Shold_1d
+    p_Shold1_E <- as.numeric(lambda/(lambda + (1/delay)))             # relative probability of moving from Shold_1d -> E
+    p_Shold1_Sv1 <- as.numeric((1/delay)/(lambda + (1/delay)))        # relative probability of moving from Shold_1d -> Sv1
     # from Sv_1d
-    p_Sv1_ <- 1 - exp(-eta*lambda-alpha2)             # total probability of moving from Sv1
-    p_Sv1_Shold2 <- alpha2/(eta*lambda + alpha2)      # relative probability of moving from Sv1 -> Shold_2d
-    p_Sv1_E <- eta*lambda/(eta*lambda + alpha2)       # relative probability of moving from Sv1 -> Ev1
+    p_Sv1_ <- as.numeric(1 - exp(-eta*lambda-alpha2))                 # total probability of moving from Sv1
+    p_Sv1_Shold2 <- as.numeric(alpha2/(eta*lambda + alpha2))          # relative probability of moving from Sv1 -> Shold_2d
+    p_Sv1_Ev1 <- as.numeric(eta*lambda/(eta*lambda + alpha2))         # relative probability of moving from Sv1 -> Ev1
     # from Shold_2d
-    p_Shold2_ <- 1 - exp(-eta*lambda-(1/delay2))          # total probability of moving from Shold_2s
-    p_Shold2_Sv2 <- (1/delay2)/(eta*lambda + (1/delay2))  # relative probability of moving from Shold_2d -> Sv2
-    p_Shold2_Ev1 <- eta*lambda/(eta*lambda + (1/delay2))  # relative probability of moving from Shold_2d -> Ev1
+    p_Shold2_ <- as.numeric(1 - exp(-eta*lambda-(1/delay2)))          # total probability of moving from Shold_2s
+    p_Shold2_Sv2 <- as.numeric((1/delay2)/(eta*lambda + (1/delay2)))  # relative probability of moving from Shold_2d -> Sv2
+    p_Shold2_Ev1 <- as.numeric(eta*lambda/(eta*lambda + (1/delay2)))  # relative probability of moving from Shold_2d -> Ev1
     # from Sv_2d
-    p_Sv2_Ev2 <- 1 - exp(-eta2*lambda)                # probability of moving Sv2 -> E
+    p_Sv2_Ev2 <- as.numeric(1 - exp(-eta2*lambda))                    # probability of moving Sv2 -> E
     # from E
-    p_E_I <- 1 - exp(-sigma)                          # probability of moving E -> I (or Ev1 -> Iv1 or Ev2 -> Iv2)
+    p_E_I <- c(rep(1 - exp(-sigma),9))                                # probability of moving E -> I (or Ev1 -> Iv1 or Ev2 -> Iv2)
     # from I
-    p_I_ <- 1 - exp(-gamma-h)                         # total probability of moving from I
-    p_I_R <- gamma/(gamma + h)                        # relative probability of moving from I -> R
-    p_I_H <- h / (gamma + h)                          # relative probability of moving from I -> H
+    p_I_ <- 1 - exp(-gamma-h)                               # total probability of moving from I
+    p_I_R <- gamma/(gamma + h)                            # relative probability of moving from I -> R
+    p_I_H <- h / (gamma + h)                              # relative probability of moving from I -> H
     # from Iv_1d
-    p_Iv1_ <- 1 - exp(-gamma-eta_hosp*h)              # total probability of moving from Iv1
-    p_Iv1_Hv1 <- eta_hosp*h/(eta_hosp*h + gamma)      # relative probability of moving from Iv1 -> Hv1
-    p_Iv1_Rv1 <- gamma/(eta_hosp*h + gamma)           # relative probability of moving from Iv1 -> Rv1
+    p_Iv1_ <- as.numeric(1 - exp(-gamma-eta_hosp*h))                  # total probability of moving from Iv1
+    p_Iv1_Hv1 <- as.numeric(eta_hosp*h/(eta_hosp*h + gamma))          # relative probability of moving from Iv1 -> Hv1
+    p_Iv1_Rv1 <- as.numeric(gamma/(eta_hosp*h + gamma))               # relative probability of moving from Iv1 -> Rv1
     # from Iv_2d
-    p_Iv2_ <- 1 - exp(-gamma-eta_hosp2*h)             # total probability of moving from Iv2
-    p_Iv2_Hv2 <- eta_hosp2*h/(eta_hosp2*h + gamma)    # relative probability of moving from Iv2 -> Hv2
-    p_Iv2_Rv2 <- gamma/(eta_hosp2*h + gamma)          # relative probability of moving from Iv2 -> Rv2
+    p_Iv2_ <- as.numeric(1 - exp(-gamma-eta_hosp2*h))                 # total probability of moving from Iv2
+    p_Iv2_Hv2 <- as.numeric(eta_hosp2*h/(eta_hosp2*h + gamma))        # relative probability of moving from Iv2 -> Hv2
+    p_Iv2_Rv2 <- as.numeric(gamma/(eta_hosp2*h + gamma))              # relative probability of moving from Iv2 -> Rv2
     # from H
-    p_H_ <- 1 - exp(-i1-d-r)                          # total probability of moving from H (or Hv1 or Hv2)
-    p_H_IC <- i1/(i1+d+r)                             # relative probability of moving from H -> IC
-    p_H_D <- d/(i1+d+r)                               # relative probability of moving from H -> D   
-    p_H_R <- r/i1+d+r                                 # relative probability of moving from H -> R
+    p_H_ <- 1 - exp(-i1-d-r)                              # total probability of moving from H (or Hv1 or Hv2)
+    p_H_IC <- i1/(i1+d+r)                                 # relative probability of moving from H -> IC
+    p_H_D <- d/(i1+d+r)                                   # relative probability of moving from H -> D   
+    p_H_R <- r/(i1+d+r)                                     # relative probability of moving from H -> R
     # from IC
-    p_IC_ <- 1 - exp(-i2-d_ic)                        # total probability of moving from IC
-    p_IC_HIC <- i2/(i2+d_ic)                          # relative probability of moving IC -> HIC
-    p_IC_D <- d_ic/(i2+d_ic)                          # relative probability of moving from IC -> D
+    p_IC_ <- 1 - exp(-i2-d_ic)                            # total probability of moving from IC
+    p_IC_HIC <- i2/(i2+d_ic)                              # relative probability of moving IC -> HIC
+    p_IC_D <- d_ic/(i2+d_ic)                             # relative probability of moving from IC -> D
     # from H_IC
-    p_HIC_ <- 1 - exp(-d_hic-r_ic)                    # total probability of moving from HIC
-    p_HIC_D <- d_hic/(d_hic+r_ic)                     # relative probability of moving from HIC -> D
-    p_HIC_R <- r_ic/(d_hic+r_ic)                      # relative probability of moving from HIC -> R
+    p_HIC_ <- 1 - exp(-d_hic-r_ic)                        # total probability of moving from HIC
+    p_HIC_D <- d_hic/(d_hic+r_ic)                         # relative probability of moving from HIC -> D
+    p_HIC_R <- r_ic/(d_hic+r_ic)                          # relative probability of moving from HIC -> R
     
     ### number of individuals transitioning between compartments
     # S
-    n_S_ <- mapply(FUN = rbinom, n = 1, size = ceiling(S), prob = p_S_)
-    x_S_ <- cbind(n_S_,p_S_Shold1, p_S_E)
-    print(n_S_)
-    print(p_S_Shold1)
-    print(p_S_E)
-    print(x_S_)
+    print("S")
+    n_S_ <- mapply(FUN = rbinom, n = 1, size = round(S), prob = p_S_)
+    x_S_ <- cbind(n_S_, p_S_Shold1, p_S_E)
     n_S_Shold1_E <- apply(x_S_, 1, my_rmultinom)
     # Shold1
-    n_Shold1_ <- mapply(FUN = rbinom, n = 1, size = Shold_1d, prob = p_Shold1_)
+    print("Shold1")
+    n_Shold1_ <- mapply(FUN = rbinom, n = 1, size = round(Shold_1d), prob = p_Shold1_)
     x_Shold1_ <- cbind(n_Shold1_, p_Shold1_E, p_Shold1_Sv1)
     n_Shold1_E_Sv1 <- apply(x_Shold1_, 1, my_rmultinom)
     # Sv1
-    n_Sv1_ <- rbinom(1, Sv_1d, p_Sv1_)
+    print("Sv1")
+    n_Sv1_ <- mapply(FUN = rbinom, n = 1, size = round(Sv_1d), prob = p_Sv1_)
     x_Sv1_ <- cbind(n_Sv1_, p_Sv1_Shold2, p_Sv1_Ev1)
     n_Sv1_Shold2_Ev1 <- apply(x_Sv1_, 1, my_rmultinom)
     # Shold2
-    n_Shold2_ <- mapply(FUN = rbinom, n = 1, size = Shold_2d, prob = p_Shold2_)
+    print("Shold2")
+    n_Shold2_ <- mapply(FUN = rbinom, n = 1, size = round(Shold_2d), prob = p_Shold2_)
     x_Shold2_ <- cbind(n_Shold2_, p_Shold2_Ev1, p_Shold2_Sv2)
     n_Shold2_Ev1_Sv2 <- apply(x_Shold2_, 1, my_rmultinom)
     # Sv2
-    n_Sv2_Ev2 <- mapply(FUN = rbinom, n = 1, size = Sv_2d, prob = p_Sv2_Ev2)
+    print("Sv2")
+    n_Sv2_Ev2 <- mapply(FUN = rbinom, n = 1, size = round(Sv_2d), prob = p_Sv2_Ev2)
     # E
+    print("E")
     n_E_I <- mapply(FUN = rbinom, n = 1, size = E, prob = p_E_I)
     n_Ev1_Iv1 <- mapply(FUN = rbinom, n = 1, size = Ev_1d, prob = p_E_I)
     n_Ev2_Iv2 <- mapply(FUN = rbinom, n = 1, size = Ev_2d, prob = p_E_I)
     # I
-    n_I_ <- mapply(FUN = rbinom, n = 1, size = I, prob = p_I_)
+    print("I")
+    n_I_ <- mapply(FUN = rbinom, n = 1, size = round(I), prob = p_I_)
     x_I_ <- cbind(n_I_, p_I_R, p_I_H)
     n_I_R_H <- apply(x_I_, 1, my_rmultinom)
     # Iv1
-    n_Iv1_ <- mapply(FUN = rbinom, n = 1, size = Iv_1d, prob = p_Iv1_)
+    print("Iv1")
+    n_Iv1_ <- mapply(FUN = rbinom, n = 1, size = round(Iv_1d), prob = p_Iv1_)
     x_Iv1_ <- cbind(n_Iv1_, p_Iv1_Rv1, p_Iv1_Hv1)
     n_Iv1_Rv1_Hv1 <- apply(x_Iv1_, 1, my_rmultinom)
     # Iv2
-    n_Iv2_ <- mapply(FUN = rbinom, n = 1, size = Iv_2d, prob = p_Iv2_)
+    print("Iv2")
+    n_Iv2_ <- mapply(FUN = rbinom, n = 1, size = round(Iv_2d), prob = p_Iv2_)
     x_Iv2_ <- cbind(n_Iv2_, p_Iv2_Rv2, p_Iv2_Hv2)
     n_Iv2_Rv2_Hv2 <- apply(x_Iv2_, 1, my_rmultinom)
     # H
-    n_H_ <- mapply(FUN = rbinom, n = 1, size = H, prob = p_H_)
+    print("H")
+    n_H_ <- mapply(FUN = rbinom, n = 1, size = round(H), prob = p_H_)
     x_H_ <- cbind(n_H_, p_H_IC, p_H_D, p_H_R)
     n_H_IC_D_R <- apply(x_H_, 1, my_rmultinom)
     # Hv1
-    n_Hv1_ <- mapply(FUN = rbinom, n = 1, size = Hv1, prob = p_H_)
+    print("Hv1")
+    n_Hv1_ <- mapply(FUN = rbinom, n = 1, size = round(Hv_1d), prob = p_H_)
     x_Hv1_ <- cbind(n_Hv1_, p_H_IC, p_H_D, p_H_R)
     n_Hv1_ICv1_D_Rv1 <- apply(x_Hv1_, 1, my_rmultinom)
     # Hv2
-    n_Hv2_ <- mapply(FUN = rbinom, n = 1, size = Hv2, prob = p_H_)
+    print("Hv2")
+    n_Hv2_ <- mapply(FUN = rbinom, n = 1, size = round(Hv_2d), prob = p_H_)
     x_Hv2_ <- cbind(n_Hv2_, p_H_IC, p_H_D, p_H_R)
     n_Hv2_ICv2_D_Rv2 <- apply(x_Hv2_, 1, my_rmultinom)
     # IC
-    n_IC_ <- mapply(FUN = rbinom, n = 1, size = IC, prob = p_IC_)
+    print("IC")
+    n_IC_ <- mapply(FUN = rbinom, n = 1, size = round(IC), prob = p_IC_)
     x_IC_ <- cbind(n_IC_, p_IC_HIC, p_IC_D)
     n_IC_HIC_D <- apply(x_IC_, 1, my_rmultinom)
     # ICv1
-    n_ICv1_ <- mapply(FUN = rbinom, n = 1, size = ICv_1d, prob = p_IC_)
+    print("ICv1")
+    n_ICv1_ <- mapply(FUN = rbinom, n = 1, size = round(ICv_1d), prob = p_IC_)
     x_ICv1_ <- cbind(n_ICv1_, p_IC_HIC, p_IC_D)
     n_ICv1_HICv1_D <- apply(x_ICv1_, 1, my_rmultinom)
     # ICv2
-    n_ICv2_ <- mapply(FUN = rbinom, n = 1, size = ICv_2d, prob = p_IC_)
+    print("ICv2")
+    n_ICv2_ <- mapply(FUN = rbinom, n = 1, size = round(ICv_2d), prob = p_IC_)
     x_ICv2_ <- cbind(n_ICv2_, p_IC_HIC, p_IC_D)
     n_ICv2_HICv2_D <- apply(x_ICv2_, 1, my_rmultinom)
     # H_IC
-    n_HIC_ <- mapply(FUN = rbinom, n = 1, size = H_IC, prob = p_HIC_)
+    print("H_IC")
+    n_HIC_ <- mapply(FUN = rbinom, n = 1, size = round(H_IC), prob = p_HIC_)
     n_HIC_D_R <- rmultinom(1, size = n_HIC_, prob = c(p_HIC_D, p_HIC_R))
     # H_ICv1
-    n_HICv1_ <- mapply(FUN = rbinom, n = 1, size = H_ICv_1d, prob = p_HIC_)
+    print("H_ICv1")
+    n_HICv1_ <- mapply(FUN = rbinom, n = 1, size = round(H_ICv_1d), prob = p_HIC_)
     x_HICv1_ <- cbind(n_HICv1_, p_HIC_D, p_HIC_R)
     n_HICv1_D_Rv1 <- apply(x_HICv1_, 1, my_rmultinom)
     # H_ICv2
-    n_HICv2_ <- mapply(FUN = rbinom, n = 1, size = H_ICv_2d, prob = p_HIC_)
+    print("H_ICv2")
+    n_HICv2_ <- mapply(FUN = rbinom, n = 1, size = round(H_ICv_2d), prob = p_HIC_)
     x_HICv2_ <- cbind(n_HICv2_, p_HIC_D, p_HIC_R)
     n_HICv2_D_Rv2 <- apply(x_HICv2_, 1, my_rmultinom)
     

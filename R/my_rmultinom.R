@@ -8,7 +8,8 @@ my_rmultinom <- function(x){
     p3 <- x[4]
     prob_vec <- c(p1, p2, p3)
   } else {prob_vec <- c(p1, p2)}
-  
+  #print(size)
+  #print(prob_vec)
   rmultinom(n = 1, size = size, prob = prob_vec)
 }
 
