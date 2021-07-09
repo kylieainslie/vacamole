@@ -52,19 +52,31 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     Rv_2d = c(Rv_2d1, Rv_2d2, Rv_2d3, Rv_2d4, Rv_2d5, Rv_2d6, Rv_2d7, Rv_2d8, Rv_2d9)
     
     # determine vaccination rate -----------------------------------
-    time_point <- floor(times) + 1
+    if(!is.null(vac_inputs)){
+      time_point <- floor(times) + 1
     
-    alpha <- vac_inputs$alpha_dose1[time_point,]
-    alpha2 <- vac_inputs$alpha_dose2[time_point,]
-    eta <- vac_inputs$eta_dose1[time_point,]
-    eta2 <- vac_inputs$eta_dose2[time_point,]
-    delay <- vac_inputs$delay_dose1[time_point,]
-    delay2 <- vac_inputs$delay_dose2[time_point,]
-    eta_hosp <- vac_inputs$eta_hosp_dose1[time_point,]
-    eta_hosp2 <- vac_inputs$eta_hosp_dose2[time_point,]
-    eta_trans <- vac_inputs$eta_trans_dose1[time_point,]
-    eta_trans2 <- vac_inputs$eta_trans_dose2[time_point,]
-    
+      alpha <- vac_inputs$alpha_dose1[time_point,]
+      alpha2 <- vac_inputs$alpha_dose2[time_point,]
+      eta <- vac_inputs$eta_dose1[time_point,]
+      eta2 <- vac_inputs$eta_dose2[time_point,]
+      delay <- vac_inputs$delay_dose1[time_point,]
+      delay2 <- vac_inputs$delay_dose2[time_point,]
+      eta_hosp <- vac_inputs$eta_hosp_dose1[time_point,]
+      eta_hosp2 <- vac_inputs$eta_hosp_dose2[time_point,]
+      eta_trans <- vac_inputs$eta_trans_dose1[time_point,]
+      eta_trans2 <- vac_inputs$eta_trans_dose2[time_point,]
+    } else {
+      alpha <- 0
+      alpha2 <- 0
+      eta <- 1
+      eta2 <- 1
+      delay <- 1
+      delay2 <- 1
+      eta_hosp <- 1
+      eta_hosp2 <- 1
+      eta_trans <- 1
+      eta_trans2 <- 1
+    }
     # determine contact matrix based on criteria --------------------
     ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))
     
@@ -141,30 +153,33 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     
     ### number of individuals transitioning between compartments
     # S
-    #print("S")
+    print(S)
     n_S_ <- mapply(FUN = rbinom, n = 1, size = round(S), prob = p_S_)
+    print(n_S_)
     x_S_ <- cbind(n_S_, p_S_Shold1, p_S_E)
+    print(x_S_)
     n_S_Shold1_E <- apply(x_S_, 1, my_rmultinom)
+    print(n_S_Shold1_E)
     # Shold1
-    #print("Shold1")
+    # print(Shold_1d)
     n_Shold1_ <- mapply(FUN = rbinom, n = 1, size = round(Shold_1d), prob = p_Shold1_)
     x_Shold1_ <- cbind(n_Shold1_, p_Shold1_E, p_Shold1_Sv1)
     n_Shold1_E_Sv1 <- apply(x_Shold1_, 1, my_rmultinom)
     # Sv1
-    #print("Sv1")
+    # print(Sv_1d)
     n_Sv1_ <- mapply(FUN = rbinom, n = 1, size = round(Sv_1d), prob = p_Sv1_)
     x_Sv1_ <- cbind(n_Sv1_, p_Sv1_Shold2, p_Sv1_Ev1)
     n_Sv1_Shold2_Ev1 <- apply(x_Sv1_, 1, my_rmultinom)
     # Shold2
-    #print("Shold2")
+    # print(Shold_2d)
     n_Shold2_ <- mapply(FUN = rbinom, n = 1, size = round(Shold_2d), prob = p_Shold2_)
     x_Shold2_ <- cbind(n_Shold2_, p_Shold2_Ev1, p_Shold2_Sv2)
     n_Shold2_Ev1_Sv2 <- apply(x_Shold2_, 1, my_rmultinom)
     # Sv2
-    #print("Sv2")
+    # print(Sv_2d)
     n_Sv2_Ev2 <- mapply(FUN = rbinom, n = 1, size = round(Sv_2d), prob = p_Sv2_Ev2)
     # E
-    #print("E")
+    # print(E)
     n_E_I <- mapply(FUN = rbinom, n = 1, size = round(E), prob = p_E_I)
     n_Ev1_Iv1 <- mapply(FUN = rbinom, n = 1, size = round(Ev_1d), prob = p_E_I)
     n_Ev2_Iv2 <- mapply(FUN = rbinom, n = 1, size = round(Ev_2d), prob = p_E_I)
