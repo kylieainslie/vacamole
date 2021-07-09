@@ -43,7 +43,20 @@ params <- list(dt = 1,
 times <- seq(start_date, end_date, by = 1) - yday(as.Date("2021-01-31"))
 # set initial_conditions start time the first time point
 initial_conditions["t"] <- times[1]
+# single simulation run --------------------------------------------
+# if time doesn't start at 0 we need to initialise the contact 
+# matrices flags
+if(times[1] != 0){
+  flag_relaxed <- 0 # start with relaxed contact matrix
+  flag_very_relaxed <- 0
+  flag_normal <- 0
+}
+# Solve model ------------------------------------------------------
+seir_out <- lsoda(initial_conditions,times,stochastic_age_struct_seir_ode,params) #
+seir_out <- as.data.frame(seir_out)
+out <- postprocess_age_struct_model_output(seir_out)
 
+# parallel simulations ---------------------------------------------
 # simulations to run
 sims_vec <- 1:10
 
@@ -51,6 +64,8 @@ sims_vec <- 1:10
 library(parallel)
 n_cores <- detectCores()
 
+# wrapper function for parallel runs
+# can't use this on Windows!
 parallel_wrapper <- function(n_sim){
   
   # if time doesn't start at 0 we need to initialise the contact matrices flags
@@ -59,7 +74,7 @@ parallel_wrapper <- function(n_sim){
     flag_very_relaxed <- 0
     flag_normal <- 0
   }
-  # Solve model ------------------------------------------------------
+  # Solve model ----------------------------------------------------
   seir_out <- lsoda(initial_conditions,times,stochastic_age_struct_seir_ode,params) #
   seir_out <- as.data.frame(seir_out)
   out <- postprocess_age_struct_model_output(seir_out)
