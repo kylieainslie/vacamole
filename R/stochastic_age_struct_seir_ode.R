@@ -1,6 +1,6 @@
 #' Stochastic Age-structured SEIR ODE model of vaccination with 2 doses and delay to protection
 #' @param times vector of times
-#' @param init list of inititial states
+#' @param init list of initial states
 #' @param params list of parameter values
 #' @return List of summary results
 #' @keywords vacamole
@@ -8,7 +8,7 @@
 # Define model -----------------------------------------------------
 stochastic_age_struct_seir_ode <- function(times,init,params){
   with(as.list(c(params,init)), {
-    #print(t)
+    print(t)
     # divide rates by dt -------------------------------------------
     beta <- beta/dt           # transmission rate
     beta1 <- beta1/dt         # amplitude of seasonal forcing
