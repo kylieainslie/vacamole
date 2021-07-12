@@ -8,6 +8,7 @@
 # Define model -----------------------------------------------------
 stochastic_age_struct_seir_ode <- function(times,init,params){
   with(as.list(c(params,init)), {
+    print("time point")
     print(t)
     # divide rates by dt -------------------------------------------
     beta <- beta/dt           # transmission rate
@@ -80,7 +81,14 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     # determine contact matrix based on criteria --------------------
     ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))
     
+    # print("E states")
+    # print(E)
+    # print(Ev_1d)
+    # print(Ev_2d)
+    # 
     cases <- sum(sigma * (E + Ev_1d + Ev_2d) * p_report)
+    print("cases")
+    print(cases)
     criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
   
     # initialise flags
@@ -103,22 +111,27 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day/365.24))
     # lambda <- beta * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
+    print(lambda)
     # ---------------------------------------------------------------
     ### probabilities of transitioning
     # from S
     p_S_ <- as.numeric(1 - exp(-lambda-alpha))                        # total probability of moving from S
+    p_S_ <- ifelse(p_S_ < 0, 0, p_S_)                                 # restrict probability to be positive
     p_S_Shold1 <- as.numeric(alpha/(lambda + alpha))                  # relative probability of moving from S -> Shold_1d
     p_S_E <- as.numeric(lambda/(lambda + alpha))                      # relative probability of moving from S -> E
     # from Shold_1d
     p_Shold1_ <- as.numeric(1 - exp(-lambda-(1/delay)))               # total probability of moving from Shold_1d
+    p_Shold1_ <- ifelse(p_Shold1_ < 0, 0, p_Shold1_)
     p_Shold1_E <- as.numeric(lambda/(lambda + (1/delay)))             # relative probability of moving from Shold_1d -> E
     p_Shold1_Sv1 <- as.numeric((1/delay)/(lambda + (1/delay)))        # relative probability of moving from Shold_1d -> Sv1
     # from Sv_1d
     p_Sv1_ <- as.numeric(1 - exp(-eta*lambda-alpha2))                 # total probability of moving from Sv1
+    p_Sv1_ <- ifelse(p_Sv1_ < 0, 0, p_Sv1_)
     p_Sv1_Shold2 <- as.numeric(alpha2/(eta*lambda + alpha2))          # relative probability of moving from Sv1 -> Shold_2d
-    p_Sv1_Ev1 <- as.numeric(eta*lambda/(eta*lambda + alpha2))         # relative probability of moving from Sv1 -> Ev1
+    p_Sv1_Ev1 <- as.numeric(eta*lambda/(eta *lambda + alpha2))        # relative probability of moving from Sv1 -> Ev1
     # from Shold_2d
     p_Shold2_ <- as.numeric(1 - exp(-eta*lambda-(1/delay2)))          # total probability of moving from Shold_2s
+    p_Shold2_ <- ifelse(p_Shold2_ < 0, 0, p_Shold2_)
     p_Shold2_Sv2 <- as.numeric((1/delay2)/(eta*lambda + (1/delay2)))  # relative probability of moving from Shold_2d -> Sv2
     p_Shold2_Ev1 <- as.numeric(eta*lambda/(eta*lambda + (1/delay2)))  # relative probability of moving from Shold_2d -> Ev1
     # from Sv_2d
@@ -155,15 +168,18 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     # S
     print(S)
     n_S_ <- mapply(FUN = rbinom, n = 1, size = round(S), prob = p_S_)
+    print(p_S_)
     print(n_S_)
     x_S_ <- cbind(n_S_, p_S_Shold1, p_S_E)
     print(x_S_)
     n_S_Shold1_E <- apply(x_S_, 1, my_rmultinom)
     print(n_S_Shold1_E)
     # Shold1
-    # print(Shold_1d)
+    print(Shold_1d)
     n_Shold1_ <- mapply(FUN = rbinom, n = 1, size = round(Shold_1d), prob = p_Shold1_)
+    print(n_Shold1_)
     x_Shold1_ <- cbind(n_Shold1_, p_Shold1_E, p_Shold1_Sv1)
+    print(x_Shold1_)
     n_Shold1_E_Sv1 <- apply(x_Shold1_, 1, my_rmultinom)
     # Sv1
     # print(Sv_1d)
@@ -179,15 +195,22 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     # print(Sv_2d)
     n_Sv2_Ev2 <- mapply(FUN = rbinom, n = 1, size = round(Sv_2d), prob = p_Sv2_Ev2)
     # E
-    # print(E)
+    print(E)
     n_E_I <- mapply(FUN = rbinom, n = 1, size = round(E), prob = p_E_I)
+    print(n_E_I)
     n_Ev1_Iv1 <- mapply(FUN = rbinom, n = 1, size = round(Ev_1d), prob = p_E_I)
+    print(n_Ev1_Iv1)
     n_Ev2_Iv2 <- mapply(FUN = rbinom, n = 1, size = round(Ev_2d), prob = p_E_I)
+    print(n_Ev2_Iv2)
     # I
     #print("I")
+    print(I)
     n_I_ <- mapply(FUN = rbinom, n = 1, size = round(I), prob = p_I_)
+    print(n_I_)
     x_I_ <- cbind(n_I_, p_I_R, p_I_H)
+    print(x_I_)
     n_I_R_H <- apply(x_I_, 1, my_rmultinom)
+    print(n_I_R_H)
     # Iv1
     #print("Iv1")
     n_Iv1_ <- mapply(FUN = rbinom, n = 1, size = round(Iv_1d), prob = p_Iv1_)
