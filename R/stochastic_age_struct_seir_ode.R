@@ -9,6 +9,19 @@
 stochastic_age_struct_seir_ode <- function(times,init,params){
     dt <- params$sdt
     time_vec <- seq(from = times[1], to = times[length(times)], by = dt)
+    
+    # define array to store output for each time step ---------------
+    rtn <- array(,
+      dim = c(length(time_vec), 9, 24),
+      dimnames = list(
+        c(paste0("t", round(time_vec, 2))), # row names
+        c("age_0_9", "age_10_19", "age_20_29", "age_30_39", "age_40_49",
+          "age_50_59", "age_60_69", "age_70_79", "age_80_plus"), # column names
+        c("S", "Shold_1d", "Sv_1d", "Shold_2d", "Sv_2d", "E", "Ev_1d", "Ev_2d",
+          "I", "Iv_1d", "Iv_2d", "H", "Hv_1d", "Hv_2d", "H_IC", "H_ICv_1d",
+          "H_ICv_2d", "IC", "ICv_1d", "ICv_2d", "D", "R", "Rv_1d", "Rv_2d") # array names
+      ))
+    
     for(t in 1:length(time_vec)){
     cat("time point: ", t, "\n")
 
@@ -28,36 +41,36 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     
     # define initial state vectors from input ----------------------
     if (t == 1){
-      S        <- init[c("S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9")]
-      Shold_1d <- init[c("Shold_1d1", "Shold_1d2", "Shold_1d3", "Shold_1d4", "Shold_1d5", "Shold_1d6", 
+      S[t,]        <- init[c("S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9")]
+      Shold_1d[t,] <- init[c("Shold_1d1", "Shold_1d2", "Shold_1d3", "Shold_1d4", "Shold_1d5", "Shold_1d6", 
                         "Shold_1d7", "Shold_1d8", "Shold_1d9")]
-      Sv_1d    <- init[c("Sv_1d1", "Sv_1d2", "Sv_1d3", "Sv_1d4", "Sv_1d5", "Sv_1d6", "Sv_1d7", "Sv_1d8", "Sv_1d9")]
-      Shold_2d <- init[c("Shold_2d1", "Shold_2d2", "Shold_2d3", "Shold_2d4", "Shold_2d5", "Shold_2d6", 
+      Sv_1d[t,]    <- init[c("Sv_1d1", "Sv_1d2", "Sv_1d3", "Sv_1d4", "Sv_1d5", "Sv_1d6", "Sv_1d7", "Sv_1d8", "Sv_1d9")]
+      Shold_2d[t,] <- init[c("Shold_2d1", "Shold_2d2", "Shold_2d3", "Shold_2d4", "Shold_2d5", "Shold_2d6", 
                          "Shold_2d7", "Shold_2d8", "Shold_2d9")]
-      Sv_2d    <- init[c("Sv_2d1", "Sv_2d2", "Sv_2d3", "Sv_2d4", "Sv_2d5", "Sv_2d6", "Sv_2d7", "Sv_2d8", "Sv_2d9")]
-      E        <- init[c("E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9")]
-      Ev_1d    <- init[c("Ev_1d1", "Ev_1d2", "Ev_1d3", "Ev_1d4", "Ev_1d5", "Ev_1d6", "Ev_1d7", "Ev_1d8", "Ev_1d9")]
-      Ev_2d    <- init[c("Ev_2d1", "Ev_2d2", "Ev_2d3", "Ev_2d4", "Ev_2d5", "Ev_2d6", "Ev_2d7", "Ev_2d8", "Ev_2d9")]
-      I        <- init[c("I1", "I2", "I3", "I4", "I5", "I6", "I7", "I8", "I9")]
-      Iv_1d    <- init[c("Iv_1d1", "Iv_1d2", "Iv_1d3", "Iv_1d4", "Iv_1d5", "Iv_1d6", "Iv_1d7", "Iv_1d8", "Iv_1d9")]
-      Iv_2d    <- init[c("Iv_2d1", "Iv_2d2", "Iv_2d3", "Iv_2d4", "Iv_2d5", "Iv_2d6", "Iv_2d7", "Iv_2d8", "Iv_2d9")]
-      H        <- init[c("H1", "H2", "H3", "H4", "H5", "H6", "H7", "H8", "H9")]
-      Hv_1d    <- init[c("Hv_1d1", "Hv_1d2", "Hv_1d3", "Hv_1d4", "Hv_1d5", "Hv_1d6", "Hv_1d7", "Hv_1d8", "Hv_1d9")]
-      Hv_2d    <- init[c("Hv_2d1", "Hv_2d2", "Hv_2d3", "Hv_2d4", "Hv_2d5", "Hv_2d6", "Hv_2d7", "Hv_2d8", "Hv_2d9")]
-      H_IC     <- init[c("H_IC1", "H_IC2", "H_IC3", "H_IC4", "H_IC5", "H_IC6", "H_IC7", "H_IC8", "H_IC9")]
-      H_ICv_1d <- init[c("H_ICv_1d1", "H_ICv_1d2", "H_ICv_1d3", "H_ICv_1d4", "H_ICv_1d5", "H_ICv_1d6", 
+      Sv_2d[t,]    <- init[c("Sv_2d1", "Sv_2d2", "Sv_2d3", "Sv_2d4", "Sv_2d5", "Sv_2d6", "Sv_2d7", "Sv_2d8", "Sv_2d9")]
+      E[t,]        <- init[c("E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9")]
+      Ev_1d[t,]    <- init[c("Ev_1d1", "Ev_1d2", "Ev_1d3", "Ev_1d4", "Ev_1d5", "Ev_1d6", "Ev_1d7", "Ev_1d8", "Ev_1d9")]
+      Ev_2d[t,]    <- init[c("Ev_2d1", "Ev_2d2", "Ev_2d3", "Ev_2d4", "Ev_2d5", "Ev_2d6", "Ev_2d7", "Ev_2d8", "Ev_2d9")]
+      I[t,]        <- init[c("I1", "I2", "I3", "I4", "I5", "I6", "I7", "I8", "I9")]
+      Iv_1d[t,]    <- init[c("Iv_1d1", "Iv_1d2", "Iv_1d3", "Iv_1d4", "Iv_1d5", "Iv_1d6", "Iv_1d7", "Iv_1d8", "Iv_1d9")]
+      Iv_2d[t,]    <- init[c("Iv_2d1", "Iv_2d2", "Iv_2d3", "Iv_2d4", "Iv_2d5", "Iv_2d6", "Iv_2d7", "Iv_2d8", "Iv_2d9")]
+      H[t,]        <- init[c("H1", "H2", "H3", "H4", "H5", "H6", "H7", "H8", "H9")]
+      Hv_1d[t,]    <- init[c("Hv_1d1", "Hv_1d2", "Hv_1d3", "Hv_1d4", "Hv_1d5", "Hv_1d6", "Hv_1d7", "Hv_1d8", "Hv_1d9")]
+      Hv_2d[t,]    <- init[c("Hv_2d1", "Hv_2d2", "Hv_2d3", "Hv_2d4", "Hv_2d5", "Hv_2d6", "Hv_2d7", "Hv_2d8", "Hv_2d9")]
+      H_IC[t,]     <- init[c("H_IC1", "H_IC2", "H_IC3", "H_IC4", "H_IC5", "H_IC6", "H_IC7", "H_IC8", "H_IC9")]
+      H_ICv_1d[t,] <- init[c("H_ICv_1d1", "H_ICv_1d2", "H_ICv_1d3", "H_ICv_1d4", "H_ICv_1d5", "H_ICv_1d6", 
                          "H_ICv_1d7", "H_ICv_1d8", "H_ICv_1d9")]
-      H_ICv_2d <- init[c("H_ICv_2d1", "H_ICv_2d2", "H_ICv_2d3", "H_ICv_2d4", "H_ICv_2d5", "H_ICv_2d6", 
+      H_ICv_2d[t,] <- init[c("H_ICv_2d1", "H_ICv_2d2", "H_ICv_2d3", "H_ICv_2d4", "H_ICv_2d5", "H_ICv_2d6", 
                          "H_ICv_2d7", "H_ICv_2d8", "H_ICv_2d9")]
-      IC       <- init[c("IC1", "IC2", "IC3", "IC4", "IC5", "IC6", "IC7", "IC8", "IC9")]
-      ICv_1d   <- init[c("ICv_1d1", "ICv_1d2", "ICv_1d3", "ICv_1d4", "ICv_1d5", "ICv_1d6", "ICv_1d7", "ICv_1d8", 
+      IC[t,]       <- init[c("IC1", "IC2", "IC3", "IC4", "IC5", "IC6", "IC7", "IC8", "IC9")]
+      ICv_1d[t,]   <- init[c("ICv_1d1", "ICv_1d2", "ICv_1d3", "ICv_1d4", "ICv_1d5", "ICv_1d6", "ICv_1d7", "ICv_1d8", 
                          "ICv_1d9")]
-      ICv_2d   <- init[c("ICv_2d1", "ICv_2d2", "ICv_2d3", "ICv_2d4", "ICv_2d5", "ICv_2d6", "ICv_2d7", "ICv_2d8", 
+      ICv_2d[t,]   <- init[c("ICv_2d1", "ICv_2d2", "ICv_2d3", "ICv_2d4", "ICv_2d5", "ICv_2d6", "ICv_2d7", "ICv_2d8", 
                          "ICv_2d9")]
-      D        <- init[c("D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9")]
-      R        <- init[c("R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9")]
-      Rv_1d    <- init[c("Rv_1d1", "Rv_1d2", "Rv_1d3", "Rv_1d4", "Rv_1d5", "Rv_1d6", "Rv_1d7", "Rv_1d8", "Rv_1d9")]
-      Rv_2d    <- init[c("Rv_2d1", "Rv_2d2", "Rv_2d3", "Rv_2d4", "Rv_2d5", "Rv_2d6", "Rv_2d7", "Rv_2d8", "Rv_2d9")]
+      D[t,]        <- init[c("D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9")]
+      R[t,]        <- init[c("R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9")]
+      Rv_1d[t,]    <- init[c("Rv_1d1", "Rv_1d2", "Rv_1d3", "Rv_1d4", "Rv_1d5", "Rv_1d6", "Rv_1d7", "Rv_1d8", "Rv_1d9")]
+      Rv_2d[t,]    <- init[c("Rv_2d1", "Rv_2d2", "Rv_2d3", "Rv_2d4", "Rv_2d5", "Rv_2d6", "Rv_2d7", "Rv_2d8", "Rv_2d9")]
       
     # initialise flags for contact matrices ----------------------
       flag_relaxed <- 0
@@ -275,41 +288,44 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     
     ################################################################
     # ODEs:
-    dS        <- S - n_S_Shold1_E[1,] - n_S_Shold1_E[2,]
-    dShold_1d <- Shold_1d + n_S_Shold1_E[1,] - n_Shold1_E_Sv1[1,] - n_Shold1_E_Sv1[2,]
-    dSv_1d    <- Sv_1d + n_Shold1_E_Sv1[2,] - n_Sv1_Shold2_Ev1[1,] - n_Sv1_Shold2_Ev1[2,]
-    dShold_2d <- Shold_2d - n_Shold2_Ev1_Sv2[1,] - n_Shold2_Ev1_Sv2[2,]
-    dSv_2d    <- Sv_2d - n_Sv2_Ev2
-    dE        <- E + n_S_Shold1_E[2,] + n_Shold1_E_Sv1[1,] - n_E_I
-    dEv_1d    <- Ev_1d + n_Sv1_Shold2_Ev1[2,] + n_Shold2_Ev1_Sv2[1,] - n_Ev1_Iv1
-    dEv_2d    <- Ev_2d + n_Sv2_Ev2 - n_Ev2_Iv2
-    dI        <- I + n_E_I - n_I_R_H[1,] - n_I_R_H[2,]
-    dIv_1d    <- Iv_1d + n_Ev1_Iv1 - n_Iv1_Rv1_Hv1[1,] - n_Iv1_Rv1_Hv1[2,]  
-    dIv_2d    <- Iv_2d + n_Ev2_Iv2 - n_Iv2_Rv2_Hv2[1,] - n_Iv2_Rv2_Hv2[2,]
-    dH        <- H + n_I_R_H[2,] - n_H_IC_D_R[1,] - n_H_IC_D_R[2,] - n_H_IC_D_R[3,]
-    dHv_1d    <- Hv_1d + n_Iv1_Rv1_Hv1[2,] - n_Hv1_ICv1_D_Rv1[1,] - n_Hv1_ICv1_D_Rv1[2,] - n_Hv1_ICv1_D_Rv1[3,]
-    dHv_2d    <- Hv_2d + n_Iv1_Rv1_Hv1[2,] - n_Hv2_ICv2_D_Rv2[1,] - n_Hv2_ICv2_D_Rv2[2,]- n_Hv2_ICv2_D_Rv2[3,]
-    dIC       <- IC + n_H_IC_D_R[1,] - n_IC_HIC_D[1,] - n_IC_HIC_D[2,]
-    dICv_1d   <- ICv_1d + n_Hv1_ICv1_D_Rv1[1,] - n_ICv1_HICv1_D[1,] - n_ICv1_HICv1_D[2,]
-    dICv_2d   <- ICv_2d + n_Hv2_ICv2_D_Rv2[1,] - n_ICv2_HICv2_D[1,] - n_ICv2_HICv2_D[2,]
-    dH_IC     <- H_IC + n_IC_HIC_D[1,] - n_HIC_D_R[1,] - n_HIC_D_R[2,]
-    dH_ICv_1d <- H_ICv_1d + n_ICv1_HICv1_D[1,] - n_HICv1_D_Rv1[1,] - n_HICv1_D_Rv1[2,]
-    dH_ICv_2d <- H_ICv_2d + n_ICv2_HICv2_D[1,] - n_HICv2_D_Rv2[1,] - n_HICv2_D_Rv2[2,]
-    dD        <- D + n_H_IC_D_R[2,] + n_Hv1_ICv1_D_Rv1[2,] + n_Hv2_ICv2_D_Rv2[2,] +
+    S[t,]        <- S - n_S_Shold1_E[1,] - n_S_Shold1_E[2,]
+    Shold_1d[t,] <- Shold_1d + n_S_Shold1_E[1,] - n_Shold1_E_Sv1[1,] - n_Shold1_E_Sv1[2,]
+    Sv_1d[t,]    <- Sv_1d + n_Shold1_E_Sv1[2,] - n_Sv1_Shold2_Ev1[1,] - n_Sv1_Shold2_Ev1[2,]
+    Shold_2d[t,] <- Shold_2d - n_Shold2_Ev1_Sv2[1,] - n_Shold2_Ev1_Sv2[2,]
+    Sv_2d[t,]    <- Sv_2d - n_Sv2_Ev2
+    E[t,]        <- E + n_S_Shold1_E[2,] + n_Shold1_E_Sv1[1,] - n_E_I
+    Ev_1d[t,]    <- Ev_1d + n_Sv1_Shold2_Ev1[2,] + n_Shold2_Ev1_Sv2[1,] - n_Ev1_Iv1
+    Ev_2d[t,]    <- Ev_2d + n_Sv2_Ev2 - n_Ev2_Iv2
+    I[t,]        <- I + n_E_I - n_I_R_H[1,] - n_I_R_H[2,]
+    Iv_1d[t,]    <- Iv_1d + n_Ev1_Iv1 - n_Iv1_Rv1_Hv1[1,] - n_Iv1_Rv1_Hv1[2,]  
+    Iv_2d[t,]    <- Iv_2d + n_Ev2_Iv2 - n_Iv2_Rv2_Hv2[1,] - n_Iv2_Rv2_Hv2[2,]
+    H[t,]        <- H + n_I_R_H[2,] - n_H_IC_D_R[1,] - n_H_IC_D_R[2,] - n_H_IC_D_R[3,]
+    Hv_1d[t,]    <- Hv_1d + n_Iv1_Rv1_Hv1[2,] - n_Hv1_ICv1_D_Rv1[1,] - n_Hv1_ICv1_D_Rv1[2,] - n_Hv1_ICv1_D_Rv1[3,]
+    Hv_2d[t,]    <- Hv_2d + n_Iv1_Rv1_Hv1[2,] - n_Hv2_ICv2_D_Rv2[1,] - n_Hv2_ICv2_D_Rv2[2,]- n_Hv2_ICv2_D_Rv2[3,]
+    IC[t,]       <- IC + n_H_IC_D_R[1,] - n_IC_HIC_D[1,] - n_IC_HIC_D[2,]
+    ICv_1d[t,]   <- ICv_1d + n_Hv1_ICv1_D_Rv1[1,] - n_ICv1_HICv1_D[1,] - n_ICv1_HICv1_D[2,]
+    ICv_2d[t,]   <- ICv_2d + n_Hv2_ICv2_D_Rv2[1,] - n_ICv2_HICv2_D[1,] - n_ICv2_HICv2_D[2,]
+    H_IC[t,]     <- H_IC + n_IC_HIC_D[1,] - n_HIC_D_R[1,] - n_HIC_D_R[2,]
+    H_ICv_1d[t,] <- H_ICv_1d + n_ICv1_HICv1_D[1,] - n_HICv1_D_Rv1[1,] - n_HICv1_D_Rv1[2,]
+    H_ICv_2d[t,] <- H_ICv_2d + n_ICv2_HICv2_D[1,] - n_HICv2_D_Rv2[1,] - n_HICv2_D_Rv2[2,]
+    D[t,]        <- D + n_H_IC_D_R[2,] + n_Hv1_ICv1_D_Rv1[2,] + n_Hv2_ICv2_D_Rv2[2,] +
                      n_IC_HIC_D[2,] + n_ICv1_HICv1_D[2,] + n_ICv2_HICv2_D[2,] +
                      n_HIC_D_R[1,] + n_HICv1_D_Rv1[1,] + n_HICv2_D_Rv2[1,]
-    dR        <- R + n_I_R_H[1,] + n_H_IC_D_R[3,] + n_HIC_D_R[2,]
-    dRv_1d    <- Rv_1d + n_Iv1_Rv1_Hv1[1,] + n_Hv1_ICv1_D_Rv1[3,] + n_HICv1_D_Rv1[2,]
-    dRv_2d    <- Rv_2d + n_Iv2_Rv2_Hv2[1,] + n_Hv2_ICv2_D_Rv2[3,] + n_HICv2_D_Rv2[2,]
+    R[t,]        <- R + n_I_R_H[1,] + n_H_IC_D_R[3,] + n_HIC_D_R[2,]
+    Rv_1d[t,]    <- Rv_1d + n_Iv1_Rv1_Hv1[1,] + n_Hv1_ICv1_D_Rv1[3,] + n_HICv1_D_Rv1[2,]
+    Rv_2d[t,]    <- Rv_2d + n_Iv2_Rv2_Hv2[1,] + n_Hv2_ICv2_D_Rv2[3,] + n_HICv2_D_Rv2[2,]
     
     # assign variables to global environment, so they can be used for next iteration
     # assign("flag_relaxed", flag_relaxed, envir = globalenv())
     # assign("flag_very_relaxed", flag_very_relaxed, envir = globalenv())
     # assign("flag_normal", flag_normal, envir = globalenv())
     ################################################################
-    # output
-    list(c(dt,dS,dShold_1d,dSv_1d,dShold_2d,dSv_2d,dE,dEv_1d,dEv_2d,
-           dI,dIv_1d,dIv_2d,dH,dHv_1d,dHv_2d, dH_IC, dH_ICv_1d, dH_ICv_2d,
-           dIC, dICv_1d, dICv_2d,dD,dR,dRv_1d,dRv_2d))
-    }
+    } # end of for loop
+    
+    # output -------------------------------------------------------
+    return(rtn)
+    # list(c(dt,dS,dShold_1d,dSv_1d,dShold_2d,dSv_2d,dE,dEv_1d,dEv_2d,
+    #        dI,dIv_1d,dIv_2d,dH,dHv_1d,dHv_2d, dH_IC, dH_ICv_1d, dH_ICv_2d,
+    #        dIC, dICv_1d, dICv_2d,dD,dR,dRv_1d,dRv_2d))
+    
 }
