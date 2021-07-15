@@ -1,11 +1,12 @@
+# Test script for stochastic model version
 
 # Create list of parameter values for input into model solver
-params <- list(dt = 1,
-               beta =  0.0004,            # transmission rate
+params <- list(dt = 1/6,                  # units, 1 = day
+               beta =  0.0004,            # transmission rate, units: per day
                beta1 = 0.14,              # amplitude of seasonal forcing
-               gamma = g,                 # 1/gamma = infectious period
-               sigma = s,                 # 1/sigma = latent period
-               delta = NULL,              # scaling constant for beta (if NULL it is excluded)
+               gamma = g,                 # rate of becoming infectious, units: per day
+               sigma = s,                 # rate of becoming infected, units: per day
+               #mu = 0.00003653,           # birth rate, units: per day
                N = n_vec,                 # Population (no need to change)
                h = h,                     # Rate from infection to hospital admission/ time from infection to hosp admission
                i1 = i1,
@@ -21,8 +22,8 @@ params <- list(dt = 1,
                c_relaxed = t1,
                c_very_relaxed = t1,
                c_normal = t1,
-               keep_cm_fixed = FALSE,
-               vac_inputs = basis1_no_wane,
+               keep_cm_fixed = TRUE,
+               vac_inputs = NULL,
                use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_n = 0.5/100000 * sum(n_vec),
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
@@ -33,7 +34,7 @@ params <- list(dt = 1,
                breakpoints = NULL  # breakpoints - start_date    # time points when parameters can change (if NULL, then beta is constant over time)
 )
 
-times <- seq(0, 40, by = 1)
+times <- seq(0, 200, by = 1)
 
 # Specify initial values -------------------------------------------
 empty_state <- c(rep(0, 9))
@@ -65,6 +66,16 @@ init <- c(
   Rv_2d = empty_state
 )
 
+# determine transmission rate (beta) for r0 ------------------------
+r0 <- 2.3
+S_diag <- diag(c(rep(100000, 9)))
+rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
+beta <- (r0 / rho) * params$gamma
+# check
+K <- (1 / params$gamma) * beta * S_diag %*% params$c_start
+as.numeric(eigs(K, 1)$values) # this should be r0
+params$beta <- beta
+
 # single simulation run --------------------------------------------
 # if time doesn't start at 0 we need to initialise the contact 
 # matrices flags
@@ -74,6 +85,17 @@ if(times[1] != 0){
   flag_normal <- 0
 }
 # Solve model ------------------------------------------------------
-seir_out <- lsoda(init,times,stochastic_age_struct_seir_ode,params) #
-seir_out <- as.data.frame(seir_out)
-out <- postprocess_age_struct_model_output(seir_out)
+seir_out <- stochastic_age_struct_seir_ode(times,init,params) #
+#seir_out <- as.data.frame(seir_out)
+#out <- postprocess_age_struct_model_output(seir_out)
+
+# Plot -------------------------------------------------------------
+#seirds_col <- c("#8c8cd9", "#e67300", "#d279a6", "#ff4d4d", "#999966", "#660000")
+my_cols <- viridis_pal(option = "D")(7)
+x_res <- apply(seir_out, 3, rowSums)
+x_times <- as.numeric(str_remove(rownames(x_res), "[t]"))
+par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
+matplot(x_times, x_res[,c("S","E","I","H", "IC", "D", "R")], xlab = "Time", ylab = "Number of individuals",
+        type = "l", col = my_cols, lty = 1)
+legend("left", lwd = 1, col = my_cols, legend = ,c("S","E","I","H", "IC", "D", "R"), bty = "n")
+
