@@ -92,11 +92,56 @@ seir_out <- stochastic_age_struct_seir_ode(times,init,params) #
 
 # Plot -------------------------------------------------------------
 #seirds_col <- c("#8c8cd9", "#e67300", "#d279a6", "#ff4d4d", "#999966", "#660000")
-my_cols <- viridis_pal(option = "D")(7)
+my_cols <- viridis_pal(option = "D")(4)
 x_res <- apply(seir_out, 3, rowSums)
 x_times <- as.numeric(str_remove(rownames(x_res), "[t]"))
 par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
-matplot(x_times, x_res[,c("S","E","I","H", "IC", "D", "R")], xlab = "Time", ylab = "Number of individuals",
+matplot(x_times, x_res[,c("S","E","I","R")], xlab = "Time", ylab = "Number of individuals",
         type = "l", col = my_cols, lty = 1)
-legend("left", lwd = 1, col = my_cols, legend = ,c("S","E","I","H", "IC", "D", "R"), bty = "n")
+legend("left", lwd = 1, col = my_cols, legend = ,c("S","E","I","R"), bty = "n")
+
+# Multiple runs ----------------------------------------------------
+library(foreach)
+library(doParallel)
+library(parallel)
+
+n_cores <- detectCores()
+registerDoParallel(n_cores)
+n_sims <- 10
+
+mult_sim_out <- foreach (i = 1:n_sims) %dopar% {
+  stochastic_age_struct_seir_ode(times,init,params)
+}
+
+# a little data post-processing
+x_res_mult <- lapply(mult_sim_out ,FUN = function(x) as.data.frame(apply(x, 3, rowSums))) 
+x_times <- as.numeric(str_remove(rownames(x_res_mult[[1]]), "[t]"))
+x_res_mult1 <- x_res_mult %>%
+  bind_rows(., .id = "sim") %>%
+  mutate(time = rep(x_times,n_sims)) %>%
+  select(sim, time, S:Rv_1d)
+names(x_res_mult1) <- gsub("_", ".", names(x_res_mult1)) # need to do this for the pivot longer statement later
+
+x_plot <- x_res_mult1 %>%
+  select(-sim) %>%
+  group_by(time) %>%
+  summarise_all(list(mean = mean, 
+                lower = ~quantile(., probs = 0.025),
+                upper = ~quantile(., probs = 0.975))) %>%
+  pivot_longer(!time,
+               names_to = c("state", "stat"),
+               names_sep = c("_"),
+               values_to = "value")
+
+# plot
+my_cols <- viridis_pal(option = "D")(24)
+my_cols_transp <- paste0(my_cols, "1A")
+
+x_for_plot <- x_res_mult1 %>%
+  select()
+par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
+matplot(x_times, x_res_mult1, xlab = "Time", ylab = "Number of individuals",
+        type = "l", col = c(rep(my_cols_transp, 10)), lty = 1)
+legend("left", lwd = 1, col = my_cols, legend = ,c("S","E","I","R"), bty = "n")
+
 
