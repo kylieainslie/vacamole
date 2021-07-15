@@ -9,7 +9,7 @@ end_date <- lubridate::yday(as.Date("2022-03-30")) + 365
 # Create list of parameter values for input into model solver
 params <- list(dt = 1,
                beta = beta_mle,           # transmission rate
-               beta1 = 0.14,               # amplitude of seasonal forcing
+               beta1 = 0.14,              # amplitude of seasonal forcing
                gamma = g,                 # 1/gamma = infectious period
                sigma = s,                 # 1/sigma = latent period
                delta = NULL,              # scaling constant for beta (if NULL it is excluded)
@@ -25,16 +25,16 @@ params <- list(dt = 1,
                p_report = 1/3, #p_reported_by_age,
                c_start = t2,
                c_lockdown = t3,
-               c_relaxed = t3,
+               c_relaxed = t4,
                c_very_relaxed = t3,
                c_normal = t1,
                keep_cm_fixed = FALSE,
-               vac_inputs = basis1_no_wane,
+               vac_inputs = NULL,
                use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_n = 0.5/100000 * sum(n_vec),
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
                thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
-               thresh_u = 1000/100000 * sum(n_vec),      #35.7  # 20 for IC admissions
+               thresh_u = 35.7/100000 * sum(n_vec),      #35.7  # 20 for IC admissions
                no_vac = FALSE,
                t_calendar_start = yday(as.Date("2021-01-31")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
                breakpoints = NULL  # breakpoints - start_date    # time points when parameters can change (if NULL, then beta is constant over time)
