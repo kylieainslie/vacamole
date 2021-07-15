@@ -107,7 +107,7 @@ library(parallel)
 
 n_cores <- detectCores()
 registerDoParallel(n_cores)
-n_sims <- 10
+n_sims <- 100
 
 mult_sim_out <- foreach (i = 1:n_sims) %dopar% {
   stochastic_age_struct_seir_ode(times,init,params)
@@ -131,14 +131,25 @@ x_plot <- x_res_mult1 %>%
   pivot_longer(!time,
                names_to = c("state", "stat"),
                names_sep = c("_"),
-               values_to = "value")
+               values_to = "value") %>%
+  pivot_wider(names_from = "stat",
+              values_from = "value")
 
 # plot
+p <- ggplot(x_plot %>%
+              filter(state %in% c("S", "E", "I", "R")), aes(x = time, y = mean, color = state, fill = state)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.1, colour = NA) + 
+  xlab("Number of Individuals") +
+  ylab("Time") +
+  theme(legend.position = "bottom",
+        panel.background = element_blank()#,
+        #axis.text.x = element_text(angle = 45, hjust = 1)
+        )
+p
 my_cols <- viridis_pal(option = "D")(24)
 my_cols_transp <- paste0(my_cols, "1A")
 
-x_for_plot <- x_res_mult1 %>%
-  select()
 par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
 matplot(x_times, x_res_mult1, xlab = "Time", ylab = "Number of individuals",
         type = "l", col = c(rep(my_cols_transp, 10)), lty = 1)
