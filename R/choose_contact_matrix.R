@@ -1,13 +1,18 @@
 #' Determine contact matrix based on thresholds of cases or IC admissions
 #' @param params list of parameter values
-#' @param criteria 
-#' @param slope calendar date of start of simulation
+#' @param criteria criteria by which to change contact matrix
+#' @param flag_relaxed 
+#' @param flag_very_relaxed
+#' @param flag_normal
+#' @param keep_fixed logical. if TRUE the contact matrix stays fixed over the
+#' entire simulation period
 #' @return List of summary results
 #' @keywords vacamole
 #' @export
 
-choose_contact_matrix <- function(params, times, criteria, flag_relaxed, 
-                                  flag_very_relaxed, flag_normal, keep_fixed){
+choose_contact_matrix <- function(params, criteria, flag_relaxed, 
+                                  flag_very_relaxed, flag_normal, 
+                                  keep_fixed){
   # define variables from params
   thresh_n <- params$thresh_n
   thresh_l <- params$thresh_l
@@ -18,9 +23,8 @@ choose_contact_matrix <- function(params, times, criteria, flag_relaxed,
   c_relaxed <- params$c_relaxed
   c_very_relaxed <- params$c_very_relaxed
   c_normal <- params$c_normal
-  keep_cm_fixed <- params$keep_cm_fixed
   
-  if(keep_cm_fixed){
+  if(keep_fixed){
      contact_matrix <- c_start
   } else{
     # use simpler conditions where measures are only relaxed and not re-tightened
