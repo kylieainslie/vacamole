@@ -16,6 +16,7 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     beta1 <- params$beta1/dt         # amplitude of seasonal forcing
     gamma <- params$gamma/dt         # 1/gamma = infectious period
     sigma <- params$sigma/dt         # 1/sigma = latent period
+    epsilon <- params$epsilon/dt     # import case rate
     h <- params$h/dt                 # Rate from infection to hospital admission/ time from infection to hosp admission
     i1 = params$i1/dt                # rate from hopsital to IC
     i2 = params$i2/dt                # rate from IC back to hospital (H_IC)
@@ -200,6 +201,7 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     # Sv2
     n_Sv2_Ev2 <- mapply(FUN = rbinom, n = 1, size = Sv_2d, prob = p_Sv2_Ev2)
     # E
+    n_import_E <- rpois(9, epsilon)
     n_E_I <- mapply(FUN = rbinom, n = 1, size = E, prob = p_E_I)
     n_Ev1_Iv1 <- mapply(FUN = rbinom, n = 1, size = Ev_1d, prob = p_E_I)
     n_Ev2_Iv2 <- mapply(FUN = rbinom, n = 1, size = Ev_2d, prob = p_E_I)
@@ -258,7 +260,7 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     Sv_1d    <- Sv_1d + n_Shold1_E_Sv1[2,] - n_Sv1_Shold2_Ev1[1,] - n_Sv1_Shold2_Ev1[2,]
     Shold_2d <- Shold_2d - n_Shold2_Ev1_Sv2[1,] - n_Shold2_Ev1_Sv2[2,]
     Sv_2d    <- Sv_2d - n_Sv2_Ev2
-    E        <- E + n_S_Shold1_E[2,] + n_Shold1_E_Sv1[1,] - n_E_I
+    E        <- E + n_S_Shold1_E[2,] + n_Shold1_E_Sv1[1,] - n_E_I + n_import_E
     Ev_1d    <- Ev_1d + n_Sv1_Shold2_Ev1[2,] + n_Shold2_Ev1_Sv2[1,] - n_Ev1_Iv1
     Ev_2d    <- Ev_2d + n_Sv2_Ev2 - n_Ev2_Iv2
     I        <- I + n_E_I - n_I_R_H[1,] - n_I_R_H[2,]

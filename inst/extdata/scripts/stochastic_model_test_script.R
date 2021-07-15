@@ -6,7 +6,8 @@ params <- list(dt = 1/6,                  # units, 1 = day
                beta1 = 0.14,              # amplitude of seasonal forcing
                gamma = g,                 # rate of becoming infectious, units: per day
                sigma = s,                 # rate of becoming infected, units: per day
-               #mu = 0.00003653,           # birth rate, units: per day
+               epsilon = 0.01,            # import case rate, units: per day
+               #mu = 0.00003653,          # birth rate, units: per day
                N = n_vec,                 # Population (no need to change)
                h = h,                     # Rate from infection to hospital admission/ time from infection to hosp admission
                i1 = i1,
