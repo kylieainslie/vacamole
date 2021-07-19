@@ -39,7 +39,7 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
       ))
     
     for(t in 1:length(time_vec)){
-    cat("time point: ", t, "\n")
+    #cat("time point: ", t, "\n")
 
     # define initial state vectors from input ----------------------
     if (t == 1){
@@ -183,7 +183,7 @@ stochastic_age_struct_seir_ode <- function(times,init,params){
     
     ### number of individuals transitioning between compartments
     # S
-    n_S_ <- mapply(FUN = rbinom, n = 1, size = S, prob = p_S_)
+    n_S_ <- mapply(FUN = rbinom, n = 1, size = round(S), prob = p_S_)
     x_S_ <- cbind(n_S_, p_S_Shold1, p_S_E)
     n_S_Shold1_E <- apply(x_S_, 1, my_rmultinom)
     # Shold1
