@@ -8,72 +8,25 @@ library(ggplot2)
 library(tidyverse)
 library(lubridate)
 
-source("inst/extdata/scrips/model_run_helper.R")
+source("inst/extdata/scripts/model_run_helper.R")
 # read in OSIRIS data
-osiris <- readRDS("inst/extdata/data/Osiris_Data_20210602_1041_agg.rds")
-# osiris1 <- osiris %>%
-#   group_by(date) %>%
-#   summarise_at(.vars = "n", .funs = "sum") %>%
-#   filter(date >= as.Date("2021-01-31")) %>%
-#   rename(inc = n)
+osiris <- readRDS("inst/extdata/data/Osiris_Data_20210715_1054.rds")
 
-# remove last week of points
 osiris1 <- osiris %>%
-  filter(date <= tail(date, 1) - 7)
+  filter(!is.na(date)) %>%
+  mutate(roll_avg = zoo::rollmean(inc, k = 7, fill = 0))
+
+osiris2 <- osiris1 %>%
+  filter(date < as.Date("2020-03-16")) # date of first lockdown
+
+time_vec <- seq(0, nrow(osiris2)-1, by = 1)
 
 # plot data
 p <- ggplot(osiris1, aes(x = date, y = inc)) +
-  geom_point()
+  geom_line() +
+  geom_line(aes(x = date, y = roll_avg, color = "red")) +
+  theme(panel.background = element_blank())
 p
-
-my_glm <- glm(inc ~ date, data = osiris1)
-my_coef <- coef(my_glm)
-
-p1 <- p + geom_abline(
-  intercept = my_coef[1],
-  slope = my_coef[2]
-)
-p1
-
-# now for the actual breakpoint analysis
-my_seg <- segmented(my_glm,
-  seg.Z = ~date,
-  psi = list(date = c(
-    as.Date("2021-03-07"),
-    as.Date("2021-03-21"),
-    as.Date("2021-04-01"),
-    as.Date("2021-04-17")
-  ))
-)
-summary(my_seg)
-# the breakpoints
-my_seg$psi
-
-# the slopes
-my_slopes <- slope(my_seg)
-# beta_mult <- (my_slopes$date[,1]/my_slopes$date[1,1])
-
-#  get the fitted data
-my_fitted <- fitted(my_seg)
-my_model <- data.frame(Date = osiris1$date, Daily_Cases = my_fitted)
-p + geom_line(data = my_model, aes(x = Date, y = Daily_Cases), color = "blue")
-# --------------------------------------------------
-# Sangeeta's code from hermione
-# log_likelihood <- function(t, inf_params, ip_params, fun, ...) {
-#   log(fun(t, inf_params, ip_params, ...))
-# }
-#
-# out <- mapply(
-#   FUN = log_likelihood,
-#   t = tvec,
-#   offset = offset_vec,
-#   MoreArgs = list(
-#     inf_params = inf_params,
-#     ip_params = ip_params,
-#     fun = probability_offset
-#   ),
-#   SIMPLIFY = TRUE
-# )
 
 # --------------------------------------------------
 likelihood_func <- function(x,
@@ -81,24 +34,56 @@ likelihood_func <- function(x,
                             t,
                             data,
                             params,
-                            init) {
+                            init,
+                            stochastic = FALSE) {
   params$beta <- x[1] # pars["beta"]
+  print(x[1])
+  
   # params$beta1 <- beta1 #pars["beta1"]
-  seir_out <- lsoda(init, t, age_struct_seir_ode, params) #
-  seir_out <- as.data.frame(seir_out)
-  out <- postprocess_age_struct_model_output(seir_out)
-
-  incidence <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d) * params$p_report
-  inc_obs <- data$inc[t + 1]
+  # r0 <- pars["r0"]
+  # S_diag <- diag(init[c(2:10)])
+  # rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
+  # params$beta <- (r0 / rho) * params$gamma
+  
+  if (stochastic){
+    seir_out <- stochastic_age_struct_seir_ode(times = t,init = init, params = params)
+    out <- apply(seir_out, 3, rowSums)
+    daily_cases <- params$sigma * (out[,"E"] + out[,"Ev_1d"] + out[,"Ev_2d"]) * params$p_report
+    print(daily_cases)
+  } else {
+    seir_out <- lsoda(initial_conditions,times,age_struct_seir_ode,params) #
+    seir_out <- as.data.frame(seir_out)
+    out <- postprocess_age_struct_model_output(seir_out)
+    daily_cases <- (params$sigma * (out$E + out$Ev_1d + out$Ev_2d)) * params$p_report
+  }
+  
+  inc_obs <- data$inc
+  print(inc_obs)
 
   # lik <- sum(dpois(x = inc_obs,lambda = incidence,log=TRUE))
   alpha <- x[2]
+  print(x[2])
   size <- 1 / alpha
+  print(size)
   prob <- size / (incidence + size)
-  lik <- sum(dnbinom(x = inc_obs, prob = prob, size = size, log = TRUE))
-
+  print(prob)
+  lik <- -sum(dnbinom(x = inc_obs, prob = prob, size = size, log = TRUE))
+  print(lik)
   lik
 }
+
+# try with optim function
+res <- optim(par = c(0.0006, 0.01), 
+             fn = likelihood_func,
+             method = "L-BFGS-B",
+             lower = c(0.00001,0),
+             upper = c(0.001,1),
+             t = time_vec,
+             data = osiris2,
+             params = params,
+             init = init,
+             stochastic = FALSE
+             )
 
 my_grid <- expand.grid(
   beta = seq(0.00001, 0.001, by = 0.00001),
@@ -125,6 +110,13 @@ out <- mapply(
   ) # ,
   # SIMPLIFY = TRUE
 )
+
+# --------------------------------------------------
+# Hessian Magic
+estres_exp <- optim(previous_estimates$par, minloglik_exp,
+                    ts =  tvector, Ns = Nvector, obs = observeds, method = "BFGS", hessian = TRUE)
+variantparameters <- mvtnorm::rmvnorm(200, estres_exp$par, solve(estres_exp$hessian))
+
 # --------------------------------------------------
 # re-run mle for each set of time points
 beta_range <- seq(0.00001, 0.001, by = 0.00001)
@@ -294,3 +286,54 @@ init_forward <- c(
 saveRDS(init_forward, file = paste0("init_conditions_", last_date_in_osiris, ".rds"))
 
 # --------------------------------------------------
+# extra code bits
+# --------------------------------------------------
+# segmentation analysis ----------------------------
+# my_glm <- glm(inc ~ date, data = osiris1)
+# my_coef <- coef(my_glm)
+# 
+# p1 <- p + geom_abline(
+#   intercept = my_coef[1],
+#   slope = my_coef[2]
+# )
+# p1
+# 
+# # now for the actual breakpoint analysis
+# my_seg <- segmented(my_glm,
+#   seg.Z = ~date,
+#   psi = list(date = c(
+#     as.Date("2021-03-07"),
+#     as.Date("2021-03-21"),
+#     as.Date("2021-04-01"),
+#     as.Date("2021-04-17")
+#   ))
+# )
+# summary(my_seg)
+# # the breakpoints
+# my_seg$psi
+# 
+# # the slopes
+# my_slopes <- slope(my_seg)
+# # beta_mult <- (my_slopes$date[,1]/my_slopes$date[1,1])
+# 
+# #  get the fitted data
+# my_fitted <- fitted(my_seg)
+# my_model <- data.frame(Date = osiris1$date, Daily_Cases = my_fitted)
+# p + geom_line(data = my_model, aes(x = Date, y = Daily_Cases), color = "blue")
+# --------------------------------------------------
+# Sangeeta's code from hermione
+# log_likelihood <- function(t, inf_params, ip_params, fun, ...) {
+#   log(fun(t, inf_params, ip_params, ...))
+# }
+#
+# out <- mapply(
+#   FUN = log_likelihood,
+#   t = tvec,
+#   offset = offset_vec,
+#   MoreArgs = list(
+#     inf_params = inf_params,
+#     ip_params = ip_params,
+#     fun = probability_offset
+#   ),
+#   SIMPLIFY = TRUE
+# )
