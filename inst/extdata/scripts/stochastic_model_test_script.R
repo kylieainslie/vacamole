@@ -1,7 +1,7 @@
 # Test script for stochastic model version
 
 # Create list of parameter values for input into model solver
-params <- list(dt = 1/6,                  # units, 1 = day
+params <- list(dt = 1,                  # units, 1 = day
                beta =  0.0004,            # transmission rate, units: per day
                beta1 = 0.14,              # amplitude of seasonal forcing
                gamma = g,                 # rate of becoming infectious, units: per day
@@ -35,13 +35,13 @@ params <- list(dt = 1/6,                  # units, 1 = day
                breakpoints = NULL  # breakpoints - start_date    # time points when parameters can change (if NULL, then beta is constant over time)
 )
 
-times <- seq(0, 200, by = 1)
+times <- seq(0, 100, by = 1)
 
 # Specify initial values -------------------------------------------
 empty_state <- c(rep(0, 9))
 init <- c(
   t = 0,
-  S = c(rep(100000, 9)),
+  S = c(rep(1000, 9)),
   Shold_1d = empty_state,
   Sv_1d = empty_state,
   Shold_2d = empty_state,
@@ -69,7 +69,7 @@ init <- c(
 
 # determine transmission rate (beta) for r0 ------------------------
 r0 <- 2.3
-S_diag <- diag(c(rep(100000, 9)))
+S_diag <- diag(c(rep(1000, 9)))
 rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
 beta <- (r0 / rho) * params$gamma
 # check
@@ -140,8 +140,8 @@ p <- ggplot(x_plot %>%
               filter(state %in% c("S", "E", "I", "R")), aes(x = time, y = mean, color = state, fill = state)) +
   geom_line() +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.1, colour = NA) + 
-  xlab("Number of Individuals") +
-  ylab("Time") +
+  ylab("Number of Individuals") +
+  xlab("Time") +
   theme(legend.position = "bottom",
         panel.background = element_blank()#,
         #axis.text.x = element_text(angle = 45, hjust = 1)

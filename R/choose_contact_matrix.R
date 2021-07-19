@@ -10,8 +10,11 @@
 #' @keywords vacamole
 #' @export
 
-choose_contact_matrix <- function(params, criteria, flag_relaxed, 
-                                  flag_very_relaxed, flag_normal, 
+choose_contact_matrix <- function(params, 
+                                  criteria, 
+                                  flag_relaxed, 
+                                  flag_very_relaxed, 
+                                  flag_normal, 
                                   keep_fixed){
   # define variables from params
   thresh_n <- params$thresh_n

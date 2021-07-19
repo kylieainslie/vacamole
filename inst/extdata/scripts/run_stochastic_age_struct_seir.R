@@ -7,12 +7,12 @@ beta_mle <- 0.00061
 start_date <- lubridate::yday(as.Date("2021-05-25"))
 end_date <- lubridate::yday(as.Date("2022-03-30")) + 365
 # Create list of parameter values for input into model solver
-params <- list(dt = 1,
+params <- list(dt = 1/6,
                beta = beta_mle,           # transmission rate
                beta1 = 0.14,              # amplitude of seasonal forcing
                gamma = g,                 # 1/gamma = infectious period
                sigma = s,                 # 1/sigma = latent period
-               delta = NULL,              # scaling constant for beta (if NULL it is excluded)
+               epsilon = 0.01,            # import case
                N = n_vec,                 # Population (no need to change)
                h = h,                     # Rate from infection to hospital admission/ time from infection to hosp admission
                i1 = i1,
