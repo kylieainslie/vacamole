@@ -38,18 +38,31 @@ age_struct_seir_ode <- function(times,init,params){
     Rv_2d = c(Rv_2d1, Rv_2d2, Rv_2d3, Rv_2d4, Rv_2d5, Rv_2d6, Rv_2d7, Rv_2d8, Rv_2d9)
     
     # determine vaccination rate -----------------------------------
-    time_point <- floor(times) + 1
-    
-    alpha <- vac_inputs$alpha_dose1[time_point,]
-    alpha2 <- vac_inputs$alpha_dose2[time_point,]
-    eta <- vac_inputs$eta_dose1[time_point,]
-    eta2 <- vac_inputs$eta_dose2[time_point,]
-    delay <- vac_inputs$delay_dose1[time_point,]
-    delay2 <- vac_inputs$delay_dose2[time_point,]
-    eta_hosp <- vac_inputs$eta_hosp_dose1[time_point,]
-    eta_hosp2 <- vac_inputs$eta_hosp_dose2[time_point,]
-    eta_trans <- vac_inputs$eta_trans_dose1[time_point,]
-    eta_trans2 <- vac_inputs$eta_trans_dose2[time_point,]
+    if(!is.null(params$vac_inputs)){
+      time_point <- floor(time_vec[t]) + 1
+      
+      alpha <- params$vac_inputs$alpha_dose1[time_point,]
+      alpha2 <- params$vac_inputs$alpha_dose2[time_point,]
+      eta <- params$vac_inputs$eta_dose1[time_point,]
+      eta2 <- params$vac_inputs$eta_dose2[time_point,]
+      delay <- params$vac_inputs$delay_dose1[time_point,]
+      delay2 <- params$vac_inputs$delay_dose2[time_point,]
+      eta_hosp <- params$vac_inputs$eta_hosp_dose1[time_point,]
+      eta_hosp2 <- params$vac_inputs$eta_hosp_dose2[time_point,]
+      eta_trans <- params$vac_inputs$eta_trans_dose1[time_point,]
+      eta_trans2 <- params$vac_inputs$eta_trans_dose2[time_point,]
+    } else {
+      alpha <- 0
+      alpha2 <- 0
+      eta <- 1
+      eta2 <- 1
+      delay <- 1
+      delay2 <- 1
+      eta_hosp <- 1
+      eta_hosp2 <- 1
+      eta_trans <- 1
+      eta_trans2 <- 1
+    }
     
     # determine contact matrix based on criteria --------------------
     ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))
@@ -64,16 +77,17 @@ age_struct_seir_ode <- function(times,init,params){
     }
     
     # determine contact matrix to use based on criteria
-    tmp2 <- choose_contact_matrix(params, times, criteria, flag_relaxed, 
-                                  flag_very_relaxed, flag_normal, keep_fixed = keep_cm_fixed)
+    tmp2 <- choose_contact_matrix(params, criteria, flag_relaxed, 
+                                  flag_very_relaxed, flag_normal, 
+                                  keep_fixed = keep_cm_fixed)
     contact_mat <- tmp2$contact_matrix
     flag_relaxed <- tmp2$flag_relaxed
     flag_very_relaxed <- tmp2$flag_very_relaxed
     flag_normal <- tmp2$flag_normal
-    
     # determine force of infection ----------------------------------
     calendar_day <- t_calendar_start + times
     beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day/365.24))
+
     # lambda <- beta * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
     # ---------------------------------------------------------------
@@ -85,7 +99,7 @@ age_struct_seir_ode <- function(times,init,params){
     dSv_1d <- (1/delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d 
     dShold_2d <- alpha2 * Sv_1d - (1/delay2) * Shold_2d - eta * lambda * Shold_2d
     dSv_2d <- (1/delay2) * Shold_2d - eta2 * lambda * Sv_2d
-    dE <- lambda * (S + Shold_1d) - sigma * E
+    dE <- lambda * (S + Shold_1d) - sigma * E + epsilon
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta2 * lambda * Sv_2d - sigma * Ev_2d 
     dI <- sigma * E - (gamma + h) * I 
