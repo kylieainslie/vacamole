@@ -90,6 +90,7 @@ age_struct_seir_ode <- function(times,init,params){
 
     # lambda <- beta * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
+    lambda <- ifelse(lambda < 0, 0, lambda)
     # ---------------------------------------------------------------
     
     ################################################################
