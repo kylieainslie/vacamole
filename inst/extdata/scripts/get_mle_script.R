@@ -1,13 +1,13 @@
 # find mle of beta from SEIR model fit to real data
 
 # --------------------------------------------------
-# First perform a breakpoint analysis to find time
-# points over which to separately maximise likelihood
-library(segmented)
+# load packages
+#library(segmented)
 library(ggplot2)
 library(tidyverse)
 library(lubridate)
 
+# Read in OSIRIS data ------------------------------
 source("inst/extdata/scripts/model_run_helper.R")
 # read in OSIRIS data
 osiris <- readRDS("inst/extdata/data/Osiris_Data_20210715_1054.rds")
@@ -29,6 +29,7 @@ p <- ggplot(osiris1, aes(x = date, y = inc)) +
 p
 
 # --------------------------------------------------
+# likelihood function
 likelihood_func <- function(x,
                             # beta1,
                             t,
@@ -37,7 +38,6 @@ likelihood_func <- function(x,
                             init,
                             stochastic = FALSE) {
   params$beta <- x[1] # pars["beta"]
-  print(x[1])
   
   # params$beta1 <- beta1 #pars["beta1"]
   # r0 <- pars["r0"]
@@ -49,73 +49,81 @@ likelihood_func <- function(x,
     seir_out <- stochastic_age_struct_seir_ode(times = t,init = init, params = params)
     out <- apply(seir_out, 3, rowSums)
     daily_cases <- params$sigma * (out[,"E"] + out[,"Ev_1d"] + out[,"Ev_2d"]) * params$p_report
-    print(daily_cases)
+    daily_cases <- ifelse(daily_cases == 0, 0.0001, daily_cases) # prevent likelihood function function from being Inf
   } else {
-    seir_out <- lsoda(initial_conditions,times,age_struct_seir_ode,params) #
+    seir_out <- lsoda(init,t,age_struct_seir_ode,params) #
     seir_out <- as.data.frame(seir_out)
     out <- postprocess_age_struct_model_output(seir_out)
-    daily_cases <- (params$sigma * (out$E + out$Ev_1d + out$Ev_2d)) * params$p_report
+    daily_cases <- (params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d)) * params$p_report
+    daily_cases <- ifelse(daily_cases == 0, 0.0001, daily_cases) # prevent likelihood function function from being Inf
   }
   
   inc_obs <- data$inc
-  print(inc_obs)
 
   # lik <- sum(dpois(x = inc_obs,lambda = incidence,log=TRUE))
   alpha <- x[2]
-  print(x[2])
-  size <- 1 / alpha
-  print(size)
-  prob <- size / (incidence + size)
-  print(prob)
-  lik <- -sum(dnbinom(x = inc_obs, prob = prob, size = size, log = TRUE))
+  size <- daily_cases * (alpha/(1-alpha))
+  print(alpha)
+  lik <- -sum(dnbinom(x = inc_obs, mu = daily_cases, size = size, log = TRUE))
   print(lik)
   lik
 }
+# ---------------------------------------------------
+# Determine MLE using optim
 
-# try with optim function
 res <- optim(par = c(0.0006, 0.01), 
              fn = likelihood_func,
              method = "L-BFGS-B",
-             lower = c(0.00001,0),
-             upper = c(0.001,1),
+             lower = c(0.00001,0.00001),
+             upper = c(1,1),
              t = time_vec,
              data = osiris2,
              params = params,
              init = init,
-             stochastic = FALSE
+             stochastic = FALSE,
+             hessian = TRUE
              )
 
-my_grid <- expand.grid(
-  beta = seq(0.00001, 0.001, by = 0.00001),
-  alpha = seq(0, 1, by = 0.01)
-)
+res$par
 
-out <- apply(my_grid, 1, likelihood_func,
-  # other args for likelihood_fun
-  t = seq(0, breakpoints[1], by = 1),
-  data = osiris1,
-  params = params,
-  init = init
-)
+# plot to check fit --------------------------------
+params$beta <- res$par[1]
+seir_out <- lsoda(init, time_vec, age_struct_seir_ode, params) #
+seir_out <- as.data.frame(seir_out)
+out_mle <- postprocess_age_struct_model_output(seir_out)
+daily_cases_mle <- params$sigma * rowSums(out_mle$E + out_mle$Ev_1d + out_mle$Ev_2d) * params$p_report
 
-out <- mapply(
-  FUN = likelihood_func,
-  beta = as.list(seq(0.00001, 0.001, by = 0.00001)),
-  alpha = as.list(seq(0, 1, by = 0.01)),
-  t = list(seq(0, breakpoints[1], by = 1)),
-  MoreArgs = list(
-    data = osiris1,
-    params = params,
-    init = init
-  ) # ,
-  # SIMPLIFY = TRUE
-)
+plot(daily_cases_mle ~ time_vec, type = "l") # ylim = c(0, 8000)
+points(osiris2$inc ~ time_vec, col = "red", pch = 16)
 
+# Hessian Magic ------------------------------------
+# estres_exp <- optim(previous_estimates$par, minloglik_exp,
+#                     ts =  tvector, Ns = Nvector, obs = observeds, method = "BFGS", hessian = TRUE)
+parameter_draws <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
 # --------------------------------------------------
-# Hessian Magic
-estres_exp <- optim(previous_estimates$par, minloglik_exp,
-                    ts =  tvector, Ns = Nvector, obs = observeds, method = "BFGS", hessian = TRUE)
-variantparameters <- mvtnorm::rmvnorm(200, estres_exp$par, solve(estres_exp$hessian))
+# run simulation over many parameter values
+function_wrapper <- function(x){
+  params$beta <- x[1]
+  seir_out <- lsoda(init, time_vec, age_struct_seir_ode, params) #
+  seir_out <- as.data.frame(seir_out)
+  out_mle <- postprocess_age_struct_model_output(seir_out)
+  daily_cases <- params$sigma * rowSums(out_mle$E + out_mle$Ev_1d + out_mle$Ev_2d) * params$p_report
+  return(daily_cases)
+}
+# run model for each combination of parameters
+out <- apply(parameter_draws, 1, function_wrapper) # rows are time points, columns are different simulations
+# --------------------------------------------------
+
+# plot with confidence bounds
+bounds <- apply(out,1,function(x) quantile(x, c(0.025,0.975)))
+
+plot(osiris2$inc ~ time_vec, col = "red", pch = 16, 
+     xlab = "Time (days)",ylab = "Daily Cases", ylim = c(0,700)) 
+lines(daily_cases_mle,col = "blue")
+lines(bounds[1,], col = "blue", lty = 2, lwd = 0.5)
+lines(bounds[2,], col = "blue", lty = 2, lwd = 0.5)
+legend("topright", c("Data","Model","95% credible intervals"),
+       col = c("red","blue","blue"), lty = c(0,1,2), pch = c(16,NA,NA))
 
 # --------------------------------------------------
 # re-run mle for each set of time points
@@ -285,55 +293,3 @@ init_forward <- c(
 )
 saveRDS(init_forward, file = paste0("init_conditions_", last_date_in_osiris, ".rds"))
 
-# --------------------------------------------------
-# extra code bits
-# --------------------------------------------------
-# segmentation analysis ----------------------------
-# my_glm <- glm(inc ~ date, data = osiris1)
-# my_coef <- coef(my_glm)
-# 
-# p1 <- p + geom_abline(
-#   intercept = my_coef[1],
-#   slope = my_coef[2]
-# )
-# p1
-# 
-# # now for the actual breakpoint analysis
-# my_seg <- segmented(my_glm,
-#   seg.Z = ~date,
-#   psi = list(date = c(
-#     as.Date("2021-03-07"),
-#     as.Date("2021-03-21"),
-#     as.Date("2021-04-01"),
-#     as.Date("2021-04-17")
-#   ))
-# )
-# summary(my_seg)
-# # the breakpoints
-# my_seg$psi
-# 
-# # the slopes
-# my_slopes <- slope(my_seg)
-# # beta_mult <- (my_slopes$date[,1]/my_slopes$date[1,1])
-# 
-# #  get the fitted data
-# my_fitted <- fitted(my_seg)
-# my_model <- data.frame(Date = osiris1$date, Daily_Cases = my_fitted)
-# p + geom_line(data = my_model, aes(x = Date, y = Daily_Cases), color = "blue")
-# --------------------------------------------------
-# Sangeeta's code from hermione
-# log_likelihood <- function(t, inf_params, ip_params, fun, ...) {
-#   log(fun(t, inf_params, ip_params, ...))
-# }
-#
-# out <- mapply(
-#   FUN = log_likelihood,
-#   t = tvec,
-#   offset = offset_vec,
-#   MoreArgs = list(
-#     inf_params = inf_params,
-#     ip_params = ip_params,
-#     fun = probability_offset
-#   ),
-#   SIMPLIFY = TRUE
-# )
