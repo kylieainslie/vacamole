@@ -29,6 +29,70 @@ p <- ggplot(osiris1, aes(x = date, y = inc)) +
 p
 
 # --------------------------------------------------
+# specify model parameters
+params <- list(dt = 1,
+               beta = 0.0004,             # transmission rate
+               beta1 = 0.14,              # amplitude of seasonal forcing
+               gamma = g,                 # 1/gamma = infectious period
+               sigma = s,                 # 1/sigma = latent period
+               epsilon = 0.01,            # import case
+               N = n_vec,                 # Population (no need to change)
+               h = h,                     # Rate from infection to hospital admission/ time from infection to hosp admission
+               i1 = i1,
+               i2 = i2,
+               d = d, 
+               d_ic = d_ic,
+               d_hic = d_hic,
+               r = r,
+               r_ic = r_ic,
+               p_report = 1/3,
+               c_start = t1,
+               c_lockdown = t2,
+               c_relaxed = t4,
+               c_very_relaxed = t3,
+               c_normal = t1,
+               keep_cm_fixed = TRUE,
+               vac_inputs = NULL,
+               use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
+               thresh_n = 0.5/100000 * sum(n_vec),
+               thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
+               thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
+               thresh_u = 35.7/100000 * sum(n_vec),        # 35.7  # 20 for IC admissions
+               no_vac = FALSE,
+               t_calendar_start = yday(as.Date("2020-01-01"))   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
+)
+
+# initial values
+empty_state <- c(rep(0, 9))
+init <- c(
+  t = 0,
+  S = n_vec - 1,
+  Shold_1d = empty_state,
+  Sv_1d = empty_state,
+  Shold_2d = empty_state,
+  Sv_2d = empty_state,
+  E = empty_state,
+  Ev_1d = empty_state,
+  Ev_2d = empty_state,
+  I = c(rep(0,4),1,rep(0,4)),
+  Iv_1d = empty_state,
+  Iv_2d = empty_state,
+  H = empty_state,
+  Hv_1d = empty_state,
+  Hv_2d = empty_state,
+  H_IC = empty_state,
+  H_ICv_1d = empty_state,
+  H_ICv_2d = empty_state,
+  IC = empty_state,
+  ICv_1d = empty_state,
+  ICv_2d = empty_state,
+  D = empty_state,
+  R = empty_state,
+  Rv_1d = empty_state,
+  Rv_2d = empty_state
+)
+
+# --------------------------------------------------
 # likelihood function
 likelihood_func <- function(x,
                             # beta1,
@@ -37,13 +101,13 @@ likelihood_func <- function(x,
                             params,
                             init,
                             stochastic = FALSE) {
-  params$beta <- x[1] # pars["beta"]
+  #params$beta <- x[1] # pars["beta"]
   
   # params$beta1 <- beta1 #pars["beta1"]
-  # r0 <- pars["r0"]
-  # S_diag <- diag(init[c(2:10)])
-  # rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
-  # params$beta <- (r0 / rho) * params$gamma
+  r0 <- x[1]
+  S_diag <- diag(init[c(2:10)])
+  rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
+  params$beta <- (r0 / rho) * params$gamma
   
   if (stochastic){
     seir_out <- stochastic_age_struct_seir_ode(times = t,init = init, params = params)
@@ -63,7 +127,11 @@ likelihood_func <- function(x,
   # lik <- sum(dpois(x = inc_obs,lambda = incidence,log=TRUE))
   alpha <- x[2]
   size <- daily_cases * (alpha/(1-alpha))
-  print(alpha)
+  print(r0)
+  print(params$beta)
+  #print(daily_cases)
+  #print(inc_obs)
+  #print(dnbinom(x = inc_obs, mu = daily_cases, size = size, log = TRUE))
   lik <- -sum(dnbinom(x = inc_obs, mu = daily_cases, size = size, log = TRUE))
   print(lik)
   lik
@@ -71,11 +139,11 @@ likelihood_func <- function(x,
 # ---------------------------------------------------
 # Determine MLE using optim
 
-res <- optim(par = c(0.0006, 0.01), 
+res <- optim(par = c(2.3, 0.01), 
              fn = likelihood_func,
              method = "L-BFGS-B",
-             lower = c(0.00001,0.00001),
-             upper = c(1,1),
+             lower = c(1,0.0001),
+             upper = c(10,1),
              t = time_vec,
              data = osiris2,
              params = params,
@@ -87,7 +155,10 @@ res <- optim(par = c(0.0006, 0.01),
 res$par
 
 # plot to check fit --------------------------------
-params$beta <- res$par[1]
+S_diag <- diag(init[c(2:10)])
+rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
+params$beta <- (res$par[1] / rho) * params$gamma
+#params$beta <- res$par[1]
 seir_out <- lsoda(init, time_vec, age_struct_seir_ode, params) #
 seir_out <- as.data.frame(seir_out)
 out_mle <- postprocess_age_struct_model_output(seir_out)
@@ -103,7 +174,10 @@ parameter_draws <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
 # --------------------------------------------------
 # run simulation over many parameter values
 function_wrapper <- function(x){
-  params$beta <- x[1]
+  S_diag <- diag(init[c(2:10)])
+  rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
+  params$beta <- (x[1] / rho) * params$gamma
+  # params$beta <- x[1]
   seir_out <- lsoda(init, time_vec, age_struct_seir_ode, params) #
   seir_out <- as.data.frame(seir_out)
   out_mle <- postprocess_age_struct_model_output(seir_out)
