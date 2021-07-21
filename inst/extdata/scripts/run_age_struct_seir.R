@@ -35,7 +35,7 @@ params <- list(beta = beta_mle,           # transmission rate
                thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
                thresh_u = 1000/100000 * sum(n_vec),      #35.7  # 20 for IC admissions
                no_vac = FALSE,
-               t_calendar_start = yday(as.Date("2021-01-31")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
+               t_calendar_start = yday(as.Date("2020-01-01")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
                breakpoints = NULL  # breakpoints - start_date    # time points when parameters can change (if NULL, then beta is constant over time)
                )
 
