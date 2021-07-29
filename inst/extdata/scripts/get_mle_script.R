@@ -10,7 +10,7 @@ library(lubridate)
 # Read in OSIRIS data ------------------------------
 source("inst/extdata/scripts/model_run_helper.R")
 # read in OSIRIS data
-osiris <- readRDS("inst/extdata/data/Osiris_Data_20210715_1054.rds")
+osiris <- readRDS("inst/extdata/data/real_data/Osiris_Data_20210715_1054.rds")
 
 osiris1 <- osiris %>%
   filter(!is.na(date)) %>%
@@ -28,6 +28,14 @@ p <- ggplot(osiris1, aes(x = date, y = inc)) +
   geom_line(aes(x = date, y = roll_avg, color = "red")) +
   theme(panel.background = element_blank())
 p
+
+# Read in contact matrices -------------------------
+baseline_2017 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_baseline_2017.rds")
+april_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_april_2020.rds")
+june_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2020.rds")
+september_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_september_2020.rds")
+february_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_february_2021.rds")
+june_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2021.rds")
 
 # --------------------------------------------------
 # specify model parameters
@@ -47,11 +55,11 @@ params <- list(dt = 1,
                r = r,
                r_ic = r_ic,
                p_report = 1/3,
-               c_start = t1,
-               c_lockdown = t2,
-               c_relaxed = t4,
-               c_very_relaxed = t3,
-               c_normal = t1,
+               c_start = baseline_2017$mean,
+               c_lockdown = april_2020$mean,
+               c_relaxed = september_2020$mean,
+               c_very_relaxed = june_2020$mean,
+               c_normal = baseline_2017$mean,
                keep_cm_fixed = TRUE,
                vac_inputs = NULL,
                use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
@@ -167,11 +175,14 @@ points(osiris2$inc ~ time_vec, col = "red", pch = 16)
 # estres_exp <- optim(previous_estimates$par, minloglik_exp,
 #                     ts =  tvector, Ns = Nvector, obs = observeds, method = "BFGS", hessian = TRUE)
 parameter_draws <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
-betas <- data.frame(beta = (parameter_draws / rho) * params$gamma)
+betas <- data.frame(beta = (parameter_draws / rho) * params$gamma) %>%
+  select(beta.1) %>%
+  mutate(index = 1:200)
 # --------------------------------------------------
 # run simulation over many parameter values
 function_wrapper <- function(x, init, t){
-  params$beta <- x
+  params$beta <- x[1]
+  params$c_start <- baseline_2017[[x[2]]]
   seir_out <- lsoda(init, t, age_struct_seir_ode, params) #
   seir_out <- as.data.frame(seir_out)
   out_mle <- postprocess_age_struct_model_output(seir_out)
