@@ -85,7 +85,7 @@ age_struct_seir_ode <- function(times,init,params){
     flag_very_relaxed <- tmp2$flag_very_relaxed
     flag_normal <- tmp2$flag_normal
     # determine force of infection ----------------------------------
-    calendar_day <- t_calendar_start + times
+    calendar_day <- ifelse(times > 366, t_calendar_start + times - 366, t_calendar_start + times)
     beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day/365.24))
 
     # lambda <- beta * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
