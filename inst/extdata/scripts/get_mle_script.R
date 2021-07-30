@@ -210,45 +210,90 @@ legend("topright", c("Data","Model","95% credible intervals"),
 # re-run mle for each set of time points
 # --------------------------------------------------
 
-breakpoints_2020 <- list( 
+breakpoints <- list( 
   date = c( 
     as.Date("2020-03-16"),  # closure of hospitality, schools, daycares
-    as.Date("2020-03-31"),  # rest of march until we use April 2020 contact matrices
+    as.Date("2020-03-24"),  # casinos subject to same measures as food/beverage outlets
+    as.Date("2020-04-29"),  # Children and young people can participate in outdoor activities
     as.Date("2020-05-11"),  # reopening of primary schools and daycare @ 50% capacity
     as.Date("2020-06-01"),  # cafes/restaurants reopen with max 30 visitor,
                             # primary schools and daycares open at 100% 
     as.Date("2020-07-01"),  # secondary schools reopen @ 100% capacity
+    as.Date("2020-08-06"),  # Small groups allowed at universities
+    as.Date("2020-08-18"),  # maximum 6 people in household
+    as.Date("2020-09-20"),  # groups <= 50 people, some hospitality closes at midnight or 1 AM 
     as.Date("2020-09-29"),  # max 3 visitors at home, max group size 30, face masks in public areas
-    as.Date("2020-10-20"),  # cafes/restaurants close, no team sports, 3 visitors at home per day
+    as.Date("2020-10-14"),  # cafes/restaurants close, no team sports, 3 visitors at home per day
+    as.Date("2020-10-23"),  # hotels can't sell alcohol after 20:00
+    as.Date("2020-11-04"),  # 2 visitors per day, groups <= 20
+    as.Date("2020-11-19"),  # 3 visitors per day, groups <= 30
     as.Date("2020-12-01"),  # masks mandatory in all public and indoor areas
     as.Date("2020-12-15"),  # non-essential shops close
-    as.Date("2020-12-31")), # end of year
-    
-  contact_matrix = list( baseline_2017, baseline_2017, 
-                         april_2020, april_2020, june_2020, 
-                         june_2020, september_2020,september_2020,
-                         september_2020)
+    as.Date("2020-12-31"),  # end of year
+    as.Date("2021-01-20"),  # 1 visitor per day/curfew (23/01/2021)
+    as.Date("2021-02-08"),  # Primary schools, child care, special ed reopen
+    as.Date("2021-03-01"),  # secondary schools partially reopen, contact professions reopen (3/3/2021)
+    as.Date("2021-03-16"),  # some retail reopens
+    as.Date("2021-03-31"),  # curfew to start at 22:00 instead of 21:00
+    as.Date("2021-04-19"),  # out of school care fully reopens
+    as.Date("2021-04-28"),  # curfew canceled
+    as.Date("2021-05-19"),  # <27 can play outdoor sports, groups <= 30, non-essential travel allowed within NL 
+    as.Date("2021-06-05"),  # 4 visitors per day, museums reopen, group <= 50, restaurants reopen
+    as.Date("2021-06-26"),  # all restrictions relaxed, except masks on public transport, nightclubs reopen
+    as.Date("2021-07-10"),  # catering industry reopens, test for entry with large events, nightclubs close
+    as.Date("2021-07-19")  # work from home advisory re-instated
+  ),  
+  contact_matrix = list( baseline_2017, 
+                         baseline_2017, 
+                         april_2020,
+                         april_2020, 
+                         april_2020, 
+                         june_2020, 
+                         june_2020,
+                         june_2020,
+                         september_2020,
+                         september_2020,
+                         september_2020, 
+                         september_2020,
+                         september_2020,
+                         september_2020,
+                         september_2020,
+                         september_2020,
+                         september_2020,
+                         september_2020,
+                         february_2021,
+                         february_2021,
+                         february_2021,
+                         february_2021,
+                         february_2021,
+                         february_2021,
+                         february_2021,
+                         june_2021,
+                         june_2021,
+                         june_2021,
+                         june_2021
+                         )
 )
 
-n_bp <- length(breakpoints_2020$date)
+n_bp <- length(breakpoints$date)
 mles <- matrix(rep(NA, 2*n_bp), nrow = n_bp)
 colnames(mles) <- c("beta", "alpha")
 out_mle <- list()
 bounds_list <- list()
 daily_cases_mle <- list()
 
-for (j in 1:n_bp) {
-  
+for (j in 1:18) {
+  print(j)
   # set contact matrix for time window
   if (j == n_bp){
-    params$c_start <- breakpoints_2020$contact_matrix[[j-1]]$mean
+    params$c_start <- breakpoints$contact_matrix[[j-1]]$mean
   } else {
-    params$c_start <- breakpoints_2020$contact_matrix[[j]]$mean
+    params$c_start <- breakpoints$contact_matrix[[j]]$mean
   }
   
   if (j == 1) {
     # if first time window, start time at 0
-    end_day <- yday(breakpoints_2020$date[j]) - 1
+    end_day <- yday(breakpoints$date[j]) - 1
     times <- seq(0, end_day, by = 1)
     # set initial conditions to those specified earlier in script
     init_update <- init
@@ -257,7 +302,7 @@ for (j in 1:n_bp) {
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   } else {
     start_day <- yday(breakpoints_2020$date[j-1]) - 1 # shift days by 1 because we start time at 0 (not 1)
-    end_day <- yday(breakpoints_2020$date[j]) - 1
+    end_day <- yday(breakpoints$date[j]) - 1
     times <- seq(start_day, end_day, by = 1)
     # update initial conditions based on last time window
     init_update <- c(
@@ -314,26 +359,26 @@ for (j in 1:n_bp) {
   mles[j,2] <- res$par[2]
   
   # draw 200 parameter values
-  parameter_draws_mle <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
-  betas <- data.frame(beta = (parameter_draws_mle[,1] / rho) * params$gamma) %>%
-    mutate(index = 1:200)
-  # --------------------------------------------------
-  # run model for each combination of parameters
-  out <- apply(betas, 1, function_wrapper, 
-               contact_matrix = breakpoints_2020$contact_matrix[[j]],
-               init = init_update, t = times) # rows are time points, columns are different simulations
-  
-  # get confidence bounds of model runs
-  bounds_list[[j]] <- apply(out,1,function(x) quantile(x, c(0.025,0.975)))
-  # --------------------------------------------------
+  # parameter_draws_mle <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
+  # betas <- data.frame(beta = (parameter_draws_mle[,1] / rho) * params$gamma) %>%
+  #   mutate(index = 1:200)
+  # # --------------------------------------------------
+  # # run model for each combination of parameters
+  # out <- apply(betas, 1, function_wrapper, 
+  #              contact_matrix = breakpoints_2020$contact_matrix[[j]],
+  #              init = init_update, t = times) # rows are time points, columns are different simulations
+  # 
+  # # get confidence bounds of model runs
+  # bounds_list[[j]] <- apply(out,1,function(x) quantile(x, c(0.025,0.975)))
+  # # --------------------------------------------------
   # re-run simulation with MLE parameter values
   # --------------------------------------------------
   # transform R0 to beta
   params$beta <- mles[j,1]
   if (j == n_bp){
-    params$c_start <- breakpoints_2020$contact_matrix[[j-1]]$mean
+    params$c_start <- breakpoints$contact_matrix[[j-1]]$mean
   } else {
-    params$c_start <- breakpoints_2020$contact_matrix[[j]]$mean
+    params$c_start <- breakpoints$contact_matrix[[j]]$mean
   }
   # run simulation
   seir_out <- lsoda(init_update, times, age_struct_seir_ode, params)
@@ -347,10 +392,10 @@ for (j in 1:n_bp) {
        xlab = "Time (days)",ylab = "Daily Cases" #, ylim = c(0,5000)
   ) 
   lines(times, daily_cases_mle[[j]],col = "blue")
-  lines(times, bounds_list[[j]][1,], col = "blue", lty = 2, lwd = 0.5)
-  lines(times, bounds_list[[j]][2,], col = "blue", lty = 2, lwd = 0.5)
-  legend("topright", c("Data","Model","95% credible intervals"),
-         col = c("red","blue","blue"), lty = c(0,1,2), pch = c(16,NA,NA))
+  # lines(times, bounds_list[[j]][1,], col = "blue", lty = 2, lwd = 0.5)
+  # lines(times, bounds_list[[j]][2,], col = "blue", lty = 2, lwd = 0.5)
+  # legend("topright", c("Data","Model","95% credible intervals"),
+  #        col = c("red","blue","blue"), lty = c(0,1,2), pch = c(16,NA,NA))
   
 } # end of for loop over breakpoints
 
@@ -374,9 +419,8 @@ plot(osiris1$inc[times_all] ~ times_all,
   xlab = "Time (days)", ylab = "Incidence"#, ylim = c(0, 7600)
 )
 lines(times_all, cases_all1, col = "blue")
-legend("bottomright", c("Osiris Data", "Model Fit"),
-  col = c("red", "blue"), lty = c(0, 1), pch = c(16, NA)
-)
+# legend("bottomright", c("Osiris Data", "Model Fit"),
+#   col = c("red", "blue"), lty = c(0, 1), pch = c(16, NA))
 # --------------------------------------------------
 
 # --------------------------------------------------
