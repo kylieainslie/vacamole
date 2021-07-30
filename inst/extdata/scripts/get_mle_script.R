@@ -104,7 +104,7 @@ init <- c(
 # --------------------------------------------------
 # likelihood function
 likelihood_func <- function(x,
-                            # beta1,
+                            contact_matrix,
                             t,
                             data,
                             params,
@@ -175,14 +175,13 @@ points(osiris2$inc ~ time_vec, col = "red", pch = 16)
 # estres_exp <- optim(previous_estimates$par, minloglik_exp,
 #                     ts =  tvector, Ns = Nvector, obs = observeds, method = "BFGS", hessian = TRUE)
 parameter_draws <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
-betas <- data.frame(beta = (parameter_draws / rho) * params$gamma) %>%
-  select(beta.1) %>%
+betas <- data.frame(beta = (parameter_draws[,1] / rho) * params$gamma) %>%
   mutate(index = 1:200)
 # --------------------------------------------------
 # run simulation over many parameter values
-function_wrapper <- function(x, init, t){
+function_wrapper <- function(x, contact_matrix, init, t){
   params$beta <- x[1]
-  params$c_start <- baseline_2017[[x[2]]]
+  params$c_start <- contact_matrix[[x[2]]]
   seir_out <- lsoda(init, t, age_struct_seir_ode, params) #
   seir_out <- as.data.frame(seir_out)
   out_mle <- postprocess_age_struct_model_output(seir_out)
@@ -190,7 +189,7 @@ function_wrapper <- function(x, init, t){
   return(daily_cases)
 }
 # run model for each combination of parameters
-out <- apply(betas, 1, function_wrapper, 
+out <- apply(betas, 1, function_wrapper, contact_matrix = baseline_2017, 
              init = init, t = time_vec) # rows are time points, columns are different simulations
 # --------------------------------------------------
 
@@ -214,19 +213,26 @@ legend("topright", c("Data","Model","95% credible intervals"),
 breakpoints_2020 <- list( 
   date = c( 
     as.Date("2020-03-16"),  # closure of hospitality, schools, daycares
+    as.Date("2020-03-31"),  # rest of march until we use April 2020 contact matrices
     as.Date("2020-05-11"),  # reopening of primary schools and daycare @ 50% capacity
     as.Date("2020-06-01"),  # cafes/restaurants reopen with max 30 visitor,
                             # primary schools and daycares open at 100% 
     as.Date("2020-07-01"),  # secondary schools reopen @ 100% capacity
     as.Date("2020-09-29"),  # max 3 visitors at home, max group size 30, face masks in public areas
-    as.Date("2020-10-14"),  # cafes/restaurants close, no team sports, 3 visitors at home per day
+    as.Date("2020-10-20"),  # cafes/restaurants close, no team sports, 3 visitors at home per day
     as.Date("2020-12-01"),  # masks mandatory in all public and indoor areas
-    as.Date("2020-12-15")), # non-essential shops close
-  contact_matrix = list( t1, t2,t2,t3, t3,t4,t4,t4)
+    as.Date("2020-12-15"),  # non-essential shops close
+    as.Date("2020-12-31")), # end of year
+    
+  contact_matrix = list( baseline_2017, baseline_2017, 
+                         april_2020, april_2020, june_2020, 
+                         june_2020, september_2020,september_2020,
+                         september_2020)
 )
 
-n_bp <- 2#length(breakpoints_2020$date)
-mles <- c(rep(NA, n_bp))
+n_bp <- length(breakpoints_2020$date)
+mles <- matrix(rep(NA, 2*n_bp), nrow = n_bp)
+colnames(mles) <- c("beta", "alpha")
 out_mle <- list()
 bounds_list <- list()
 daily_cases_mle <- list()
@@ -234,7 +240,11 @@ daily_cases_mle <- list()
 for (j in 1:n_bp) {
   
   # set contact matrix for time window
-  params$c_start <- breakpoints_2020$contact_matrix[[j]]
+  if (j == n_bp){
+    params$c_start <- breakpoints_2020$contact_matrix[[j-1]]$mean
+  } else {
+    params$c_start <- breakpoints_2020$contact_matrix[[j]]$mean
+  }
   
   if (j == 1) {
     # if first time window, start time at 0
@@ -242,6 +252,9 @@ for (j in 1:n_bp) {
     times <- seq(0, end_day, by = 1)
     # set initial conditions to those specified earlier in script
     init_update <- init
+    pars <- c(2.3, 0.01)
+    S_diag <- diag(init_update[c(2:10)])
+    rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   } else {
     start_day <- yday(breakpoints_2020$date[j-1]) - 1 # shift days by 1 because we start time at 0 (not 1)
     end_day <- yday(breakpoints_2020$date[j]) - 1
@@ -274,16 +287,19 @@ for (j in 1:n_bp) {
       Rv_1d = as.numeric(tail(out_mle[[j - 1]]$Rv_1d, 1)),
       Rv_2d = as.numeric(tail(out_mle[[j - 1]]$Rv_2d, 1))
     )
+    pars <- c((mles[j-1,1]/params$gamma)*rho, mles[j-1,2])
+    S_diag <- diag(init_update[c(2:10)])
+    rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   }
   
   # subset data for time window
   osiris_sub <- osiris1[times + 1, ]
   
   # optimize
-  res <- optim(par = c(2.3, 0.01), 
+  res <- optim(par = pars, 
                fn = likelihood_func,
                method = "L-BFGS-B",
-               lower = c(1,0.0001),
+               lower = c(0,0.0001),
                upper = c(10,1),
                t = times,
                data = osiris_sub,
@@ -294,14 +310,17 @@ for (j in 1:n_bp) {
   )
   
   # store MLE
-  mles[j] <- (res$par[1] / rho) * params$gamma
+  mles[j,1] <- (res$par[1] / rho) * params$gamma
+  mles[j,2] <- res$par[2]
   
   # draw 200 parameter values
   parameter_draws_mle <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
-  betas <- data.frame(beta = (parameter_draws_mle[,1] / rho) * params$gamma)
+  betas <- data.frame(beta = (parameter_draws_mle[,1] / rho) * params$gamma) %>%
+    mutate(index = 1:200)
   # --------------------------------------------------
   # run model for each combination of parameters
   out <- apply(betas, 1, function_wrapper, 
+               contact_matrix = breakpoints_2020$contact_matrix[[j]],
                init = init_update, t = times) # rows are time points, columns are different simulations
   
   # get confidence bounds of model runs
@@ -310,9 +329,14 @@ for (j in 1:n_bp) {
   # re-run simulation with MLE parameter values
   # --------------------------------------------------
   # transform R0 to beta
-  params$beta <- mles[j]
+  params$beta <- mles[j,1]
+  if (j == n_bp){
+    params$c_start <- breakpoints_2020$contact_matrix[[j-1]]$mean
+  } else {
+    params$c_start <- breakpoints_2020$contact_matrix[[j]]$mean
+  }
   # run simulation
-  seir_out <- lsoda(init, time_vec, age_struct_seir_ode, params)
+  seir_out <- lsoda(init_update, times, age_struct_seir_ode, params)
   seir_out <- as.data.frame(seir_out)
   out_mle[[j]] <- postprocess_age_struct_model_output(seir_out)
   daily_cases_mle[[j]] <- params$sigma * rowSums(out_mle[[j]]$E + out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d) * params$p_report
@@ -320,20 +344,22 @@ for (j in 1:n_bp) {
   # --------------------------------------------------
   # plot
   plot(osiris_sub$inc ~ times, col = "red", pch = 16, 
-       xlab = "Time (days)",ylab = "Daily Cases"
-       #, ylim = c(0,700)
+       xlab = "Time (days)",ylab = "Daily Cases" #, ylim = c(0,5000)
   ) 
-  lines(daily_cases_mle[[j]],col = "blue")
-  lines(bounds_list[[j]][1,], col = "blue", lty = 2, lwd = 0.5)
-  lines(bounds_list[[j]][2,], col = "blue", lty = 2, lwd = 0.5)
+  lines(times, daily_cases_mle[[j]],col = "blue")
+  lines(times, bounds_list[[j]][1,], col = "blue", lty = 2, lwd = 0.5)
+  lines(times, bounds_list[[j]][2,], col = "blue", lty = 2, lwd = 0.5)
   legend("topright", c("Data","Model","95% credible intervals"),
          col = c("red","blue","blue"), lty = c(0,1,2), pch = c(16,NA,NA))
   
 } # end of for loop over breakpoints
 
 last_date_in_osiris <- "2021-05-25"
-saveRDS(out_mle, file = paste0("output_from_fits_", last_date_in_osiris, ".rds"))
-saveRDS(daily_cases_mle, file = paste0("cases_from_fits_", last_date_in_osiris, ".rds"))
+# saveRDS(out_mle, file = paste0("output_from_fits_", last_date_in_osiris, ".rds"))
+# saveRDS(daily_cases_mle, file = paste0("cases_from_fits_", last_date_in_osiris, ".rds"))
+
+saveRDS(out_mle, file = "output_2020_from_model_fit.rds")
+saveRDS(daily_cases_mle, file = "cases_2020_from_model_fit.rds")
 
 # --------------------------------------------------
 #  combine all piecewise results to plot together
@@ -343,9 +369,9 @@ times_all <- 1:length(cases_all1)
 model_fit <- data.frame(time = times_all, cases = cases_all1)
 saveRDS(model_fit, file = paste0("model_fit_df_", last_date_in_osiris, ".rds"))
 
-plot(osiris1$inc ~ seq(1, dim(osiris1)[1], by = 1),
+plot(osiris1$inc[times_all] ~ times_all,
   col = "red", pch = 16,
-  xlab = "Time (days)", ylab = "Incidence", ylim = c(0, 7600)
+  xlab = "Time (days)", ylab = "Incidence"#, ylim = c(0, 7600)
 )
 lines(times_all, cases_all1, col = "blue")
 legend("bottomright", c("Osiris Data", "Model Fit"),
