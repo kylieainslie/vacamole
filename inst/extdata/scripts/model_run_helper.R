@@ -60,37 +60,12 @@ n <- 17407585 # Dutch population size
 n_vec <- n * age_dist
 
 # contact matrices --------------------------------------------------
-contact_matrices_all <- readRDS("inst/extdata/data/contact_matrices_for_model_input.rds")
-c1 <- as.matrix(contact_matrices_all$baseline_sym[, -1]) # normal contact patterns
-c2 <- as.matrix(contact_matrices_all$april2020_sym[, -1]) # strictest measures
-c3 <- as.matrix(contact_matrices_all$june2020_sym[, -1]) # most relaxed measures
-c4 <- as.matrix(contact_matrices_all$september2020_sym[, -1]) # third strictest
-c5 <- as.matrix(contact_matrices_all$february2021_sym[, -1]) # second strictest
-
-# Convert from number of contacts to rate of contacts ---------------
-N_diag <- diag(1 / n_vec)
-m1 <- c1 %*% N_diag
-m2 <- c2 %*% N_diag
-m3 <- c3 %*% N_diag
-m4 <- c4 %*% N_diag
-m5 <- c5 %*% N_diag
-
-# relative susceptibility/infectiousness ----------------------------
-rel_trans <- c(1.000, 3.051, 5.751, 3.538, 3.705, 4.365, 5.688, 5.324, 7.211)
-get_transmission_matrix <- function(x, contact_mat) {
-  # multiply by relative susc/inf
-  tmp <- sweep(contact_mat, 1, x, "*") # rows
-  rtn <- sweep(tmp, 2, x, "*") # columns
-
-  # output
-  return(rtn)
-}
-
-t1 <- get_transmission_matrix(rel_trans, m1)
-t2 <- get_transmission_matrix(rel_trans, m2)
-t3 <- get_transmission_matrix(rel_trans, m3)
-t4 <- get_transmission_matrix(rel_trans, m4)
-t5 <- get_transmission_matrix(rel_trans, m5)
+baseline_2017 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_baseline_2017.rds")
+april_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_april_2020.rds")
+june_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2020.rds")
+september_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_september_2020.rds")
+february_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_february_2021.rds")
+june_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2021.rds")
 
 # parameter inputs -------------------------------------------------
 s <- 0.5
@@ -99,10 +74,10 @@ r0 <- 2.3
 
 # determine transmission rate (beta) for r0 ------------------------
 S <- diag(n_vec - 1)
-rho <- as.numeric(eigs(S %*% t1, 1)$values)
+rho <- as.numeric(eigs(S %*% baseline_2017$mean, 1)$values)
 beta <- (r0 / rho) * g
 # check
-K <- (1 / g) * beta * S %*% t1
+K <- (1 / g) * beta * S %*% baseline_2017$mean
 as.numeric(eigs(K, 1)$values) # this should be r0
 
 days <- seq(yday(as.Date("2021-01-31")), yday(as.Date("2021-12-31")), by = 1)
