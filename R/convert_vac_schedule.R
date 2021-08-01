@@ -13,6 +13,7 @@ convert_vac_schedule <- function(vac_schedule,
                                  hosp_multiplier, 
                                  delay, 
                                  ve_trans,
+                                 before_feb = FALSE,
                                  add_child_vac = FALSE,
                                  child_vac_coverage = 0.7,
                                  child_doses_per_day = 50000,
@@ -28,10 +29,12 @@ age_dist_10 <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,
 n <- 17407585 # Dutch population size
 n_vec_10 <- n * age_dist_10
 
+date_vec <- as.Date(vac_schedule$date, format = "%m/%d/%Y")
+
 # take the difference for each row ------------------------------------------------------------
-vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[-1,-1]))) %>%
+vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[,-1]))) %>%
   add_row(vac_schedule[1,-1],.before = 1) %>%
-  mutate(date = seq.Date(from = as.Date("2021-01-04"), to = as.Date("2021-12-30"), by = 1),
+  mutate(date = date_vec,
          pf_d1_9 = (pf_d1_9 * n_vec_10[9] + pf_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
          pf_d2_9 = (pf_d2_9 * n_vec_10[9] + pf_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
          mo_d1_9 = (mo_d1_9 * n_vec_10[9] + mo_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
@@ -45,6 +48,7 @@ vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[-1,-1]))) %>%
          -az_d2_10, -ja_d1_10, -ja_d2_10) 
 
 # filter for dates before 1 February 2021 -----------------------------------------------------
+if (before_feb){
 before_feb <- vac_schedule_orig %>%
   filter(date < as.Date("2021-02-01")) %>%
   select(-date) %>%
@@ -57,7 +61,9 @@ before_feb <- vac_schedule_orig %>%
 vac_schedule_orig_new <- vac_schedule_orig %>%
   filter(date > as.Date("2021-01-31")) %>%
   add_row(before_feb, .before = 1)
-
+} else {
+  vac_schedule_orig_new <- vac_schedule_orig
+}
 # add extra rows for dates further in the future (so there's no error when running the model)
 if(add_extra_dates){
   extra_dates <- seq.Date(from = as.Date("2021-01-31"), to = as.Date(extra_end_date), by = 1)
