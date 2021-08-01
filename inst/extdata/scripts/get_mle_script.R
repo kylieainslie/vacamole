@@ -26,12 +26,14 @@ p <- ggplot(osiris1, aes(x = date, y = inc)) +
 p
 
 # Read in contact matrices -------------------------
-baseline_2017 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_baseline_2017.rds")
-april_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_april_2020.rds")
-june_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2020.rds")
-september_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_september_2020.rds")
-february_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_february_2021.rds")
-june_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2021.rds")
+# already loaded via model_run_helper.R
+
+# baseline_2017 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_baseline_2017.rds")
+# april_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_april_2020.rds")
+# june_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2020.rds")
+# september_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_september_2020.rds")
+# february_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_february_2021.rds")
+# june_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2021.rds")
 
 # --------------------------------------------------
 # specify model parameters
@@ -407,12 +409,12 @@ for (j in 1:n_bp) {
   
 } # end of for loop over breakpoints
 
-last_date_in_osiris <- "2021-05-25"
-# saveRDS(out_mle, file = paste0("output_from_fits_", last_date_in_osiris, ".rds"))
-# saveRDS(daily_cases_mle, file = paste0("cases_from_fits_", last_date_in_osiris, ".rds"))
+last_date_in_osiris <- tail(osiris1$date,1)
+saveRDS(out_mle, file = paste0("output_from_fits_", last_date_in_osiris, ".rds"))
+saveRDS(daily_cases_mle, file = paste0("cases_from_fits_", last_date_in_osiris, ".rds"))
 
-saveRDS(out_mle, file = "output_2020_from_model_fit.rds")
-saveRDS(daily_cases_mle, file = "cases_2020_from_model_fit.rds")
+# saveRDS(out_mle, file = "output_from_model_fit.rds")
+# saveRDS(daily_cases_mle, file = "cases_from_model_fit.rds")
 
 # --------------------------------------------------
 #  combine all piecewise results to plot together
