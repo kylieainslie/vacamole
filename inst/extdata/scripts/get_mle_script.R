@@ -10,17 +10,13 @@ library(lubridate)
 # Read in OSIRIS data ------------------------------
 source("inst/extdata/scripts/model_run_helper.R")
 # read in OSIRIS data
-osiris <- readRDS("inst/extdata/data/real_data/Osiris_Data_20210715_1054.rds")
+osiris <- readRDS("inst/extdata/data/real_data/Osiris_Data_20210730_1043.rds")
 
 osiris1 <- osiris %>%
-  filter(!is.na(date)) %>%
-  complete(date = seq.Date(min(date), max(date), by="day"), fill = list(inc = 0)) %>%
-  mutate(roll_avg = zoo::rollmean(inc, k = 7, fill = 0))
-
-osiris2 <- osiris1 %>%
-  filter(date <= as.Date("2020-03-16")) # date of first lockdown
-
-time_vec <- seq(0, nrow(osiris2)-1, by = 1)
+  #filter(!is.na(date)) %>%
+  #complete(date = seq.Date(min(date), max(date), by="day"), fill = list(inc = 0)) %>%
+  mutate(roll_avg = zoo::rollmean(inc, k = 7, fill = 0)) %>%
+  filter(date < max(date)-2) # remove last 3 days due to reporting delay
 
 # plot data
 p <- ggplot(osiris1, aes(x = date, y = inc)) +
@@ -61,7 +57,7 @@ params <- list(dt = 1,
                c_very_relaxed = june_2020$mean,
                c_normal = baseline_2017$mean,
                keep_cm_fixed = TRUE,
-               vac_inputs = NULL,
+               vac_inputs = basis1,
                use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_n = 0.5/100000 * sum(n_vec),
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
@@ -229,7 +225,7 @@ breakpoints <- list(
     as.Date("2020-11-19"),  # 3 visitors per day, groups <= 30
     as.Date("2020-12-01"),  # masks mandatory in all public and indoor areas
     as.Date("2020-12-15"),  # non-essential shops close
-    as.Date("2020-12-31"),  # end of year
+    as.Date("2021-01-01"),  # end of year
     as.Date("2021-01-20"),  # 1 visitor per day/curfew (23/01/2021)
     as.Date("2021-02-08"),  # Primary schools, child care, special ed reopen
     as.Date("2021-03-01"),  # secondary schools partially reopen, contact professions reopen (3/3/2021)
@@ -272,7 +268,8 @@ breakpoints <- list(
                          june_2021,
                          june_2021,
                          june_2021
-                         )
+                         ),
+  indicator_2021 = c(rep(0,16), rep(1,13))
 )
 
 n_bp <- length(breakpoints$date)
@@ -282,7 +279,7 @@ out_mle <- list()
 bounds_list <- list()
 daily_cases_mle <- list()
 
-for (j in 1:18) {
+for (j in 1:n_bp) {
   print(j)
   # set contact matrix for time window
   if (j == n_bp){
@@ -294,6 +291,7 @@ for (j in 1:18) {
   if (j == 1) {
     # if first time window, start time at 0
     end_day <- yday(breakpoints$date[j]) - 1
+    
     times <- seq(0, end_day, by = 1)
     # set initial conditions to those specified earlier in script
     init_update <- init
@@ -301,8 +299,17 @@ for (j in 1:18) {
     S_diag <- diag(init_update[c(2:10)])
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   } else {
-    start_day <- yday(breakpoints_2020$date[j-1]) - 1 # shift days by 1 because we start time at 0 (not 1)
-    end_day <- yday(breakpoints$date[j]) - 1
+    if (breakpoints$indicator_2021[j] == 1){
+      if(breakpoints$indicator_2021[j-1] == 1){ # wait for two consecutive dates in 2021
+        start_day <- yday(breakpoints$date[j-1]) - 1 + 366 # shift days by 1 because we start time at 0 (not 1)
+      } else {
+        start_day <- yday(breakpoints$date[j-1]) - 1
+      }
+      end_day <- yday(breakpoints$date[j]) - 1 + 366
+    } else {
+      start_day <- yday(breakpoints$date[j-1]) - 1 
+      end_day <- yday(breakpoints$date[j]) - 1
+    }
     times <- seq(start_day, end_day, by = 1)
     # update initial conditions based on last time window
     init_update <- c(
@@ -340,6 +347,7 @@ for (j in 1:18) {
   # subset data for time window
   osiris_sub <- osiris1[times + 1, ]
   
+  print(times)
   # optimize
   res <- optim(par = pars, 
                fn = likelihood_func,
@@ -365,7 +373,7 @@ for (j in 1:18) {
   # # --------------------------------------------------
   # # run model for each combination of parameters
   # out <- apply(betas, 1, function_wrapper, 
-  #              contact_matrix = breakpoints_2020$contact_matrix[[j]],
+  #              contact_matrix = breakpoints$contact_matrix[[j]],
   #              init = init_update, t = times) # rows are time points, columns are different simulations
   # 
   # # get confidence bounds of model runs
