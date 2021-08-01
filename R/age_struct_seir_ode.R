@@ -36,21 +36,21 @@ age_struct_seir_ode <- function(times,init,params){
     R = c(R1, R2, R3, R4, R5, R6, R7, R8, R9)
     Rv_1d = c(Rv_1d1, Rv_1d2, Rv_1d3, Rv_1d4, Rv_1d5, Rv_1d6, Rv_1d7, Rv_1d8, Rv_1d9)
     Rv_2d = c(Rv_2d1, Rv_2d2, Rv_2d3, Rv_2d4, Rv_2d5, Rv_2d6, Rv_2d7, Rv_2d8, Rv_2d9)
-    
+
     # determine vaccination rate -----------------------------------
-    if(!is.null(params$vac_inputs)){
-      time_point <- floor(time_vec[t]) + 1
-      
-      alpha <- params$vac_inputs$alpha_dose1[time_point,]
-      alpha2 <- params$vac_inputs$alpha_dose2[time_point,]
-      eta <- params$vac_inputs$eta_dose1[time_point,]
-      eta2 <- params$vac_inputs$eta_dose2[time_point,]
-      delay <- params$vac_inputs$delay_dose1[time_point,]
-      delay2 <- params$vac_inputs$delay_dose2[time_point,]
-      eta_hosp <- params$vac_inputs$eta_hosp_dose1[time_point,]
-      eta_hosp2 <- params$vac_inputs$eta_hosp_dose2[time_point,]
-      eta_trans <- params$vac_inputs$eta_trans_dose1[time_point,]
-      eta_trans2 <- params$vac_inputs$eta_trans_dose2[time_point,]
+    if(!no_vac){
+      index <- floor(times) + 1
+
+      alpha <- vac_inputs$alpha_dose1[index,]
+      alpha2 <- vac_inputs$alpha_dose2[index,]
+      eta <- vac_inputs$eta_dose1[index,]
+      eta2 <- vac_inputs$eta_dose2[index,]
+      delay <- vac_inputs$delay_dose1[index,]
+      delay2 <- vac_inputs$delay_dose2[index,]
+      eta_hosp <- vac_inputs$eta_hosp_dose1[index,]
+      eta_hosp2 <- vac_inputs$eta_hosp_dose2[index,]
+      eta_trans <- vac_inputs$eta_trans_dose1[index,]
+      eta_trans2 <- vac_inputs$eta_trans_dose2[index,]
     } else {
       alpha <- 0
       alpha2 <- 0
@@ -85,10 +85,9 @@ age_struct_seir_ode <- function(times,init,params){
     flag_very_relaxed <- tmp2$flag_very_relaxed
     flag_normal <- tmp2$flag_normal
     # determine force of infection ----------------------------------
-    calendar_day <- ifelse(times > 366, t_calendar_start + times - 366, t_calendar_start + times)
-    beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day/365.24))
+    calendar_day <- ifelse(times > 365, t_calendar_start + times - 365, t_calendar_start + times)
+    beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day/365.24)) # incorporate seasonality in transmission rate
 
-    # lambda <- beta * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
     lambda <- ifelse(lambda < 0, 0, lambda)
     # ---------------------------------------------------------------
