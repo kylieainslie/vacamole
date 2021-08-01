@@ -139,43 +139,20 @@ r_ic <- (1 - p_IC2death) / time_hospital2discharge
 
 # vaccinations params ----------------------------------------------
 ve <- list(
-  pfizer = c(0.7, 0.85), # from SIREN study, estimates from clinical trial: 0.926, 0.948
-  moderna = c(0.896, 0.941), # from clinical trial
-  astrazeneca = c(0.583, 0.621), # from clinical trial
-  jansen = c(0.661)
+  pfizer = c(0.66, 0.8), # from Pritchard et al. 2021 Nature
+    # from SIREN study:0.7, 0.85
+    # from clinical trial: 0.926, 0.948
+  moderna = c(0.66, 0.8), # assumed to be the same as pfizer
+    # from clinical trial: 0.896, 0.941
+  astrazeneca = c(0.61, 0.79), # from Pritchard et al. 2021 Nature 
+    # from clinical trial: 0.583, 0.621
+  jansen = c(0.661) # from clinical trial
 )
 
 delays <- list(
-  pfizer = c(21, 7),
-  moderna = c(14, 14),
-  astrazeneca = c(21, 14),
-  jansen = c(14)
-)
-
-ve_sa20 <- list(
-  pfizer = c(0.741, 0.758),
-  moderna = c(0.717, 0.753),
-  astrazeneca = c(0.466, 0.497),
-  jansen = c(0.529)
-)
-
-ve_sa50 <- list(
-  pfizer = c(0.463, 0.474),
-  moderna = c(0.448, 0.471),
-  astrazeneca = c(0.269, 0.311),
-  jansen = c(0.331)
-)
-
-ve_vasileiou <- list(
-  pfizer = c(0.645, 0.85),
-  moderna = c(0.896, 0.941),
-  astrazeneca = c(0.583, 0.621),
-  jansen = c(0.661)
-)
-delays_vasileiou <- list(
-  pfizer = c(7, 7),
-  moderna = c(14, 14),
-  astrazeneca = c(21, 14),
+  pfizer = c(14, 7),
+  moderna = c(14, 7), 
+  astrazeneca = c(14, 7),
   jansen = c(14)
 )
 
@@ -280,7 +257,7 @@ init <- c(
 )
 
 # read in vac schedules --------------------------------------------
-basis <- read_csv("inst/extdata/data/Cum_upt20210603 BASIS.csv") %>%
+basis <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
   select(-starts_with("X"))
 
 # no childhood vaccination, waning
@@ -290,56 +267,57 @@ basis1 <- convert_vac_schedule(
   hosp_multiplier = h_multiplier,
   delay = delays,
   ve_trans = ve_trans,
-  wane = TRUE,
-  add_child_vac = FALSE,
-  add_extra_dates = TRUE,
-  extra_end_date = "2022-03-31"
-)
-
-# childhood vaccination, waning
-basis1_child_vac <- convert_vac_schedule(
-  vac_schedule = basis,
-  ve = ve,
-  hosp_multiplier = h_multiplier,
-  delay = delays,
-  ve_trans = ve_trans,
-  wane = TRUE,
-  add_child_vac = TRUE,
-  child_vac_coverage = 0.7,
-  child_doses_per_day = 50000,
-  child_vac_start_date = "2021-07-15",
-  add_extra_dates = TRUE,
-  extra_end_date = "2022-03-31"
-)
-
-# no childhood vaccination, no waning
-basis1_no_wane <- convert_vac_schedule(
-  vac_schedule = basis,
-  ve = ve,
-  hosp_multiplier = h_multiplier,
-  delay = delays,
-  ve_trans = ve_trans,
   wane = FALSE,
+  before_feb = FALSE,
   add_child_vac = FALSE,
-  add_extra_dates = TRUE,
-  extra_end_date = "2022-03-31"
+  add_extra_dates = FALSE #,
+  #extra_end_date = "2022-03-31"
 )
 
-# childhood vaccination, no waning
-basis1_no_wane_child_vac <- convert_vac_schedule(
-  vac_schedule = basis,
-  ve = ve,
-  hosp_multiplier = h_multiplier,
-  delay = delays,
-  ve_trans = ve_trans,
-  wane = FALSE,
-  add_child_vac = TRUE,
-  child_vac_coverage = 0.7,
-  child_doses_per_day = 50000,
-  child_vac_start_date = "2021-07-15",
-  add_extra_dates = TRUE,
-  extra_end_date = "2022-03-31"
-)
+# # childhood vaccination, waning
+# basis1_child_vac <- convert_vac_schedule(
+#   vac_schedule = basis,
+#   ve = ve,
+#   hosp_multiplier = h_multiplier,
+#   delay = delays,
+#   ve_trans = ve_trans,
+#   wane = TRUE,
+#   add_child_vac = TRUE,
+#   child_vac_coverage = 0.7,
+#   child_doses_per_day = 50000,
+#   child_vac_start_date = "2021-07-15",
+#   add_extra_dates = TRUE,
+#   extra_end_date = "2022-03-31"
+# )
+# 
+# # no childhood vaccination, no waning
+# basis1_no_wane <- convert_vac_schedule(
+#   vac_schedule = basis,
+#   ve = ve,
+#   hosp_multiplier = h_multiplier,
+#   delay = delays,
+#   ve_trans = ve_trans,
+#   wane = FALSE,
+#   add_child_vac = FALSE,
+#   add_extra_dates = TRUE,
+#   extra_end_date = "2022-03-31"
+# )
+# 
+# # childhood vaccination, no waning
+# basis1_no_wane_child_vac <- convert_vac_schedule(
+#   vac_schedule = basis,
+#   ve = ve,
+#   hosp_multiplier = h_multiplier,
+#   delay = delays,
+#   ve_trans = ve_trans,
+#   wane = FALSE,
+#   add_child_vac = TRUE,
+#   child_vac_coverage = 0.7,
+#   child_doses_per_day = 50000,
+#   child_vac_start_date = "2021-07-15",
+#   add_extra_dates = TRUE,
+#   extra_end_date = "2022-03-31"
+# )
 
 
 # load model fits --------------------------------------------------
