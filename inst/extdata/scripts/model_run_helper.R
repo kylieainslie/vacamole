@@ -116,10 +116,18 @@ ve_trans <- list(
   jansen = c(0)
 ) # no available data
 
+ve_hosp <- list(
+  pfizer = c(0.94, 0.96), # Stowe et al. (pre-print) (against Delta)
+                          # https://media.tghn.org/articles/Effectiveness_of_COVID-19_vaccines_against_hospital_admission_with_the_Delta_B._G6gnnqJ.pdf
+  moderna = c(0.94, 0.96), # assumed same as pfizer 
+  astrazeneca = c(0.71, 0.92), # Stowe et al. (pre-print) (against Delta)
+  jansen = c(0)
+)
+
 # hospitalisations multiplier
 # calculated as (1-ve_hosp)/(1-ve)
 h_multiplier <- list(
-  pfizer = c(0, 0),
+  pfizer = c(0, 0), 
   moderna = c(0, 0),
   astrazeneca = c(0.384, 0.384),
   jansen = c(0)
