@@ -135,7 +135,9 @@ likelihood_func <- function(x,
   alpha <- x[2]
   size <- daily_cases * (alpha/(1-alpha))
   lik <- -sum(dnbinom(x = inc_obs, mu = daily_cases, size = size, log = TRUE))
-  #print(lik)
+  print(r0)
+  print(alpha)
+  print(lik)
   lik
 }
 # ---------------------------------------------------
@@ -369,9 +371,9 @@ for (j in 1:n_bp) {
   mles[j,2] <- res$par[2]
   
   # draw 200 parameter values
-  # parameter_draws_mle <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
-  # betas <- data.frame(beta = (parameter_draws_mle[,1] / rho) * params$gamma) %>%
-  #   mutate(index = 1:200)
+  parameter_draws_mle <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
+  betas <- data.frame(beta = (parameter_draws_mle[,1] / rho) * params$gamma) %>%
+    mutate(index = 1:200)
   # # --------------------------------------------------
   # # run model for each combination of parameters
   # out <- apply(betas, 1, function_wrapper, 
@@ -435,32 +437,33 @@ lines(times_all, cases_all1, col = "blue")
 
 # --------------------------------------------------
 # save initial conditions for forward simulation
+last_index <- length(out_mle)
 init_forward <- c(
   t = tail(times_all, 1) - 1,
-  S = as.numeric(tail(out_mle[[8]]$S, 1)),
-  Shold_1d = as.numeric(tail(out_mle[[8]]$Shold_1d, 1)),
-  Sv_1d = as.numeric(tail(out_mle[[8]]$Sv_1d, 1)),
-  Shold_2d = as.numeric(tail(out_mle[[8]]$Shold_2d, 1)),
-  Sv_2d = as.numeric(tail(out_mle[[8]]$Sv_2d, 1)),
-  E = as.numeric(tail(out_mle[[8]]$E, 1)),
-  Ev_1d = as.numeric(tail(out_mle[[8]]$Ev_1d, 1)),
-  Ev_2d = as.numeric(tail(out_mle[[8]]$Ev_2d, 1)),
-  I = as.numeric(tail(out_mle[[8]]$I, 1)),
-  Iv_1d = as.numeric(tail(out_mle[[8]]$Iv_1d, 1)),
-  Iv_2d = as.numeric(tail(out_mle[[8]]$Iv_2d, 1)),
-  H = as.numeric(tail(out_mle[[8]]$H, 1)),
-  Hv_1d = as.numeric(tail(out_mle[[8]]$Hv_1d, 1)),
-  Hv_2d = as.numeric(tail(out_mle[[8]]$Hv_2d, 1)),
-  H_IC = as.numeric(tail(out_mle[[8]]$H_IC, 1)),
-  H_ICv_1d = as.numeric(tail(out_mle[[8]]$H_ICv_1d, 1)),
-  H_ICv_2d = as.numeric(tail(out_mle[[8]]$H_ICv_2d, 1)),
-  IC = as.numeric(tail(out_mle[[8]]$IC, 1)),
-  ICv_1d = as.numeric(tail(out_mle[[8]]$ICv_1d, 1)),
-  ICv_2d = as.numeric(tail(out_mle[[8]]$ICv_2d, 1)),
-  D = as.numeric(tail(out_mle[[8]]$D, 1)),
-  R = as.numeric(tail(out_mle[[8]]$R, 1)),
-  Rv_1d = as.numeric(tail(out_mle[[8]]$Rv_1d, 1)),
-  Rv_2d = as.numeric(tail(out_mle[[8]]$Rv_2d, 1))
+  S = as.numeric(tail(out_mle[[last_index]]$S, 1)),
+  Shold_1d = as.numeric(tail(out_mle[[last_index]]$Shold_1d, 1)),
+  Sv_1d = as.numeric(tail(out_mle[[last_index]]$Sv_1d, 1)),
+  Shold_2d = as.numeric(tail(out_mle[[last_index]]$Shold_2d, 1)),
+  Sv_2d = as.numeric(tail(out_mle[[last_index]]$Sv_2d, 1)),
+  E = as.numeric(tail(out_mle[[last_index]]$E, 1)),
+  Ev_1d = as.numeric(tail(out_mle[[last_index]]$Ev_1d, 1)),
+  Ev_2d = as.numeric(tail(out_mle[[last_index]]$Ev_2d, 1)),
+  I = as.numeric(tail(out_mle[[last_index]]$I, 1)),
+  Iv_1d = as.numeric(tail(out_mle[[last_index]]$Iv_1d, 1)),
+  Iv_2d = as.numeric(tail(out_mle[[last_index]]$Iv_2d, 1)),
+  H = as.numeric(tail(out_mle[[last_index]]$H, 1)),
+  Hv_1d = as.numeric(tail(out_mle[[last_index]]$Hv_1d, 1)),
+  Hv_2d = as.numeric(tail(out_mle[[last_index]]$Hv_2d, 1)),
+  H_IC = as.numeric(tail(out_mle[[last_index]]$H_IC, 1)),
+  H_ICv_1d = as.numeric(tail(out_mle[[last_index]]$H_ICv_1d, 1)),
+  H_ICv_2d = as.numeric(tail(out_mle[[last_index]]$H_ICv_2d, 1)),
+  IC = as.numeric(tail(out_mle[[last_index]]$IC, 1)),
+  ICv_1d = as.numeric(tail(out_mle[[last_index]]$ICv_1d, 1)),
+  ICv_2d = as.numeric(tail(out_mle[[last_index]]$ICv_2d, 1)),
+  D = as.numeric(tail(out_mle[[last_index]]$D, 1)),
+  R = as.numeric(tail(out_mle[[last_index]]$R, 1)),
+  Rv_1d = as.numeric(tail(out_mle[[last_index]]$Rv_1d, 1)),
+  Rv_2d = as.numeric(tail(out_mle[[last_index]]$Rv_2d, 1))
 )
 saveRDS(init_forward, file = paste0("init_conditions_", last_date_in_osiris, ".rds"))
 

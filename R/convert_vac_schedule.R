@@ -66,7 +66,7 @@ vac_schedule_orig_new <- vac_schedule_orig %>%
 }
 # add extra rows for dates further in the future (so there's no error when running the model)
 if(add_extra_dates){
-  extra_dates <- seq.Date(from = as.Date("2021-01-31"), to = as.Date(extra_end_date), by = 1)
+  extra_dates <- seq.Date(from = date_vec[1], to = as.Date(extra_end_date), by = 1)
   na_to_zero <- function(x){ ifelse(is.na(x), 0, x) }
   extra_dat <- data.frame(date = extra_dates) %>%
     full_join(vac_schedule_orig_new, extra_dates, by = "date") %>%
