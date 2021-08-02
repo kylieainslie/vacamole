@@ -241,7 +241,8 @@ breakpoints <- list(
     as.Date("2021-06-05"),  # 4 visitors per day, museums reopen, group <= 50, restaurants reopen
     as.Date("2021-06-26"),  # all restrictions relaxed, except masks on public transport, nightclubs reopen
     as.Date("2021-07-10"),  # catering industry reopens, test for entry with large events, nightclubs close
-    as.Date("2021-07-19")  # work from home advisory re-instated
+    as.Date("2021-07-19"),  # work from home advisory re-instated
+    as.Date("2021-07-27")   # last date in osiris
   ),  
   contact_matrix = list( baseline_2017, 
                          baseline_2017, 
@@ -271,9 +272,10 @@ breakpoints <- list(
                          june_2021,
                          june_2021,
                          june_2021,
+                         june_2021,
                          june_2021
                          ),
-  indicator_2021 = c(rep(0,16), rep(1,13))
+  indicator_2021 = c(rep(0,16), rep(1,14))
 )
 
 n_bp <- length(breakpoints$date)
@@ -411,12 +413,12 @@ for (j in 1:n_bp) {
   
 } # end of for loop over breakpoints
 
+# save outputs -------------------------------------
+path <- "inst/extdata/results/model_fits/"
 last_date_in_osiris <- tail(osiris1$date,1)
-saveRDS(out_mle, file = paste0("output_from_fits_", last_date_in_osiris, ".rds"))
-saveRDS(daily_cases_mle, file = paste0("cases_from_fits_", last_date_in_osiris, ".rds"))
-
-# saveRDS(out_mle, file = "output_from_model_fit.rds")
-# saveRDS(daily_cases_mle, file = "cases_from_model_fit.rds")
+saveRDS(out_mle, file = paste0(path,"output_from_fits_", last_date_in_osiris, ".rds"))
+saveRDS(daily_cases_mle, file = paste0(path,"cases_from_fits_", last_date_in_osiris, ".rds"))
+saveRDS(mles, file = paste0(path, "mles_from_fits_", last_date_in_osiris, ".rds"))
 
 # --------------------------------------------------
 #  combine all piecewise results to plot together
@@ -465,5 +467,7 @@ init_forward <- c(
   Rv_1d = as.numeric(tail(out_mle[[last_index]]$Rv_1d, 1)),
   Rv_2d = as.numeric(tail(out_mle[[last_index]]$Rv_2d, 1))
 )
-saveRDS(init_forward, file = paste0("init_conditions_", last_date_in_osiris, ".rds"))
+saveRDS(init_forward, file = paste0(path,"init_conditions_", last_date_in_osiris, ".rds"))
 
+# save beta draws from last time window for forward simulation
+saveRDS(betas, file =  paste0(path,"beta_draws_",last_date_of_fit,".rds"))
