@@ -222,8 +222,8 @@ hosp_mult_dose2 <- frac_pf_dose2 * ve_hosp_p_dose2 +
   frac_ja_dose2 * ve_hosp_j_dose2
 colnames(hosp_mult_dose2) <- paste0("hosp_mult", name_suffix_d1)
 
-eta_hosp_dose1 <- 1 - hosp_mult_dose1
-eta_hosp_dose2 <- 1 - hosp_mult_dose2
+eta_hosp_dose1 <- hosp_mult_dose1
+eta_hosp_dose2 <- hosp_mult_dose2
 
 # VE against hospitalisation
 # dose 1
