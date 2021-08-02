@@ -121,17 +121,39 @@ ve_hosp <- list(
                           # https://media.tghn.org/articles/Effectiveness_of_COVID-19_vaccines_against_hospital_admission_with_the_Delta_B._G6gnnqJ.pdf
   moderna = c(0.94, 0.96), # assumed same as pfizer 
   astrazeneca = c(0.71, 0.92), # Stowe et al. (pre-print) (against Delta)
-  jansen = c(0)
+  jansen = c(0.85) # from RIVM website: https://www.rivm.nl/en/covid-19-vaccination/vaccines/efficacy-and-protection
 )
 
 # hospitalisations multiplier
 # calculated as (1-ve_hosp)/(1-ve)
 h_multiplier <- list(
-  pfizer = c(0, 0), 
-  moderna = c(0, 0),
-  astrazeneca = c(0.384, 0.384),
-  jansen = c(0)
+  pfizer = (1-ve_hosp$pfizer)/(1-ve$pfizer),
+  moderna = (1-ve_hosp$moderna)/(1-ve$moderna),
+  astrazeneca = (1-ve_hosp$astrazeneca)/(1-ve$astrazeneca),
+  jansen = (1-ve_hosp$jansen)/(1-ve$jansen)
 )
+
+# read in vac schedules --------------------------------------------
+basis <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
+  select(-starts_with("X"))
+
+# no childhood vaccination, waning
+basis1 <- convert_vac_schedule(
+  vac_schedule = basis,
+  ve = ve,
+  hosp_multiplier = h_multiplier,
+  delay = delays,
+  ve_trans = ve_trans,
+  wane = FALSE,
+  before_feb = FALSE,
+  add_child_vac = FALSE,
+  add_extra_dates = TRUE,
+  extra_end_date = "2022-03-31"
+)
+
+# ------------------------------------------------------------------
+# old code ---------------------------------------------------------
+# ------------------------------------------------------------------
 # initial states ---------------------------------------------------
 # Jacco's suggested way to determine initial conditions
 # init_states_dat <- data.frame(
@@ -216,73 +238,3 @@ h_multiplier <- list(
 #   Rv_1d = empty_state,
 #   Rv_2d = empty_state
 # )
-
-# read in vac schedules --------------------------------------------
-basis <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
-  select(-starts_with("X"))
-
-# no childhood vaccination, waning
-basis1 <- convert_vac_schedule(
-  vac_schedule = basis,
-  ve = ve,
-  hosp_multiplier = h_multiplier,
-  delay = delays,
-  ve_trans = ve_trans,
-  wane = FALSE,
-  before_feb = FALSE,
-  add_child_vac = FALSE,
-  add_extra_dates = FALSE #,
-  #extra_end_date = "2022-03-31"
-)
-
-# # childhood vaccination, waning
-# basis1_child_vac <- convert_vac_schedule(
-#   vac_schedule = basis,
-#   ve = ve,
-#   hosp_multiplier = h_multiplier,
-#   delay = delays,
-#   ve_trans = ve_trans,
-#   wane = TRUE,
-#   add_child_vac = TRUE,
-#   child_vac_coverage = 0.7,
-#   child_doses_per_day = 50000,
-#   child_vac_start_date = "2021-07-15",
-#   add_extra_dates = TRUE,
-#   extra_end_date = "2022-03-31"
-# )
-# 
-# # no childhood vaccination, no waning
-# basis1_no_wane <- convert_vac_schedule(
-#   vac_schedule = basis,
-#   ve = ve,
-#   hosp_multiplier = h_multiplier,
-#   delay = delays,
-#   ve_trans = ve_trans,
-#   wane = FALSE,
-#   add_child_vac = FALSE,
-#   add_extra_dates = TRUE,
-#   extra_end_date = "2022-03-31"
-# )
-# 
-# # childhood vaccination, no waning
-# basis1_no_wane_child_vac <- convert_vac_schedule(
-#   vac_schedule = basis,
-#   ve = ve,
-#   hosp_multiplier = h_multiplier,
-#   delay = delays,
-#   ve_trans = ve_trans,
-#   wane = FALSE,
-#   add_child_vac = TRUE,
-#   child_vac_coverage = 0.7,
-#   child_doses_per_day = 50000,
-#   child_vac_start_date = "2021-07-15",
-#   add_extra_dates = TRUE,
-#   extra_end_date = "2022-03-31"
-# )
-
-
-# load model fits --------------------------------------------------
-#daily_cases_from_fit <- readRDS("inst/extdata/results/model_fit_df_2021-05-25.rds")
-# mle_betas <- read_csv("inst/extdata/results/mle_betas_2021-04-26.csv")
-#initial_conditions <- readRDS("inst/extdata/results/init_conditions_2021-05-25.rds")
-# osiris_dat <- readRDS("inst/extdata/data/Osiris_Data_20210505_1034.rds")

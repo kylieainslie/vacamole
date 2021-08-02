@@ -3,7 +3,15 @@
 # Data and model parameters are loaded/defined in the script inst/extdata/scripts/model_run_helper.R
 source("inst/extdata/scripts/model_run_helper.R")
 
-beta_mle <- 0.00061
+# load initial conditions from model fits --------------------------
+last_date_of_fit <- "2021-07-27"
+#daily_cases_from_fit <- readRDS("inst/extdata/results/model_fit_df_2021-05-25.rds")
+beta_mle <- tail(readRDS(paste0("inst/extdata/results/model_fits/mles_from_fits_",last_date_of_fit,".rds")),1)[1]
+beta_draws <-  readRDS(paste0("inst/extdata/results/model_fits/beta_draws_",last_date_of_fit,".rds"))
+initial_conditions <- readRDS(paste0("inst/extdata/results/model_fits/init_conditions_",last_date_of_fit,".rds"))
+# osiris_dat <- readRDS("inst/extdata/data/Osiris_Data_20210505_1034.rds")
+
+
 start_date <- lubridate::yday(as.Date("2021-05-25"))
 end_date <- lubridate::yday(as.Date("2022-03-30")) + 365
 # Create list of parameter values for input into model solver
