@@ -6,7 +6,7 @@ source("inst/extdata/scripts/model_run_helper.R")
 # load initial conditions from model fits --------------------------
 last_date_of_fit <- "2021-07-27"
 #daily_cases_from_fit <- readRDS("inst/extdata/results/model_fit_df_2021-05-25.rds")
-beta_mle <- tail(readRDS(paste0("inst/extdata/results/model_fits/mles_from_fits_",last_date_of_fit,".rds")),1)[1]
+beta_mles <- readRDS(paste0("inst/extdata/results/model_fits/mles_from_fits_",last_date_of_fit,".rds"))
 beta_draws <-  readRDS(paste0("inst/extdata/results/model_fits/beta_draws_",last_date_of_fit,".rds"))
 initial_conditions <- readRDS(paste0("inst/extdata/results/model_fits/init_conditions_",last_date_of_fit,".rds"))
 # osiris_dat <- readRDS("inst/extdata/data/Osiris_Data_20210505_1034.rds")
@@ -17,7 +17,7 @@ end_date <- lubridate::yday(as.Date("2022-03-30")) + (365*2)
 times <- seq(start_date, end_date, by = 1)
 
 # Create list of parameter values for input into model solver ------
-params <- list(beta = beta_mle,           # transmission rate
+params <- list(beta = beta_mle,     # transmission rate
                beta1 = 0.14,              # amplitude of seasonal forcing
                gamma = g,                 # 1/gamma = infectious period
                sigma = s,                 # 1/sigma = latent period
@@ -46,7 +46,7 @@ params <- list(beta = beta_mle,           # transmission rate
                thresh_u = 100000/100000 * sum(n_vec),        #35.7  # 20 for IC admissions
                no_vac = FALSE,
                t_calendar_start = yday(as.Date("2020-01-01")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
-               beta_change =  0.001539711 # mle = 0.0003934816 * 2 (R0 = 4.6); lower = 0.0005902224 (R0 = 3.45); upper = 0.001539711 (R0 = 9)
+               beta_change =  0.0005902224 # mle = 0.0003934816 * 2 (R0 = 4.6); lower = 0.0005902224 (R0 = 3.45); upper = 0.001539711 (R0 = 9)
                )
 
 
@@ -151,7 +151,7 @@ p <- ggplot(data = df_plot, aes(x = time, y = mle)) +
 p
 
 # Summarise results ------------------------------------------------
-tag <- "df_basis_18plus_upper_beta_13aug"
+tag <- "df_basis_18plus_lower_beta_13aug"
 # results <- summarise_results(out, params, start_date = "2021-01-31", 
 #                              times = times, vac_inputs = params$vac_inputs)
 saveRDS(df_plot, paste0("inst/extdata/results/",tag,".rds"))
