@@ -120,10 +120,10 @@ delays <- list(
 )
 
 ve_trans <- list(
-  pfizer = c(0.3, 0.54), # from Shah et al. 2021
-  moderna = c(0.3, 0.54), # assumed to be the same as pfizer
-  astrazeneca = c(0, 0), # no available data
-  jansen = c(0)
+  pfizer = c(0.26, 0.58), # de Gier et al. # 0.3, 0.54 from Shah et al. 2021
+  moderna = c(0.51, 0.70), # de Gier et al.
+  astrazeneca = c(0.15, 0.88), # de Gier et al.
+  jansen = c(0.77) # de Gier et al.
 ) # no available data
 
 ve_hosp <- list(
