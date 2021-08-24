@@ -70,7 +70,7 @@ june_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2
 # parameter inputs -------------------------------------------------
 s <- 0.5
 g <- 0.5
-r0 <- 2.3
+r0 <- 3.45
 
 # determine transmission rate (beta) for r0 ------------------------
 S <- diag(n_vec - 1)
@@ -92,14 +92,24 @@ r_ic <- (1 - p_IC2death) / time_hospital2discharge
 
 # vaccinations params ----------------------------------------------
 ve <- list(
-  pfizer = c(0.66, 0.8), # from Pritchard et al. 2021 Nature
-    # from SIREN study:0.7, 0.85
-    # from clinical trial: 0.926, 0.948
-  moderna = c(0.66, 0.8), # assumed to be the same as pfizer
-    # from clinical trial: 0.896, 0.941
-  astrazeneca = c(0.61, 0.79), # from Pritchard et al. 2021 Nature 
-    # from clinical trial: 0.583, 0.621
-  jansen = c(0.661) # from clinical trial
+  # wildtype = list(
+  #   pfizer = c(0.926, 0.948), # from clinical trial
+  #   moderna = c(0.896, 0.941), # from clinical trial
+  #   astrazeneca = c(0.583, 0.621), # from clinical trial
+  #   janssen = c(0.661) # from clinical trial
+  # ),
+  #alpha = list(
+    pfizer = c(0.66, 0.8), # from Pritchard et al. 2021 Nature
+    moderna = c(0.66, 0.8), # assumed to be the same as pfizer
+    astrazeneca = c(0.61, 0.79), # from Pritchard et al. 2021 Nature 
+    jansen = c(0.767) # from Corchado-Garcia et al. 2021 medRxiv (need to check if this is against alpha!)
+  #),
+  # delta = list(
+  #   pfizer = c(0.58, 0.82), # from Pouwels et al. 2021
+  #   moderna = c(0.75, 0.82), # no data for moderna second dose, assuming same as pfizer
+  #   astrazeneca = c(0.43, 0.67), 
+  #   jansen = c(0.27) # from Dutch data, check exact value with Brechje
+  # )
 )
 
 delays <- list(
@@ -134,12 +144,17 @@ h_multiplier <- list(
 )
 
 # read in vac schedules --------------------------------------------
-basis <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
+basis_12plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
   select(-starts_with("X"))
 
+# basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
+#   select(-starts_with("X"))
+
 # no childhood vaccination, waning
+vac_sched <- basis_12plus
+
 basis1 <- convert_vac_schedule(
-  vac_schedule = basis,
+  vac_schedule = vac_sched,
   ve = ve,
   hosp_multiplier = h_multiplier,
   delay = delays,
