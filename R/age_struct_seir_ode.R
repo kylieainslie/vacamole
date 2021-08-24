@@ -84,6 +84,8 @@ age_struct_seir_ode <- function(times,init,params){
     flag_relaxed <- tmp2$flag_relaxed
     flag_very_relaxed <- tmp2$flag_very_relaxed
     flag_normal <- tmp2$flag_normal
+    
+    if(flag_normal > 0){beta = beta_change}
     # determine force of infection ----------------------------------
     calendar_day <- ifelse(times > 365, t_calendar_start + times - 365, t_calendar_start + times)
     beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day/365.24)) # incorporate seasonality in transmission rate
