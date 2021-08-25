@@ -10,7 +10,7 @@ library(tidyr)
 library(readxl)
 library(rARPACK)
 library(readr)
-library(lazymcmc)
+#library(lazymcmc)
 library(lubridate)
 
 # Source functions -------------------------------------------------

@@ -151,28 +151,25 @@ likelihood_func <- function(x,
   alpha <- x[2]
   size <- daily_cases * (alpha/(1-alpha))
   lik <- -sum(dnbinom(x = inc_obs, mu = daily_cases, size = size, log = TRUE))
-  # print(r0)
-  # print(alpha)
-  # print(lik)
   lik
 }
 # ---------------------------------------------------
 # Determine MLE using optim
 
-res <- optim(par = c(2.3, 0.01), 
-             fn = likelihood_func,
-             method = "L-BFGS-B",
-             lower = c(1,0.001),
-             upper = c(10,1),
-             t = time_vec,
-             data = osiris2,
-             params = params,
-             init = init,
-             stochastic = FALSE,
-             hessian = TRUE
-             )
-
-res$par
+# res <- optim(par = c(2.3, 0.01), 
+#              fn = likelihood_func,
+#              method = "L-BFGS-B",
+#              lower = c(1,0.001),
+#              upper = c(10,1),
+#              t = time_vec,
+#              data = osiris2,
+#              params = params,
+#              init = init,
+#              stochastic = FALSE,
+#              hessian = TRUE
+#              )
+# 
+# res$par
 
 # plot to check fit --------------------------------
 S_diag <- diag(init[c(2:10)])
@@ -398,7 +395,7 @@ for (j in 1:n_bp) {
   
   # draw 200 parameter values
   parameter_draws[[j]] <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
-  betas[[j]] <- data.frame(beta = (parameter_draws[,1] / rho) * params$gamma) %>%
+  beta_draws[[j]] <- data.frame(beta = (parameter_draws[[j]][,1] / rho) * params$gamma) %>%
      mutate(index = 1:200)
   # # --------------------------------------------------
   # # run model for each combination of parameters
@@ -440,10 +437,11 @@ names(daily_cases_mle) <- paste0("end_date_", breakpoints$date)
 # save outputs -------------------------------------
 path <- "inst/extdata/results/model_fits/"
 last_date_in_osiris <- tail(osiris1$date,1)
-saveRDS(out_mle, file = paste0(path,"output_from_fits_", last_date_in_osiris, ".rds"))
-saveRDS(daily_cases_mle, file = paste0(path,"cases_from_fits_", last_date_in_osiris, ".rds"))
-saveRDS(mles, file = paste0(path, "mles_from_fits_", last_date_in_osiris, ".rds"))
-saveRDS(beta_draws_draws, file = paste0(path, "beta_draws_from_fits_", last_date_in_osiris, ".rds"))
+todays_date <- Sys.Date()
+saveRDS(out_mle, file = paste0(path,"output_from_fits_", todays_date, ".rds"))
+saveRDS(daily_cases_mle, file = paste0(path,"cases_from_fits_", todays_date, ".rds"))
+saveRDS(mles, file = paste0(path, "mles_from_fits_", todays_date, ".rds"))
+saveRDS(beta_draws, file = paste0(path, "beta_draws_from_fits_", todays_date, ".rds"))
 
 # --------------------------------------------------
 #  combine all piecewise results to plot together
@@ -451,7 +449,7 @@ cases_all <- unlist(daily_cases_mle)
 cases_all1 <- unique(cases_all) # remove duplicate time points
 times_all <- 1:length(cases_all1)
 model_fit <- data.frame(time = times_all, cases = cases_all1)
-saveRDS(model_fit, file = paste0("model_fit_df_", last_date_in_osiris, ".rds"))
+saveRDS(model_fit, file = paste0("model_fit_df_", todays_date, ".rds"))
 
 plot(osiris1$inc[times_all] ~ times_all,
   col = "red", pch = 16,
@@ -462,37 +460,3 @@ legend("topleft", c("Osiris Data", "Model Fit"),
        col = c("red", "blue"), lty = c(0, 1), pch = c(16, NA))
 # --------------------------------------------------
 
-# --------------------------------------------------
-# save initial conditions for forward simulation
-last_index <- length(out_mle)
-init_forward <- c(
-  t = tail(times_all, 1) - 1,
-  S = as.numeric(tail(out_mle[[last_index]]$S, 1)),
-  Shold_1d = as.numeric(tail(out_mle[[last_index]]$Shold_1d, 1)),
-  Sv_1d = as.numeric(tail(out_mle[[last_index]]$Sv_1d, 1)),
-  Shold_2d = as.numeric(tail(out_mle[[last_index]]$Shold_2d, 1)),
-  Sv_2d = as.numeric(tail(out_mle[[last_index]]$Sv_2d, 1)),
-  E = as.numeric(tail(out_mle[[last_index]]$E, 1)),
-  Ev_1d = as.numeric(tail(out_mle[[last_index]]$Ev_1d, 1)),
-  Ev_2d = as.numeric(tail(out_mle[[last_index]]$Ev_2d, 1)),
-  I = as.numeric(tail(out_mle[[last_index]]$I, 1)),
-  Iv_1d = as.numeric(tail(out_mle[[last_index]]$Iv_1d, 1)),
-  Iv_2d = as.numeric(tail(out_mle[[last_index]]$Iv_2d, 1)),
-  H = as.numeric(tail(out_mle[[last_index]]$H, 1)),
-  Hv_1d = as.numeric(tail(out_mle[[last_index]]$Hv_1d, 1)),
-  Hv_2d = as.numeric(tail(out_mle[[last_index]]$Hv_2d, 1)),
-  H_IC = as.numeric(tail(out_mle[[last_index]]$H_IC, 1)),
-  H_ICv_1d = as.numeric(tail(out_mle[[last_index]]$H_ICv_1d, 1)),
-  H_ICv_2d = as.numeric(tail(out_mle[[last_index]]$H_ICv_2d, 1)),
-  IC = as.numeric(tail(out_mle[[last_index]]$IC, 1)),
-  ICv_1d = as.numeric(tail(out_mle[[last_index]]$ICv_1d, 1)),
-  ICv_2d = as.numeric(tail(out_mle[[last_index]]$ICv_2d, 1)),
-  D = as.numeric(tail(out_mle[[last_index]]$D, 1)),
-  R = as.numeric(tail(out_mle[[last_index]]$R, 1)),
-  Rv_1d = as.numeric(tail(out_mle[[last_index]]$Rv_1d, 1)),
-  Rv_2d = as.numeric(tail(out_mle[[last_index]]$Rv_2d, 1))
-)
-saveRDS(init_forward, file = paste0(path,"init_conditions_", last_date_in_osiris, ".rds"))
-
-# save beta draws from last time window for forward simulation
-saveRDS(betas, file =  paste0(path,"beta_draws_",last_date_in_osiris,".rds"))
