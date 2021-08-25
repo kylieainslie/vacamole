@@ -22,7 +22,7 @@ basis1 <- convert_vac_schedule(
   hosp_multiplier = h_multiplier,
   delay = delays,
   ve_trans = ve_trans,
-  wane = FALSE,
+  wane = TRUE,
   before_feb = FALSE,
   add_child_vac = FALSE,
   add_extra_dates = TRUE,
@@ -192,7 +192,7 @@ p <- ggplot(data = df_plot, aes(x = time, y = mle)) +
 p
 
 # Summarise results ------------------------------------------------
-tag <- "df_basis_18plus_mle_beta_23aug"
+tag <- "df_basis_18plus_wane_mle_beta_23aug"
 # results <- summarise_results(out, params, start_date = "2021-01-31", 
 #                              times = times, vac_inputs = params$vac_inputs)
 saveRDS(df_plot, paste0("inst/extdata/results/",tag,".rds"))
