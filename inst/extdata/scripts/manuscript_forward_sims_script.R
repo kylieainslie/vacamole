@@ -30,14 +30,36 @@ basis1 <- convert_vac_schedule(
 )
 
 
-# load initial conditions from model fits --------------------------
-last_date_of_fit <- "2021-07-27"
+# model wrapper function inputs ------------------------------------
+date_of_fit <- "2021-08-25"
 
-output_from_model_fit <- readRDS(paste0("inst/extdata/results/model_fits/output_from_fits_", last_date_in_osiris, ".rds"))
+output_from_model_fit <- readRDS(paste0("inst/extdata/results/model_fits/output_from_fits_", date_of_fit, ".rds"))
 init_cond_22june2021 <- unlist(lapply(unname(output_from_model_fit$`end_date_2021-06-22`), tail,1))
-beta_mles <- data.frame(beta = readRDS(paste0("inst/extdata/results/model_fits/mles_from_fits_",last_date_of_fit,".rds"))) %>%
+beta_mles <- data.frame(beta = readRDS(paste0("inst/extdata/results/model_fits/mles_from_fits_", date_of_fit,".rds"))) %>%
   mutate(end_date = names(output_from_model_fit))
-parameter_draws <-  readRDS(paste0(path, "parameter_draws_from_fits_", last_date_in_osiris, ".rds"))
+beta_draws <-  readRDS(paste0(path, "beta_draws_from_fits_", date_of_fit, ".rds"))
 
 index <- which(beta_mles$end_date == "end_date_2021-06-22")
+cm <- list(baseline_2017 = baseline_2017,
+           april_2020 = april_2020,
+           june_2020 = june_2020,
+           september_2020 = september_2020,
+           february_2021 = february_2021,
+           june_2021 = june_2021
+           )
 
+beta_delta_mle <- 0.0003934816 * 2 # R0 = 4.6
+beta_delta_lower <- 0.0005902224   # R0 = 3.45
+beta_delta_upper <- 0.001539711    # R0 = 9
+
+# run models --------------------------------------------------------
+# 12+ mle
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis1,
+                      beta_c = beta_delta_mle,
+                      beta_draws = beta_draws,
+                      contact_matrices = cm
+                      )

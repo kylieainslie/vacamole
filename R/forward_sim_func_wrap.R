@@ -85,6 +85,7 @@ rtn_cases <- matrix(,nrow = length(times), ncol = length(beta_draws))
 rtn_hosp <- rtn_cases
 rtn_ic <- rtn_cases
 rtn_deaths <- rtn_cases
+rtn_out <- list()
 
 for(i in 1:length(beta_draws)){
   print(i)
@@ -95,7 +96,7 @@ for(i in 1:length(beta_draws)){
   flag_normal <- 0
   
   # change parameters
-  params$beta <- beta_draws[i]
+  params$beta <- beta_draws[i,1]
   params$c_start <- contact_matrices$june_2021[[i]]
   params$normal <- contact_matrices$baseline_2017[[i]]
   
@@ -103,6 +104,8 @@ for(i in 1:length(beta_draws)){
   seir_out <- lsoda(initial_conditions, times, age_struct_seir_ode, params) #
   seir_out <- as.data.frame(seir_out)
   out <- postprocess_age_struct_model_output(seir_out)
+  
+  rtn_out[[i]] <- out
   
   # get outcomes
   daily_cases <- params$sigma * out$E + out$Ev_1d + out$Ev_2d * params$p_report
@@ -160,5 +163,5 @@ saveRDS(df_plot, paste0("inst/extdata/results/",tag,".rds"))
 
 # return outouts
 rtn <- list(df_total = df_total,
-            df_age = )
+            out_all = rtn_out)
 } # end of function
