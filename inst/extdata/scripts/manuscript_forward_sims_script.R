@@ -65,3 +65,26 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       contact_matrices = cm,
                       tag = paste0("12plus_mle_beta_",todays_date)
                       )
+# 12+ lower
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis1,
+                      beta_c = beta_delta_lower,
+                      beta_draws = beta_draws[[index]],
+                      contact_matrices = cm,
+                      tag = paste0("12plus_mle_beta_",todays_date)
+)
+
+# 12+ upper
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis1,
+                      beta_c = beta_delta_upper,
+                      beta_draws = beta_draws[[index]],
+                      contact_matrices = cm,
+                      tag = paste0("12plus_mle_beta_",todays_date)
+)

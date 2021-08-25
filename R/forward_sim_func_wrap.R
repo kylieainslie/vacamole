@@ -88,7 +88,7 @@ rtn_ic <- rtn_cases
 rtn_deaths <- rtn_cases
 rtn_out <- list()
 
-for(i in 1:length(beta_draws)){
+for(i in 1:dim(beta_draws)[1]){
   print(i)
   
   # reset flags
@@ -147,22 +147,10 @@ df_total <- data.frame(time = times,
                        deaths_upper = bounds_deaths[2,]
 )
 
-
-# df_plot <- df_check %>%
-#   pivot_longer(!time, names_to = c("outcome", "estimate"), names_sep = "_", values_to = "value") %>%
-#   pivot_wider( names_from = "estimate", values_from = "value") %>%
-#   mutate(outcome = factor(outcome, levels = c("cases", "hosp", "ic", "deaths")))
-# 
-# p <- ggplot(data = df_plot, aes(x = time, y = mle)) +
-#   geom_line() +
-#   geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey70", alpha = 0.3) +
-#   theme_bw() +
-#   facet_wrap(~outcome, scales = "free")
-
-# Summarise results ------------------------------------------------
-saveRDS(df_plot, paste0("inst/extdata/results/",tag,".rds"))
-
 # return outouts
 rtn <- list(df_total = df_total,
             out_all = rtn_out)
+
+saveRDS(rtn, paste0("inst/extdata/results/",tag,".rds"))
+
 } # end of function
