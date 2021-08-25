@@ -9,7 +9,8 @@ forward_sim_func_wrap <- function(start_date,
                                   vac_inputs,
                                   beta_c,
                                   beta_draws,
-                                  contact_matrices){
+                                  contact_matrices,
+                                  tag){
   # specify time points ----------------------------------------------
   start_date <- lubridate::yday(as.Date(start_date) + 365) + 365
   end_date <- lubridate::yday(as.Date(end_date)) + (365*2) 

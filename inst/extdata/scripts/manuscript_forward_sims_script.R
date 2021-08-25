@@ -53,6 +53,7 @@ beta_delta_lower <- 0.0005902224   # R0 = 3.45
 beta_delta_upper <- 0.001539711    # R0 = 9
 
 # run models --------------------------------------------------------
+todays_date <- Sys.Date()
 # 12+ mle
 forward_sim_func_wrap(start_date = "2021-06-22",
                       end_date = "2021-03-31",
@@ -60,6 +61,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_m = beta_mles[index,1],
                       vac_inputs = basis1,
                       beta_c = beta_delta_mle,
-                      beta_draws = beta_draws,
-                      contact_matrices = cm
+                      beta_draws = beta_draws[[index]],
+                      contact_matrices = cm,
+                      tag = paste0("12plus_mle_beta_",todays_date)
                       )
