@@ -147,8 +147,8 @@ h_multiplier <- list(
 basis_12plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
   select(-starts_with("X"))
 
-# basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
-#   select(-starts_with("X"))
+basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
+  select(-starts_with("X"))
 
 # no childhood vaccination, waning
 vac_sched <- basis_12plus
