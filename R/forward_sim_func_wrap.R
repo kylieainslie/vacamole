@@ -82,7 +82,7 @@ deaths_mle <- rowSums(sweep(ic_occ_mle, 2, d_ic, "*") + sweep(hosp_occ_mle, 2, d
 # beta_draws <- (parameter_draws[[index]][,1] / rho) * params$gamma
 
 # run for beta draws ------------------------------------------------
-rtn_cases <- matrix(,nrow = length(times), ncol = length(beta_draws))
+rtn_cases <- matrix(,nrow = length(times), ncol = dim(beta_draws)[1])
 rtn_hosp <- rtn_cases
 rtn_ic <- rtn_cases
 rtn_deaths <- rtn_cases
@@ -107,22 +107,22 @@ for(i in 1:dim(beta_draws)[1]){
   out <- postprocess_age_struct_model_output(seir_out)
   
   rtn_out[[i]] <- out
-  
+
   # get outcomes
-  daily_cases <- params$sigma * out$E + out$Ev_1d + out$Ev_2d * params$p_report
+  daily_cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d) * params$p_report
   infectious <- (out$I + out$Iv_1d + out$Iv_2d)
-  hosp_admissions <- sweep(infectious, 2, h, "*")
+  hosp_admissions <- rowSums(sweep(infectious, 2, h, "*"))
   hosp_occ <- (out$H + out$Hv_1d + out$Hv_2d)
-  ic <- sweep(hosp_occ, 2, i1, "*")
+  ic <- rowSums(sweep(hosp_occ, 2, i1, "*"))
   ic_occ <- (out$IC + out$ICv_1d + out$ICv_2d)
   hosp_after_ic <- sweep(ic_occ, 2, i2, "*")
   hosp_after_ic_occ <- (out$H_IC + out$H_ICv_1d + out$H_ICv_2d)
-  daily_deaths <- sweep(ic_occ, 2, d_ic, "*") + sweep(hosp_occ, 2, d, "*") + sweep(hosp_after_ic_occ, 2, d_hic, "*")
+  daily_deaths <- rowSums(sweep(ic_occ, 2, d_ic, "*") + sweep(hosp_occ, 2, d, "*") + sweep(hosp_after_ic_occ, 2, d_hic, "*"))
   
-  rtn_cases[,i]  <- rowSums(daily_cases)
-  rtn_hosp[,i]   <- rowSums(hosp_admissions)
-  rtn_ic[,i]     <- rowSums(ic)
-  rtn_deaths[,i] <- rowSums(daily_deaths)
+  rtn_cases[,i]  <- daily_cases
+  rtn_hosp[,i]   <- hosp_admissions
+  rtn_ic[,i]     <- ic
+  rtn_deaths[,i] <- daily_deaths
 }
 
 # get confidence bounds of model runs for total pop
