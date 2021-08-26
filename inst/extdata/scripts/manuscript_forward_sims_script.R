@@ -1,3 +1,4 @@
+# ------------------------------------------------------------------
 # Forward simulations to determine impacts of vaccinating
 # 12-17 year olds for manuscript
 # ------------------------------------------------------------------
@@ -5,30 +6,13 @@
 # Data and model parameters are loaded/defined in the script 
 # inst/extdata/scripts/model_run_helper.R
 source("inst/extdata/scripts/model_run_helper.R")
-
+library(foreach)
 # read in vac schedules --------------------------------------------
 basis_12plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
   select(-starts_with("X"))
 
 basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
   select(-starts_with("X"))
-
-# no childhood vaccination, waning
-vac_sched <- basis_18plus
-
-basis1 <- convert_vac_schedule(
-  vac_schedule = vac_sched,
-  ve = ve,
-  hosp_multiplier = h_multiplier,
-  delay = delays,
-  ve_trans = ve_trans,
-  wane = TRUE,
-  before_feb = FALSE,
-  add_child_vac = FALSE,
-  add_extra_dates = TRUE,
-  extra_end_date = "2022-03-31"
-)
-
 
 # model wrapper function inputs ------------------------------------
 date_of_fit <- "2021-08-25"
@@ -52,29 +36,62 @@ beta_delta_mle <- 0.0003934816 * 2 # R0 = 4.6
 beta_delta_lower <- 0.0005902224   # R0 = 3.45
 beta_delta_upper <- 0.001539711    # R0 = 9
 
+# -------------------------------------------------------------------
 # run models --------------------------------------------------------
+# -------------------------------------------------------------------
 todays_date <- Sys.Date()
+
+# register clusters for parallel computing
+# cl <- parallel::makeCluster(6)
+# doParallel::registerDoParallel(cl)
+# parallel::stopCluster(cl)
+# no waning ---------------------------------------------------------
+basis_12plus1 <- convert_vac_schedule(
+  vac_schedule = basis_12plus,
+  ve = ve,
+  hosp_multiplier = h_multiplier,
+  delay = delays,
+  ve_trans = ve_trans,
+  wane = FALSE,
+  before_feb = FALSE,
+  add_child_vac = FALSE,
+  add_extra_dates = TRUE,
+  extra_end_date = "2022-03-31"
+)
+
+basis_18plus1 <- convert_vac_schedule(
+  vac_schedule = basis_18plus,
+  ve = ve,
+  hosp_multiplier = h_multiplier,
+  delay = delays,
+  ve_trans = ve_trans,
+  wane = FALSE,
+  before_feb = FALSE,
+  add_child_vac = FALSE,
+  add_extra_dates = TRUE,
+  extra_end_date = "2022-03-31"
+)
 # 12+ mle
 forward_sim_func_wrap(start_date = "2021-06-22",
                       end_date = "2021-03-31",
                       init_cond = init_cond_22june2021,
                       beta_m = beta_mles[index,1],
-                      vac_inputs = basis1,
+                      vac_inputs = basis_12plus1,
                       beta_c = beta_delta_mle,
                       beta_draws = beta_draws[[index]],
                       contact_matrices = cm,
-                      tag = paste0("12plus_mle_beta_",todays_date)
+                      tag = paste0("results_12plus_mle_beta_",todays_date)
                       )
 # 12+ lower
 forward_sim_func_wrap(start_date = "2021-06-22",
                       end_date = "2021-03-31",
                       init_cond = init_cond_22june2021,
                       beta_m = beta_mles[index,1],
-                      vac_inputs = basis1,
+                      vac_inputs = basis_12plus1,
                       beta_c = beta_delta_lower,
                       beta_draws = beta_draws[[index]],
                       contact_matrices = cm,
-                      tag = paste0("12plus_mle_beta_",todays_date)
+                      tag = paste0("results_12plus_lower_beta_",todays_date)
 )
 
 # 12+ upper
@@ -82,9 +99,141 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       end_date = "2021-03-31",
                       init_cond = init_cond_22june2021,
                       beta_m = beta_mles[index,1],
-                      vac_inputs = basis1,
+                      vac_inputs = basis_12plus1,
                       beta_c = beta_delta_upper,
                       beta_draws = beta_draws[[index]],
                       contact_matrices = cm,
-                      tag = paste0("12plus_mle_beta_",todays_date)
+                      tag = paste0("results_12plus_upper_beta_",todays_date)
+)
+
+# 18+ mle
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis_18plus1,
+                      beta_c = beta_delta_mle,
+                      beta_draws = beta_draws[[index]],
+                      contact_matrices = cm,
+                      tag = paste0("results_18plus_mle_beta_",todays_date)
+)
+# 18+ lower
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis_18plus1,
+                      beta_c = beta_delta_lower,
+                      beta_draws = beta_draws[[index]],
+                      contact_matrices = cm,
+                      tag = paste0("results_18plus_lower_beta_",todays_date)
+)
+
+# 18+ upper
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis_18plus1,
+                      beta_c = beta_delta_upper,
+                      beta_draws = beta_draws[[index]],
+                      contact_matrices = cm,
+                      tag = paste0("results_18plus_upper_beta_",todays_date)
+)
+
+# waning ------------------------------------------------------------
+basis_12plus1_wane <- convert_vac_schedule(
+  vac_schedule = basis_12plus,
+  ve = ve,
+  hosp_multiplier = h_multiplier,
+  delay = delays,
+  ve_trans = ve_trans,
+  wane = TRUE,
+  before_feb = FALSE,
+  add_child_vac = FALSE,
+  add_extra_dates = TRUE,
+  extra_end_date = "2022-03-31"
+)
+
+basis_18plus1_wane <- convert_vac_schedule(
+  vac_schedule = basis_18plus,
+  ve = ve,
+  hosp_multiplier = h_multiplier,
+  delay = delays,
+  ve_trans = ve_trans,
+  wane = TRUE,
+  before_feb = FALSE,
+  add_child_vac = FALSE,
+  add_extra_dates = TRUE,
+  extra_end_date = "2022-03-31"
+)
+
+# 12+ mle
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis_12plus1_wane,
+                      beta_c = beta_delta_mle,
+                      beta_draws = beta_draws[[index]],
+                      contact_matrices = cm,
+                      tag = paste0("results_12plus_wane_mle_beta_",todays_date)
+)
+# 12+ lower
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis_12plus1_wane,
+                      beta_c = beta_delta_lower,
+                      beta_draws = beta_draws[[index]],
+                      contact_matrices = cm,
+                      tag = paste0("results_12plus_wane_lower_beta_",todays_date)
+)
+
+# 12+ upper
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis_12plus1_wane,
+                      beta_c = beta_delta_upper,
+                      beta_draws = beta_draws[[index]],
+                      contact_matrices = cm,
+                      tag = paste0("results_12plus_wane_upper_beta_",todays_date)
+)
+
+# 18+ mle
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis_18plus1_wane,
+                      beta_c = beta_delta_mle,
+                      beta_draws = beta_draws[[index]],
+                      contact_matrices = cm,
+                      tag = paste0("results_18plus_wane_mle_beta_",todays_date)
+)
+# 18+ lower
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis_18plus1_wane,
+                      beta_c = beta_delta_lower,
+                      beta_draws = beta_draws[[index]],
+                      contact_matrices = cm,
+                      tag = paste0("results_18plus_wane_lower_beta_",todays_date)
+)
+
+# 18+ upper
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis_18plus1_wane,
+                      beta_c = beta_delta_upper,
+                      beta_draws = beta_draws[[index]],
+                      contact_matrices = cm,
+                      tag = paste0("results_18plus_wane_upper_beta_",todays_date)
 )
