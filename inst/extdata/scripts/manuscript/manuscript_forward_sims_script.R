@@ -5,8 +5,8 @@
 
 # Data and model parameters are loaded/defined in the script 
 # inst/extdata/scripts/model_run_helper.R
-source("inst/extdata/scripts/model_run_helper.R")
-library(foreach)
+source("inst/extdata/scripts/helpers/model_run_helper.R")
+
 # read in vac schedules --------------------------------------------
 basis_12plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
   select(-starts_with("X"))
@@ -15,7 +15,7 @@ basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt2021070
   select(-starts_with("X"))
 
 # model wrapper function inputs ------------------------------------
-date_of_fit <- "2021-08-25"
+date_of_fit <- "2021-08-26"
 
 output_from_model_fit <- readRDS(paste0("inst/extdata/results/model_fits/output_from_fits_", date_of_fit, ".rds"))
 init_cond_22june2021 <- unlist(lapply(unname(output_from_model_fit$`end_date_2021-06-22`), tail,1))
