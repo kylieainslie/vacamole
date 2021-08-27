@@ -379,6 +379,10 @@ for (i in 1:31){
 ci_out_wide <- do.call("cbind", ci_out)
 matplot(t(ci_out_wide), type = "l")
 
+# try getting quantiles
+bounds <- apply(ci_out_wide, 2, quantile, probs = c(0.025, 0.975))
+matplot(t(bounds), type = "l")
+
 # save outputs -------------------------------------
 path <- "inst/extdata/results/model_fits/"
 todays_date <- Sys.Date()
@@ -386,45 +390,10 @@ todays_date <- Sys.Date()
 # --------------------------------------------------
 #  combine all piecewise results to plot together
 cases_mle <- unique(unlist(mle_run))
-cases_lower <- unique(unlist(lower_run))
-cases_upper <- unique(unlist(upper_run))
+cases_lower <- unique(bounds[1,])
+cases_upper <- unique(bounds[2,])
 times_all <- 1:length(cases_mle)
 
 model_fit <- data.frame(time = times_all, date = osiris1$date, real = osiris1$inc, mle = cases_mle, lower = cases_lower, upper = cases_upper)
-# saveRDS(model_fit, file = paste0("model_fit_df_", todays_date, ".rds"))
 
-p <- ggplot(data = model_fit, aes(x = date, y = upper)) +
-  geom_line() +
-  #geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3) +
-  geom_point(data = model_fit, aes(x = date, y = real), color = "red")
-
-p
 # --------------------------------------------------
-# old code
-# init_update <- c(t = times[1],
-                 # S = as.numeric(tail(out_mle[[j - 1]]$S, 1)),
-                 # Shold_1d = as.numeric(tail(out_mle[[j - 1]]$Shold_1d, 1)),
-                 # Sv_1d = as.numeric(tail(out_mle[[j - 1]]$Sv_1d, 1)),
-                 # Shold_2d = as.numeric(tail(out_mle[[j - 1]]$Shold_2d, 1)),
-                 # Sv_2d = as.numeric(tail(out_mle[[j - 1]]$Sv_2d, 1)),
-                 # E = as.numeric(tail(out_mle[[j - 1]]$E, 1)),
-                 # Ev_1d = as.numeric(tail(out_mle[[j - 1]]$Ev_1d, 1)),
-                 # Ev_2d = as.numeric(tail(out_mle[[j - 1]]$Ev_2d, 1)),
-                 # I = as.numeric(tail(out_mle[[j - 1]]$I, 1)),
-                 # Iv_1d = as.numeric(tail(out_mle[[j - 1]]$Iv_1d, 1)),
-                 # Iv_2d = as.numeric(tail(out_mle[[j - 1]]$Iv_2d, 1)),
-                 # H = as.numeric(tail(out_mle[[j - 1]]$H, 1)),
-                 # Hv_1d = as.numeric(tail(out_mle[[j - 1]]$Hv_1d, 1)),
-                 # Hv_2d = as.numeric(tail(out_mle[[j - 1]]$Hv_2d, 1)),
-                 # H_IC = as.numeric(tail(out_mle[[j - 1]]$H_IC, 1)),
-                 # H_ICv_1d = as.numeric(tail(out_mle[[j - 1]]$H_ICv_1d, 1)),
-                 # H_ICv_2d = as.numeric(tail(out_mle[[j - 1]]$H_ICv_2d, 1)),
-                 # IC = as.numeric(tail(out_mle[[j - 1]]$IC, 1)),
-                 # ICv_1d = as.numeric(tail(out_mle[[j - 1]]$ICv_1d, 1)),
-                 # ICv_2d = as.numeric(tail(out_mle[[j - 1]]$ICv_2d, 1)),
-                 # D = as.numeric(tail(out_mle[[j - 1]]$D, 1)),
-                 # R = as.numeric(tail(out_mle[[j - 1]]$R, 1)),
-                 # Rv_1d = as.numeric(tail(out_mle[[j - 1]]$Rv_1d, 1)),
-                 # Rv_2d = as.numeric(tail(out_mle[[j - 1]]$Rv_2d, 1))
-# )
-
