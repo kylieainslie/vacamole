@@ -9,6 +9,7 @@ library(lubridate)
 
 # Read in OSIRIS data ------------------------------
 source("inst/extdata/scripts/model_run_helper.R")
+source("~/vacamole/R/model_run_wrapper.R")
 # read in OSIRIS data
 osiris <- readRDS("inst/extdata/data/real_data/Osiris_Data_20210730_1043.rds")
 
@@ -24,16 +25,6 @@ p <- ggplot(osiris1, aes(x = date, y = inc)) +
   geom_line(aes(x = date, y = roll_avg, color = "red")) +
   theme(panel.background = element_blank())
 p
-
-# Read in contact matrices -------------------------
-# already loaded via model_run_helper.R
-
-# baseline_2017 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_baseline_2017.rds")
-# april_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_april_2020.rds")
-# june_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2020.rds")
-# september_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_september_2020.rds")
-# february_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_february_2021.rds")
-# june_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2021.rds")
 
 #time_vec <- seq(0, 76, by = 1)
 # --------------------------------------------------
@@ -101,20 +92,6 @@ params <- list(dt = 1,
                t_calendar_start = yday(as.Date("2020-01-01"))   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
 )
 
-# seir_out <- lsoda(init,time_vec,age_struct_seir_ode,params) #
-# seir_out <- as.data.frame(seir_out)
-# out <- postprocess_age_struct_model_output(seir_out)
-# 
-# modeled_infections <- (params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d))
-# osiris2 <- osiris1[time_vec + 1,] %>%
-#   mutate(modeled_inf = modeled_infections,
-#          ascertainment_rate = inc/modeled_inf,
-#          modeled_cases = modeled_inf * params$p_report) # number of cases that would have been reported IF
-#                                                         # case ascertainment rate was 33% in first wave
-# 
-# ggplot(data = osiris2, aes(x = date, y = inc)) +
-#   geom_line() +
-#   geom_line(aes(x = date, y = modeled_cases))
 # --------------------------------------------------
 # likelihood function
 likelihood_func <- function(x,
@@ -172,17 +149,17 @@ likelihood_func <- function(x,
 # res$par
 
 # plot to check fit --------------------------------
-S_diag <- diag(init[c(2:10)])
-rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
-params$beta <- (res$par[1] / rho) * params$gamma
-#params$beta <- res$par[1]
-seir_out <- lsoda(init, time_vec, age_struct_seir_ode, params) #
-seir_out <- as.data.frame(seir_out)
-out_mle <- postprocess_age_struct_model_output(seir_out)
-daily_cases_mle <- params$sigma * rowSums(out_mle$E + out_mle$Ev_1d + out_mle$Ev_2d) * params$p_report
-
-plot(daily_cases_mle ~ time_vec, type = "l") # ylim = c(0, 8000)
-points(osiris2$inc ~ time_vec, col = "red", pch = 16)
+# S_diag <- diag(init[c(2:10)])
+# rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
+# params$beta <- (res$par[1] / rho) * params$gamma
+# #params$beta <- res$par[1]
+# seir_out <- lsoda(init, time_vec, age_struct_seir_ode, params) #
+# seir_out <- as.data.frame(seir_out)
+# out_mle <- postprocess_age_struct_model_output(seir_out)
+# daily_cases_mle <- params$sigma * rowSums(out_mle$E + out_mle$Ev_1d + out_mle$Ev_2d) * params$p_report
+# 
+# plot(daily_cases_mle ~ time_vec, type = "l") # ylim = c(0, 8000)
+# points(osiris2$inc ~ time_vec, col = "red", pch = 16)
 
 # Hessian Magic ------------------------------------
 # estres_exp <- optim(previous_estimates$par, minloglik_exp,
@@ -313,9 +290,6 @@ for (j in 1:n_bp) {
     params$c_start <- breakpoints$contact_matrix[[j]]$mean
   }
   
-  # set ascertainment rate for time window
-  #params$p_report <- breakpoints$p_report[[j]]
-  
   if (j == 1) {
     # if first time window, start time at 0
     end_day <- yday(breakpoints$date[j]) - 1
@@ -340,33 +314,8 @@ for (j in 1:n_bp) {
     }
     times <- seq(start_day, end_day, by = 1)
     # update initial conditions based on last time window
-    init_update <- c(
-      t = times[1],
-      S = as.numeric(tail(out_mle[[j - 1]]$S, 1)),
-      Shold_1d = as.numeric(tail(out_mle[[j - 1]]$Shold_1d, 1)),
-      Sv_1d = as.numeric(tail(out_mle[[j - 1]]$Sv_1d, 1)),
-      Shold_2d = as.numeric(tail(out_mle[[j - 1]]$Shold_2d, 1)),
-      Sv_2d = as.numeric(tail(out_mle[[j - 1]]$Sv_2d, 1)),
-      E = as.numeric(tail(out_mle[[j - 1]]$E, 1)),
-      Ev_1d = as.numeric(tail(out_mle[[j - 1]]$Ev_1d, 1)),
-      Ev_2d = as.numeric(tail(out_mle[[j - 1]]$Ev_2d, 1)),
-      I = as.numeric(tail(out_mle[[j - 1]]$I, 1)),
-      Iv_1d = as.numeric(tail(out_mle[[j - 1]]$Iv_1d, 1)),
-      Iv_2d = as.numeric(tail(out_mle[[j - 1]]$Iv_2d, 1)),
-      H = as.numeric(tail(out_mle[[j - 1]]$H, 1)),
-      Hv_1d = as.numeric(tail(out_mle[[j - 1]]$Hv_1d, 1)),
-      Hv_2d = as.numeric(tail(out_mle[[j - 1]]$Hv_2d, 1)),
-      H_IC = as.numeric(tail(out_mle[[j - 1]]$H_IC, 1)),
-      H_ICv_1d = as.numeric(tail(out_mle[[j - 1]]$H_ICv_1d, 1)),
-      H_ICv_2d = as.numeric(tail(out_mle[[j - 1]]$H_ICv_2d, 1)),
-      IC = as.numeric(tail(out_mle[[j - 1]]$IC, 1)),
-      ICv_1d = as.numeric(tail(out_mle[[j - 1]]$ICv_1d, 1)),
-      ICv_2d = as.numeric(tail(out_mle[[j - 1]]$ICv_2d, 1)),
-      D = as.numeric(tail(out_mle[[j - 1]]$D, 1)),
-      R = as.numeric(tail(out_mle[[j - 1]]$R, 1)),
-      Rv_1d = as.numeric(tail(out_mle[[j - 1]]$Rv_1d, 1)),
-      Rv_2d = as.numeric(tail(out_mle[[j - 1]]$Rv_2d, 1))
-    )
+    init_update <- c(t = times[1], unlist(lapply(unname(out_mle[[j-1]]), tail,1)))
+    
     pars <- c((mles[j-1,1]/params$gamma)*rho, mles[j-1,2])
     S_diag <- diag(init_update[c(2:10)])
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
@@ -397,66 +346,80 @@ for (j in 1:n_bp) {
   parameter_draws[[j]] <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
   beta_draws[[j]] <- data.frame(beta = (parameter_draws[[j]][,1] / rho) * params$gamma) %>%
      mutate(index = 1:200)
-  # # --------------------------------------------------
-  # # run model for each combination of parameters
-  # out <- apply(betas, 1, function_wrapper, 
-  #              contact_matrix = breakpoints$contact_matrix[[j]],
-  #              init = init_update, t = times) # rows are time points, columns are different simulations
-  # 
-  # # get confidence bounds of model runs
-  # bounds_list[[j]] <- apply(out,1,function(x) quantile(x, c(0.025,0.975)))
-  # # --------------------------------------------------
-  # re-run simulation with MLE parameter values
   # --------------------------------------------------
-  # transform R0 to beta
-  params$beta <- mles[j,1]
-  if (j == n_bp){
-    params$c_start <- breakpoints$contact_matrix[[j-1]]$mean
-  } else {
-    params$c_start <- breakpoints$contact_matrix[[j]]$mean
-  }
-  # run simulation
-  seir_out <- lsoda(init_update, times, age_struct_seir_ode, params)
-  seir_out <- as.data.frame(seir_out)
-  out_mle[[j]] <- postprocess_age_struct_model_output(seir_out)
-  daily_cases_mle[[j]] <- params$sigma * rowSums(out_mle[[j]]$E + out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d) * params$p_report
-  
-  # --------------------------------------------------
-  # plot
-  plot(osiris_sub$inc ~ times, col = "red", pch = 16, 
-       xlab = "Time (days)",ylab = "Daily Cases" , ylim = c(0,10000)
-  ) 
-  lines(times, daily_cases_mle[[j]],col = "blue")
 
 } # end of for loop over breakpoints
 
-# name list elements for easier indexing
-names(out_mle) <- paste0("end_date_", breakpoints$date)
-names(daily_cases_mle) <- paste0("end_date_", breakpoints$date)
-
-# save outputs -------------------------------------
-path <- "inst/extdata/results/model_fits/"
-last_date_in_osiris <- tail(osiris1$date,1)
-todays_date <- Sys.Date()
-saveRDS(out_mle, file = paste0(path,"output_from_fits_", todays_date, ".rds"))
-saveRDS(daily_cases_mle, file = paste0(path,"cases_from_fits_", todays_date, ".rds"))
+# save outputs
 saveRDS(mles, file = paste0(path, "mles_from_fits_", todays_date, ".rds"))
 saveRDS(beta_draws, file = paste0(path, "beta_draws_from_fits_", todays_date, ".rds"))
 
+# ----------------------------------------------------
+# run simulations for mle, lower, and upper bounds 
+# of beta
+# ----------------------------------------------------
+beta_mles <- readRDS("inst/extdata/results/model_fits/mles_from_fits_2021-08-25.rds")
+beta_mles_list <- split(beta_mles, seq(nrow(beta_mles)))
+beta_draws <- readRDS("inst/extdata/results/model_fits/beta_draws_from_fits_2021-08-25.rds")
+# beta_dat <- bind_rows(lapply(beta_draws, function(x)quantile(x[,1], probs = c(0.025, 0.975)))) %>%
+#   mutate(mle = beta_mles[,1]) %>%
+#   rename(lower = `2.5%`,
+#          upper = `97.5%`)
+
+
+mle_run <- model_run_wrapper(breakpoints = breakpoints, beta_values = beta_mles_list, init_conditions = init, params = params)
+ci_run  <- model_run_wrapper(breakpoints = breakpoints, beta_values = beta_draws, init_conditions = init, params = params, mle = FALSE)
+
+# name list elements for easier indexing
+# names(out_mle) <- paste0("end_date_", breakpoints$date)
+# names(daily_cases_mle) <- paste0("end_date_", breakpoints$date)
+
+# save outputs -------------------------------------
+path <- "inst/extdata/results/model_fits/"
+todays_date <- Sys.Date()
+
 # --------------------------------------------------
 #  combine all piecewise results to plot together
-cases_all <- unlist(daily_cases_mle)
-cases_all1 <- unique(cases_all) # remove duplicate time points
-times_all <- 1:length(cases_all1)
-model_fit <- data.frame(time = times_all, cases = cases_all1)
-saveRDS(model_fit, file = paste0("model_fit_df_", todays_date, ".rds"))
+cases_mle <- unique(unlist(mle_run))
+cases_lower <- unique(unlist(lower_run))
+cases_upper <- unique(unlist(upper_run))
+times_all <- 1:length(cases_mle)
 
-plot(osiris1$inc[times_all] ~ times_all,
-  col = "red", pch = 16,
-  xlab = "Time (days)", ylab = "Incidence" #, ylim = c(0, 7600)
-)
-lines(times_all, cases_all1, col = "blue")
-legend("topleft", c("Osiris Data", "Model Fit"),
-       col = c("red", "blue"), lty = c(0, 1), pch = c(16, NA))
+model_fit <- data.frame(time = times_all, date = osiris1$date, real = osiris1$inc, mle = cases_mle, lower = cases_lower, upper = cases_upper)
+# saveRDS(model_fit, file = paste0("model_fit_df_", todays_date, ".rds"))
+
+p <- ggplot(data = model_fit, aes(x = date, y = upper)) +
+  geom_line() +
+  #geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3) +
+  geom_point(data = model_fit, aes(x = date, y = real), color = "red")
+
+p
 # --------------------------------------------------
+# old code
+# init_update <- c(t = times[1],
+                 # S = as.numeric(tail(out_mle[[j - 1]]$S, 1)),
+                 # Shold_1d = as.numeric(tail(out_mle[[j - 1]]$Shold_1d, 1)),
+                 # Sv_1d = as.numeric(tail(out_mle[[j - 1]]$Sv_1d, 1)),
+                 # Shold_2d = as.numeric(tail(out_mle[[j - 1]]$Shold_2d, 1)),
+                 # Sv_2d = as.numeric(tail(out_mle[[j - 1]]$Sv_2d, 1)),
+                 # E = as.numeric(tail(out_mle[[j - 1]]$E, 1)),
+                 # Ev_1d = as.numeric(tail(out_mle[[j - 1]]$Ev_1d, 1)),
+                 # Ev_2d = as.numeric(tail(out_mle[[j - 1]]$Ev_2d, 1)),
+                 # I = as.numeric(tail(out_mle[[j - 1]]$I, 1)),
+                 # Iv_1d = as.numeric(tail(out_mle[[j - 1]]$Iv_1d, 1)),
+                 # Iv_2d = as.numeric(tail(out_mle[[j - 1]]$Iv_2d, 1)),
+                 # H = as.numeric(tail(out_mle[[j - 1]]$H, 1)),
+                 # Hv_1d = as.numeric(tail(out_mle[[j - 1]]$Hv_1d, 1)),
+                 # Hv_2d = as.numeric(tail(out_mle[[j - 1]]$Hv_2d, 1)),
+                 # H_IC = as.numeric(tail(out_mle[[j - 1]]$H_IC, 1)),
+                 # H_ICv_1d = as.numeric(tail(out_mle[[j - 1]]$H_ICv_1d, 1)),
+                 # H_ICv_2d = as.numeric(tail(out_mle[[j - 1]]$H_ICv_2d, 1)),
+                 # IC = as.numeric(tail(out_mle[[j - 1]]$IC, 1)),
+                 # ICv_1d = as.numeric(tail(out_mle[[j - 1]]$ICv_1d, 1)),
+                 # ICv_2d = as.numeric(tail(out_mle[[j - 1]]$ICv_2d, 1)),
+                 # D = as.numeric(tail(out_mle[[j - 1]]$D, 1)),
+                 # R = as.numeric(tail(out_mle[[j - 1]]$R, 1)),
+                 # Rv_1d = as.numeric(tail(out_mle[[j - 1]]$Rv_1d, 1)),
+                 # Rv_2d = as.numeric(tail(out_mle[[j - 1]]$Rv_2d, 1))
+# )
 
