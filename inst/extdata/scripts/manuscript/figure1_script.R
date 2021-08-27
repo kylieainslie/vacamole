@@ -4,6 +4,7 @@
 # -----------------------------------------------------------
 
 # load packages ---------------------------------------------
+library(tidyr)
 library(dplyr)
 library(ggplot2)
 library(cowplot)
@@ -76,8 +77,8 @@ fig1 <- ggplot(data = all_res_for_plot, aes(x = date, y = mle, fill = R0,
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
         axis.title=element_text(size=14,face="bold")) +
-  facet_wrap(~outcome, scales = "free")
+  facet_wrap(~outcome, scales = "free_y", nrow = 4)
 fig1
 
-ggsave(filename = "inst/extdata/results/figure 1.jpg", plot = fig1,
-       units = "in", height = 10, width = 12, dpi = 300)
+ggsave(filename = "inst/extdata/results/figure 1 alt.jpg", plot = fig1,
+       units = "in", height = 10, width = 8, dpi = 300)

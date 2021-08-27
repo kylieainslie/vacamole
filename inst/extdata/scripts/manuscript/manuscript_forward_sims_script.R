@@ -15,13 +15,13 @@ basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt2021070
   select(-starts_with("X"))
 
 # model wrapper function inputs ------------------------------------
-date_of_fit <- "2021-08-26"
+date_of_fit <- "2021-08-25"
 
 output_from_model_fit <- readRDS(paste0("inst/extdata/results/model_fits/output_from_fits_", date_of_fit, ".rds"))
 init_cond_22june2021 <- unlist(lapply(unname(output_from_model_fit$`end_date_2021-06-22`), tail,1))
 beta_mles <- data.frame(beta = readRDS(paste0("inst/extdata/results/model_fits/mles_from_fits_", date_of_fit,".rds"))) %>%
   mutate(end_date = names(output_from_model_fit))
-beta_draws <-  readRDS(paste0(path, "beta_draws_from_fits_", date_of_fit, ".rds"))
+beta_draws <-  readRDS(paste0("inst/extdata/results/model_fits/beta_draws_from_fits_", date_of_fit, ".rds"))
 
 index <- which(beta_mles$end_date == "end_date_2021-06-22")
 cm <- list(baseline_2017 = baseline_2017,
