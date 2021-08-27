@@ -353,6 +353,9 @@ for (j in 1:n_bp) {
 # save outputs
 saveRDS(mles, file = paste0(path, "mles_from_fits_", todays_date, ".rds"))
 saveRDS(beta_draws, file = paste0(path, "beta_draws_from_fits_", todays_date, ".rds"))
+# name list elements for easier indexing
+# names(out_mle) <- paste0("end_date_", breakpoints$date)
+# names(daily_cases_mle) <- paste0("end_date_", breakpoints$date)
 
 # ----------------------------------------------------
 # run simulations for mle, lower, and upper bounds 
@@ -369,10 +372,12 @@ beta_draws <- readRDS("inst/extdata/results/model_fits/beta_draws_from_fits_2021
 
 mle_run <- model_run_wrapper(breakpoints = breakpoints, beta_values = beta_mles_list, init_conditions = init, params = params)
 ci_run  <- model_run_wrapper(breakpoints = breakpoints, beta_values = beta_draws, init_conditions = init, params = params, mle = FALSE)
-
-# name list elements for easier indexing
-# names(out_mle) <- paste0("end_date_", breakpoints$date)
-# names(daily_cases_mle) <- paste0("end_date_", breakpoints$date)
+ci_out <- list()
+for (i in 1:31){
+  ci_out[[i]] <- do.call("rbind", ci_run[[i]])
+}
+ci_out_wide <- do.call("cbind", ci_out)
+matplot(t(ci_out_wide), type = "l")
 
 # save outputs -------------------------------------
 path <- "inst/extdata/results/model_fits/"
