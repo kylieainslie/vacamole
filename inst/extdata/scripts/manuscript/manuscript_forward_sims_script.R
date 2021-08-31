@@ -6,7 +6,7 @@
 # Data and model parameters are loaded/defined in the script 
 # inst/extdata/scripts/model_run_helper.R
 source("inst/extdata/scripts/helpers/model_run_helper.R")
-
+library(foreach)
 # read in vac schedules --------------------------------------------
 basis_12plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
   select(-starts_with("X"))
@@ -78,10 +78,11 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_m = beta_mles[index,1],
                       vac_inputs = basis_12plus1,
                       beta_c = beta_delta_mle,
-                      beta_draws = beta_draws[[index]],
+                      beta_draws = beta_draws[[index]][1:3],
                       contact_matrices = cm,
-                      tag = paste0("results_12plus_mle_beta_",todays_date)
+                      tag = "test" #paste0("results_12plus_mle_beta_",todays_date)
                       )
+
 # 12+ lower
 forward_sim_func_wrap(start_date = "2021-06-22",
                       end_date = "2021-03-31",

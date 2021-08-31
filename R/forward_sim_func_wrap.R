@@ -1,4 +1,19 @@
 # ------------------------------------------------------------------
+# Hleper data wrangling function -----------------------------------
+# ------------------------------------------------------------------
+
+wide_to_long <- function(x, times) {
+  
+  y <- x %>% 
+    mutate(time = times) %>%
+    pivot_longer(cols = !time,
+                 names_to = c("state", "age_group"),
+                 names_sep = -1,
+                 values_to = "value")
+}
+
+
+# ------------------------------------------------------------------
 # Forward simulation function wrapper ------------------------------
 # ------------------------------------------------------------------
 
@@ -97,11 +112,16 @@ forward_sim_func_wrap <- function(start_date,
     params$normal <- contact_matrices$baseline_2017[[i]]
     
     # run model
-    seir_out <- lsoda(initial_conditions, times, age_struct_seir_ode, params) #
+    seir_out <- lsoda(initial_conditions, times, age_struct_seir_ode, params)
     seir_out <- as.data.frame(seir_out)
     out <- postprocess_age_struct_model_output(seir_out)
     
-    rtn_out[[i]] <- out
+    # convert output from each simulation into long data frame
+    tmp <- lapply(out, wide_to_long, times) %>%
+        bind_rows() %>%
+        mutate(sim = i)
+  
+    rtn_out[[i]] <- tmp
   
     # get outcomes
     daily_cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d) * params$p_report
