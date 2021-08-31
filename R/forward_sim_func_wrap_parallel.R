@@ -2,7 +2,7 @@
 # Forward simulation function wrapper ------------------------------
 # ------------------------------------------------------------------
 
-forward_sim_func_wrap <- function(start_date,
+forward_sim_func_wrap_parallel <- function(start_date,
                                   end_date,
                                   init_cond,
                                   beta_m,
@@ -10,7 +10,8 @@ forward_sim_func_wrap <- function(start_date,
                                   beta_c,
                                   beta_draws,
                                   contact_matrices,
-                                  tag){
+                                  tag,
+                                  n_cores = NULL){
   # specify time points ----------------------------------------------
   start_date <- lubridate::yday(as.Date(start_date) + 365) + 365
   end_date <- lubridate::yday(as.Date(end_date)) + (365*2) 
@@ -84,11 +85,16 @@ forward_sim_func_wrap <- function(start_date,
   rtn_out <- list()
   
   # set up for parallel computing
-  n_cores <- parallel::detectCores()
-  cl <- parallel::makeCluster(3) #n_cores
+  if (is.null(n_cores)){
+    nc <- parallel::detectCores()
+  } else {nc <- n_cores}
+  
+  cl <- parallel::makeCluster(nc) 
   doParallel::registerDoParallel(cl)
 
-  ci_sims <- foreach(i = 1:3, .packages = "deSolve") %dopar% { # dim(beta_draws)[1]
+  ci_sims <- foreach(i = 1:dim(beta_draws)[1], 
+                     .packages = "deSolve", 
+                     .export = ls(envir = globalenv())) %dopar% { # 
     rtn <- list()
     
     # reset flags
