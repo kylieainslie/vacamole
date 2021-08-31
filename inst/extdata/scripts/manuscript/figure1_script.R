@@ -9,6 +9,29 @@ library(dplyr)
 library(ggplot2)
 library(cowplot)
 
+# define function for data wrangling ------------------------
+wrangle_results <- function(my_list){
+  n_sim <- length(my_list)
+  rtn <- list()
+  for (s in 1:n_sim){
+    # convert output from each simulation into long data frame
+    tmp <- lapply(my_list[[s]], wide_to_long) %>%
+      bind_rows() %>%
+      mutate(sim = s)
+    
+    rtn[[s]] <- tmp
+    
+  }
+  
+  rtn1 <- bind_rows(rtn) %>%
+    group_by(time, state, age_group) %>%
+    summarise(mean = mean(value),
+              lower = quantile(value, probs = 0.025),
+              upper = quantile(value, probs = 0.975)) 
+  
+  return(rtn1)
+}
+
 # read in simulation results --------------------------------
 file_date <- "2021-08-26"
 # 12+
@@ -21,42 +44,15 @@ mle_res_18plus <- readRDS(paste0("inst/extdata/results/results_18plus_mle_beta_"
 lower_res_18plus <- readRDS(paste0("inst/extdata/results/results_18plus_lower_beta_", file_date, ".rds"))
 upper_res_18plus <- readRDS(paste0("inst/extdata/results/results_18plus_upper_beta_", file_date, ".rds"))
 
-# create a joint dataframe ----------------------------------
-all_res_12plus <- bind_rows(mle_res_12plus$df_total, lower_res_12plus$df_total, upper_res_12plus$df_total, .id = "R0") %>%
-  pivot_longer(cases_mle:deaths_upper, names_to = c("outcome", "estimate"), names_sep = "_", values_to = "value") %>%
-  mutate(R0 = case_when(
-    R0 == 1 ~ "4.6",
-    R0 == 2 ~ "3.45",
-    R0 == 3 ~ "9"
-  ),
-  date = time + as.Date("2020-01-01"),
-  outcome = factor(case_when(
-    outcome == "cases" ~ "Cases",
-    outcome == "hosp" ~ "Hospital Admissions",
-    outcome == "ic" ~ "IC Admissions",
-    outcome == "deaths" ~ "Deaths"
-  ), levels = c("Cases", "Hospital Admissions", "IC Admissions", "Deaths")),
-  Scenario = "12+"
-  )
+# wrangle raw results ----------------------------------------
+mle_12plus_all <- wrangle_results(mle_res_12plus$out_all)
+lower_12plus_all <- wrangle_results(lower_res_12plus$out_all)
+upper_12plus_all <- wrangle_results(upper_res_12plus$out_all)
 
-all_res_18plus <- bind_rows(mle_res_18plus$df_total, lower_res_18plus$df_total, upper_res_18plus$df_total, .id = "R0") %>%
-  pivot_longer(cases_mle:deaths_upper, names_to = c("outcome", "estimate"), names_sep = "_", values_to = "value") %>%
-  mutate(R0 = case_when(
-    R0 == 1 ~ "4.6",
-    R0 == 2 ~ "3.45",
-    R0 == 3 ~ "9"
-  ),
-  date = time + as.Date("2020-01-01"),
-  outcome = factor(case_when(
-    outcome == "cases" ~ "Cases",
-    outcome == "hosp" ~ "Hospital Admissions",
-    outcome == "ic" ~ "IC Admissions",
-    outcome == "deaths" ~ "Deaths"
-  ), levels = c("Cases", "Hospital Admissions", "IC Admissions", "Deaths")),
-  Scenario = "18+"
-  )
+mle_18plus_all <- wrangle_results(mle_res_18plus$out_all)
+lower_18plus_all <- wrangle_results(lower_res_18plus$out_all)
+upper_18plus_all <- wrangle_results(upper_res_18plus$out_all)
 
-all_res <- bind_rows(all_res_12plus, all_res_18plus)
 # make plots --------------------------------------------------
 all_res_for_plot <- all_res %>%
   pivot_wider(names_from = "estimate", values_from = "value")
@@ -82,3 +78,7 @@ fig1
 
 ggsave(filename = "inst/extdata/results/figure 1 alt.jpg", plot = fig1,
        units = "in", height = 10, width = 8, dpi = 300)
+
+
+
+# old code 
