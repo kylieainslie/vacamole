@@ -8,25 +8,6 @@ library(tidyr)
 library(dplyr)
 library(ggplot2)
 library(cowplot)
-
-# define function for data wrangling ------------------------
-wrangle_results <- function(x){
-  
-  rtn_mle <- x %>%
-    filter(sim == 0)
-  
-  rtn_bounds <- x %>%
-    filter(sim != 0) %>%
-    group_by(time, state, age_group) %>%
-    summarise(lower = quantile(value, probs = 0.025),
-              upper = quantile(value, probs = 0.975)) 
-  
-  rtn <- left_join(rtn_mle, rtn_bounds, by = c("time", "state", "age_group")) %>%
-    rename(mean = value) %>%
-    select(-sim)
-  
-  return(rtn)
-}
 # -----------------------------------------------------------
 
 # read in simulation results --------------------------------
