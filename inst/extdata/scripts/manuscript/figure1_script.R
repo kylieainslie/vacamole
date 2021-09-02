@@ -10,19 +10,18 @@ library(ggplot2)
 library(cowplot)
 
 # define function for data wrangling ------------------------
-wrangle_results <- function(my_list){
-  n_sim <- length(my_list)
+wrangle_results <- function(x, times){
+  n_sim <- length(x)
   rtn <- list()
-  for (s in 1:n_sim){
-    # convert output from each simulation into long data frame
-    tmp <- lapply(my_list[[s]], wide_to_long) %>%
-      bind_rows() %>%
-      mutate(sim = s)
-    
-    rtn[[s]] <- tmp
-    
-  }
   
+  for (i in 1:n_sim){
+  tmp <- lapply(x[[i]], wide_to_long, times) %>%
+    bind_rows() %>%
+    mutate(sim = i)
+  
+  rtn[[i]] <- tmp
+  }
+
   rtn1 <- bind_rows(rtn) %>%
     group_by(time, state, age_group) %>%
     summarise(mean = mean(value),
@@ -45,13 +44,75 @@ lower_res_18plus <- readRDS(paste0("inst/extdata/results/results_18plus_lower_be
 upper_res_18plus <- readRDS(paste0("inst/extdata/results/results_18plus_upper_beta_", file_date, ".rds"))
 
 # wrangle raw results ----------------------------------------
-mle_12plus_all <- wrangle_results(mle_res_12plus$out_all)
-lower_12plus_all <- wrangle_results(lower_res_12plus$out_all)
-upper_12plus_all <- wrangle_results(upper_res_12plus$out_all)
+# 12 +
+mle_12plus_all <- wrangle_results(mle_res_12plus$out_all, times)
+lower_12plus_all <- wrangle_results(lower_res_12plus$out_all, times)
+upper_12plus_all <- wrangle_results(upper_res_12plus$out_all, times)
 
-mle_18plus_all <- wrangle_results(mle_res_18plus$out_all)
-lower_18plus_all <- wrangle_results(lower_res_18plus$out_all)
-upper_18plus_all <- wrangle_results(upper_res_18plus$out_all)
+all_12plus <- bind_rows(mle_12plus_all, lower_12plus_all, upper_12plus_all, .id = "R0") %>%
+  mutate(R0 = case_when(
+    R0 == 1 ~ "4.6",
+    R0 == 2 ~ "3.45",
+    R0 == 3 ~ "9"
+  ), Scenario = "12+") %>%
+  pivot_wider(names_from = state, values_from = mean:upper) %>%
+  mutate(h = rep(params$h, 3),
+         i1 = rep(params$i1, 3),
+         i2 = rep(params$i2, 3),
+         d = rep(params$d, 3),
+         d_ic = rep(params$d_ic, 3),
+         d_hic = rep(params$d_hic, 3),
+         cases_mle = params$sigma * (mean_E + mean_Ev_1d + mean_Ev_2d) * params$p_report,
+         cases_lower = params$sigma * (lower_E + lower_Ev_1d + lower_Ev_2d) * params$p_report,
+         cases_upper = params$sigma * (upper_E + upper_Ev_1d + upper_Ev_2d) * params$p_report,
+         hosp_mle = h * (mean_I + mean_Iv_1d + mean_Iv_2d),
+         hosp_lower = h * (lower_I + lower_Iv_1d + lower_Iv_2d),
+         hosp_upper = h * (upper_I + upper_Iv_1d + upper_Iv_2d),
+         ic_mle = i1 * (mean_H + mean_Hv_1d + mean_Hv_2d),
+         ic_lower = i1 * (lower_H + lower_Hv_1d + lower_Hv_2d),
+         ic_upper = i1 * (upper_H + upper_Hv_1d + upper_Hv_2d),
+         deaths_mle = d * (mean_H + mean_Hv_1d + mean_Hv_2d) + d_ic * (mean_IC + mean_ICv_1d + mean_ICv_2d) + d_hic * (mean_H_IC + mean_H_ICv_1d + mean_H_ICv_2d),
+         deaths_lower = d * (lower_H + lower_Hv_1d + lower_Hv_2d) + d_ic * (lower_IC + lower_ICv_1d + lower_ICv_2d) + d_hic * (lower_H_IC + lower_H_ICv_1d + lower_H_ICv_2d),
+         deaths_upper = d * (upper_H + upper_Hv_1d + upper_Hv_2d) + d_ic * (upper_IC + upper_ICv_1d + upper_ICv_2d) + d_hic * (upper_H_IC + upper_H_ICv_1d + upper_H_ICv_2d)
+        ) %>%
+  select(Scenario, R0, time, age_group, cases_mle:deaths_upper) %>%
+  pivot_longer(cases_mle:deaths_upper, names_to = c("outcome", "estimate"), names_sep = "_", values_to = "value") %>%
+  pivot_wider(names_from = "estimate", values_from = "value")
+
+# 18+
+mle_18plus_all <- wrangle_results(mle_res_18plus$out_all, times)
+lower_18plus_all <- wrangle_results(lower_res_18plus$out_all, times)
+upper_18plus_all <- wrangle_results(upper_res_18plus$out_all, times)
+
+all_18plus <- bind_rows(mle_18plus_all, lower_18plus_all, upper_18plus_all, .id = "R0") %>%
+  mutate(R0 = case_when(
+    R0 == 1 ~ "4.6",
+    R0 == 2 ~ "3.45",
+    R0 == 3 ~ "9"
+  ), Scenario = "18+") %>%
+  pivot_wider(names_from = state, values_from = mean:upper) %>%
+  mutate(h = rep(params$h, 3),
+         i1 = rep(params$i1, 3),
+         i2 = rep(params$i2, 3),
+         d = rep(params$d, 3),
+         d_ic = rep(params$d_ic, 3),
+         d_hic = rep(params$d_hic, 3),
+         cases_mle = params$sigma * (mean_E + mean_Ev_1d + mean_Ev_2d) * params$p_report,
+         cases_lower = params$sigma * (lower_E + lower_Ev_1d + lower_Ev_2d) * params$p_report,
+         cases_upper = params$sigma * (upper_E + upper_Ev_1d + upper_Ev_2d) * params$p_report,
+         hosp_mle = h * (mean_I + mean_Iv_1d + mean_Iv_2d),
+         hosp_lower = h * (lower_I + lower_Iv_1d + lower_Iv_2d),
+         hosp_upper = h * (upper_I + upper_Iv_1d + upper_Iv_2d),
+         ic_mle = i1 * (mean_H + mean_Hv_1d + mean_Hv_2d),
+         ic_lower = i1 * (lower_H + lower_Hv_1d + lower_Hv_2d),
+         ic_upper = i1 * (upper_H + upper_Hv_1d + upper_Hv_2d),
+         deaths_mle = d * (mean_H + mean_Hv_1d + mean_Hv_2d) + d_ic * (mean_IC + mean_ICv_1d + mean_ICv_2d) + d_hic * (mean_H_IC + mean_H_ICv_1d + mean_H_ICv_2d),
+         deaths_lower = d * (lower_H + lower_Hv_1d + lower_Hv_2d) + d_ic * (lower_IC + lower_ICv_1d + lower_ICv_2d) + d_hic * (lower_H_IC + lower_H_ICv_1d + lower_H_ICv_2d),
+         deaths_upper = d * (upper_H + upper_Hv_1d + upper_Hv_2d) + d_ic * (upper_IC + upper_ICv_1d + upper_ICv_2d) + d_hic * (upper_H_IC + upper_H_ICv_1d + upper_H_ICv_2d)
+  ) %>%
+  select(Scenario, R0, time, age_group, cases_mle:deaths_upper) %>%
+  pivot_longer(cases_mle:deaths_upper, names_to = c("outcome", "estimate"), names_sep = "_", values_to = "value") %>%
+  pivot_wider(names_from = "estimate", values_from = "value")
 
 # make plots --------------------------------------------------
 all_res_for_plot <- all_res %>%
