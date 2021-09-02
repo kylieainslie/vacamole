@@ -10,29 +10,28 @@ library(ggplot2)
 library(cowplot)
 
 # define function for data wrangling ------------------------
-wrangle_results <- function(x, times){
-  n_sim <- length(x)
-  rtn <- list()
+wrangle_results <- function(x){
   
-  for (i in 1:n_sim){
-  tmp <- lapply(x[[i]], wide_to_long, times) %>%
-    bind_rows() %>%
-    mutate(sim = i)
+  rtn_mle <- x %>%
+    filter(sim == 0)
   
-  rtn[[i]] <- tmp
-  }
-
-  rtn1 <- bind_rows(rtn) %>%
+  rtn_bounds <- x %>%
+    filter(sim != 0) %>%
     group_by(time, state, age_group) %>%
-    summarise(mean = mean(value),
-              lower = quantile(value, probs = 0.025),
+    summarise(lower = quantile(value, probs = 0.025),
               upper = quantile(value, probs = 0.975)) 
   
-  return(rtn1)
+  rtn <- left_join(rtn_mle, rtn_bounds, by = c("time", "state", "age_group")) %>%
+    rename(mean = value) %>%
+    select(-sim)
+  
+  return(rtn)
 }
+# -----------------------------------------------------------
 
 # read in simulation results --------------------------------
-file_date <- "2021-08-26"
+file_date <- "2021-09-02"
+
 # 12+
 mle_res_12plus <- readRDS(paste0("inst/extdata/results/results_12plus_mle_beta_", file_date, ".rds"))
 lower_res_12plus <- readRDS(paste0("inst/extdata/results/results_12plus_lower_beta_", file_date, ".rds"))
@@ -45,82 +44,168 @@ upper_res_18plus <- readRDS(paste0("inst/extdata/results/results_18plus_upper_be
 
 # wrangle raw results ----------------------------------------
 # 12 +
-mle_12plus_all <- wrangle_results(mle_res_12plus$out_all, times)
-lower_12plus_all <- wrangle_results(lower_res_12plus$out_all, times)
-upper_12plus_all <- wrangle_results(upper_res_12plus$out_all, times)
+mle_12plus_all <- wrangle_results(mle_res_12plus)
+lower_12plus_all <- wrangle_results(lower_res_12plus)
+upper_12plus_all <- wrangle_results(upper_res_12plus)
 
 all_12plus <- bind_rows(mle_12plus_all, lower_12plus_all, upper_12plus_all, .id = "R0") %>%
   mutate(R0 = case_when(
     R0 == 1 ~ "4.6",
     R0 == 2 ~ "3.45",
-    R0 == 3 ~ "9"
+    R0 == 3 ~ "5.75"
   ), Scenario = "12+") %>%
   pivot_wider(names_from = state, values_from = mean:upper) %>%
-  mutate(h = rep(params$h, 3),
-         i1 = rep(params$i1, 3),
-         i2 = rep(params$i2, 3),
-         d = rep(params$d, 3),
-         d_ic = rep(params$d_ic, 3),
-         d_hic = rep(params$d_hic, 3),
-         cases_mle = params$sigma * (mean_E + mean_Ev_1d + mean_Ev_2d) * params$p_report,
-         cases_lower = params$sigma * (lower_E + lower_Ev_1d + lower_Ev_2d) * params$p_report,
-         cases_upper = params$sigma * (upper_E + upper_Ev_1d + upper_Ev_2d) * params$p_report,
-         hosp_mle = h * (mean_I + mean_Iv_1d + mean_Iv_2d),
-         hosp_lower = h * (lower_I + lower_Iv_1d + lower_Iv_2d),
-         hosp_upper = h * (upper_I + upper_Iv_1d + upper_Iv_2d),
-         ic_mle = i1 * (mean_H + mean_Hv_1d + mean_Hv_2d),
-         ic_lower = i1 * (lower_H + lower_Hv_1d + lower_Hv_2d),
-         ic_upper = i1 * (upper_H + upper_Hv_1d + upper_Hv_2d),
-         deaths_mle = d * (mean_H + mean_Hv_1d + mean_Hv_2d) + d_ic * (mean_IC + mean_ICv_1d + mean_ICv_2d) + d_hic * (mean_H_IC + mean_H_ICv_1d + mean_H_ICv_2d),
-         deaths_lower = d * (lower_H + lower_Hv_1d + lower_Hv_2d) + d_ic * (lower_IC + lower_ICv_1d + lower_ICv_2d) + d_hic * (lower_H_IC + lower_H_ICv_1d + lower_H_ICv_2d),
-         deaths_upper = d * (upper_H + upper_Hv_1d + upper_Hv_2d) + d_ic * (upper_IC + upper_ICv_1d + upper_ICv_2d) + d_hic * (upper_H_IC + upper_H_ICv_1d + upper_H_ICv_2d)
-        ) %>%
-  select(Scenario, R0, time, age_group, cases_mle:deaths_upper) %>%
-  pivot_longer(cases_mle:deaths_upper, names_to = c("outcome", "estimate"), names_sep = "_", values_to = "value") %>%
+  group_by(Scenario, R0, time) %>%
+  mutate(h = params$h,
+         i1 = params$i1,
+         i2 = params$i2,
+         d = params$d,
+         d_ic = params$d_ic,
+         d_hic = params$d_hic,
+         cases_unvac_mle = params$sigma * mean_E * params$p_report,
+         cases_unvac_lower = params$sigma * lower_E * params$p_report,
+         cases_unvac_upper = params$sigma * upper_E * params$p_report,
+         cases_partvac_mle = params$sigma * mean_Ev_1d * params$p_report,
+         cases_partvac_lower = params$sigma * lower_Ev_1d * params$p_report,
+         cases_partvac_upper = params$sigma * upper_Ev_1d * params$p_report,
+         cases_fullvac_mle = params$sigma * mean_Ev_2d * params$p_report,
+         cases_fullvac_lower = params$sigma * lower_Ev_2d * params$p_report,
+         cases_fullvac_upper = params$sigma * upper_Ev_2d * params$p_report,
+         hosp_unvac_mle = h * mean_I,
+         hosp_unvac_lower = h * lower_I,
+         hosp_unvac_upper = h * upper_I,
+         hosp_partvac_mle = h * mean_Iv_1d,
+         hosp_partvac_lower = h * lower_Iv_1d,
+         hosp_partvac_upper = h * upper_Iv_1d,
+         hosp_fullvac_mle = h * mean_Iv_2d,
+         hosp_fullvac_lower = h * lower_Iv_2d,
+         hosp_fullvac_upper = h * upper_Iv_2d,
+         ic_unvac_mle = i1 * mean_H,
+         ic_unvac_lower = i1 * lower_H,
+         ic_unvac_upper = i1 * upper_H,
+         ic_partvac_mle = i1 * mean_Hv_1d,
+         ic_partvac_lower = i1 * lower_Hv_1d,
+         ic_partvac_upper = i1 * upper_Hv_1d,
+         ic_fullvac_mle = i1 * mean_Hv_2d,
+         ic_fullvac_lower = i1 * lower_Hv_2d,
+         ic_fullvac_upper = i1 * upper_Hv_2d,
+         deaths_unvac_mle = d * mean_H + d_ic * mean_IC + d_hic * mean_H_IC,
+         deaths_unvac_lower = d * lower_H + d_ic * lower_IC + d_hic * lower_H_IC,
+         deaths_unvac_upper = d * upper_H + d_ic * upper_I + d_hic * upper_H_IC,
+         deaths_partvac_mle = d * mean_Hv_1d + d_ic * mean_ICv_1d + d_hic * mean_H_ICv_1d,
+         deaths_partvac_lower = d * lower_Hv_1d + d_ic * lower_ICv_1d + d_hic * lower_H_ICv_1d,
+         deaths_partvac_upper = d * upper_Hv_1d + d_ic * upper_ICv_1d + d_hic * upper_H_ICv_1d,
+         deaths_fullvac_mle = d * mean_Hv_2d + d_ic * mean_ICv_2d + d_hic * mean_H_ICv_2d,
+         deaths_fullvac_lower = d * lower_Hv_2d + d_ic * lower_ICv_2d + d_hic * lower_H_ICv_2d,
+         deaths_fullvac_upper = d * upper_Hv_2d + d_ic * upper_ICv_2d + d_hic * upper_H_ICv_2d
+  ) %>%
+  select(Scenario, R0, time, age_group, cases_unvac_mle:deaths_fullvac_upper) %>%
+  pivot_longer(cases_unvac_mle:deaths_fullvac_upper, names_to = c("outcome", "vac_status", "estimate"), names_sep = "_", values_to = "value") %>%
   pivot_wider(names_from = "estimate", values_from = "value")
 
 # 18+
-mle_18plus_all <- wrangle_results(mle_res_18plus$out_all, times)
-lower_18plus_all <- wrangle_results(lower_res_18plus$out_all, times)
-upper_18plus_all <- wrangle_results(upper_res_18plus$out_all, times)
+mle_18plus_all <- wrangle_results(mle_res_18plus)
+lower_18plus_all <- wrangle_results(lower_res_18plus)
+upper_18plus_all <- wrangle_results(upper_res_18plus)
 
 all_18plus <- bind_rows(mle_18plus_all, lower_18plus_all, upper_18plus_all, .id = "R0") %>%
   mutate(R0 = case_when(
     R0 == 1 ~ "4.6",
     R0 == 2 ~ "3.45",
-    R0 == 3 ~ "9"
+    R0 == 3 ~ "5.75"
   ), Scenario = "18+") %>%
   pivot_wider(names_from = state, values_from = mean:upper) %>%
-  mutate(h = rep(params$h, 3),
-         i1 = rep(params$i1, 3),
-         i2 = rep(params$i2, 3),
-         d = rep(params$d, 3),
-         d_ic = rep(params$d_ic, 3),
-         d_hic = rep(params$d_hic, 3),
-         cases_mle = params$sigma * (mean_E + mean_Ev_1d + mean_Ev_2d) * params$p_report,
-         cases_lower = params$sigma * (lower_E + lower_Ev_1d + lower_Ev_2d) * params$p_report,
-         cases_upper = params$sigma * (upper_E + upper_Ev_1d + upper_Ev_2d) * params$p_report,
-         hosp_mle = h * (mean_I + mean_Iv_1d + mean_Iv_2d),
-         hosp_lower = h * (lower_I + lower_Iv_1d + lower_Iv_2d),
-         hosp_upper = h * (upper_I + upper_Iv_1d + upper_Iv_2d),
-         ic_mle = i1 * (mean_H + mean_Hv_1d + mean_Hv_2d),
-         ic_lower = i1 * (lower_H + lower_Hv_1d + lower_Hv_2d),
-         ic_upper = i1 * (upper_H + upper_Hv_1d + upper_Hv_2d),
-         deaths_mle = d * (mean_H + mean_Hv_1d + mean_Hv_2d) + d_ic * (mean_IC + mean_ICv_1d + mean_ICv_2d) + d_hic * (mean_H_IC + mean_H_ICv_1d + mean_H_ICv_2d),
-         deaths_lower = d * (lower_H + lower_Hv_1d + lower_Hv_2d) + d_ic * (lower_IC + lower_ICv_1d + lower_ICv_2d) + d_hic * (lower_H_IC + lower_H_ICv_1d + lower_H_ICv_2d),
-         deaths_upper = d * (upper_H + upper_Hv_1d + upper_Hv_2d) + d_ic * (upper_IC + upper_ICv_1d + upper_ICv_2d) + d_hic * (upper_H_IC + upper_H_ICv_1d + upper_H_ICv_2d)
+  group_by(Scenario, R0, time) %>%
+  mutate(h = params$h,
+         i1 = params$i1,
+         i2 = params$i2,
+         d = params$d,
+         d_ic = params$d_ic,
+         d_hic = params$d_hic,
+         cases_unvac_mle = params$sigma * mean_E * params$p_report,
+         cases_unvac_lower = params$sigma * lower_E * params$p_report,
+         cases_unvac_upper = params$sigma * upper_E * params$p_report,
+         cases_partvac_mle = params$sigma * mean_Ev_1d * params$p_report,
+         cases_partvac_lower = params$sigma * lower_Ev_1d * params$p_report,
+         cases_partvac_upper = params$sigma * upper_Ev_1d * params$p_report,
+         cases_fullvac_mle = params$sigma * mean_Ev_2d * params$p_report,
+         cases_fullvac_lower = params$sigma * lower_Ev_2d * params$p_report,
+         cases_fullvac_upper = params$sigma * upper_Ev_2d * params$p_report,
+         hosp_unvac_mle = h * mean_I,
+         hosp_unvac_lower = h * lower_I,
+         hosp_unvac_upper = h * upper_I,
+         hosp_partvac_mle = h * mean_Iv_1d,
+         hosp_partvac_lower = h * lower_Iv_1d,
+         hosp_partvac_upper = h * upper_Iv_1d,
+         hosp_fullvac_mle = h * mean_Iv_2d,
+         hosp_fullvac_lower = h * lower_Iv_2d,
+         hosp_fullvac_upper = h * upper_Iv_2d,
+         ic_unvac_mle = i1 * mean_H,
+         ic_unvac_lower = i1 * lower_H,
+         ic_unvac_upper = i1 * upper_H,
+         ic_partvac_mle = i1 * mean_Hv_1d,
+         ic_partvac_lower = i1 * lower_Hv_1d,
+         ic_partvac_upper = i1 * upper_Hv_1d,
+         ic_fullvac_mle = i1 * mean_Hv_2d,
+         ic_fullvac_lower = i1 * lower_Hv_2d,
+         ic_fullvac_upper = i1 * upper_Hv_2d,
+         deaths_unvac_mle = d * mean_H + d_ic * mean_IC + d_hic * mean_H_IC,
+         deaths_unvac_lower = d * lower_H + d_ic * lower_IC + d_hic * lower_H_IC,
+         deaths_unvac_upper = d * upper_H + d_ic * upper_I + d_hic * upper_H_IC,
+         deaths_partvac_mle = d * mean_Hv_1d + d_ic * mean_ICv_1d + d_hic * mean_H_ICv_1d,
+         deaths_partvac_lower = d * lower_Hv_1d + d_ic * lower_ICv_1d + d_hic * lower_H_ICv_1d,
+         deaths_partvac_upper = d * upper_Hv_1d + d_ic * upper_ICv_1d + d_hic * upper_H_ICv_1d,
+         deaths_fullvac_mle = d * mean_Hv_2d + d_ic * mean_ICv_2d + d_hic * mean_H_ICv_2d,
+         deaths_fullvac_lower = d * lower_Hv_2d + d_ic * lower_ICv_2d + d_hic * lower_H_ICv_2d,
+         deaths_fullvac_upper = d * upper_Hv_2d + d_ic * upper_ICv_2d + d_hic * upper_H_ICv_2d
   ) %>%
-  select(Scenario, R0, time, age_group, cases_mle:deaths_upper) %>%
-  pivot_longer(cases_mle:deaths_upper, names_to = c("outcome", "estimate"), names_sep = "_", values_to = "value") %>%
+  select(Scenario, R0, time, age_group, cases_unvac_mle:deaths_fullvac_upper) %>%
+  pivot_longer(cases_unvac_mle:deaths_fullvac_upper, names_to = c("outcome", "vac_status", "estimate"), names_sep = "_", values_to = "value") %>%
   pivot_wider(names_from = "estimate", values_from = "value")
 
 # make plots --------------------------------------------------
-all_res_for_plot <- all_res %>%
-  pivot_wider(names_from = "estimate", values_from = "value")
+all_res_for_plot <- bind_rows(all_12plus, all_18plus) %>%
+  ungroup() %>%
+  mutate(date = time + as.Date("2020-01-01"),
+         outcome = factor(case_when(
+            outcome == "cases" ~ "Daily Cases",
+            outcome == "hosp" ~ "Hospital Admissions",
+            outcome == "ic" ~ "IC Admissions",
+            outcome == "deaths" ~ "Daily Deaths"
+         ), levels = c("Daily Cases","Hospital Admissions","IC Admissions","Daily Deaths"))) %>%
+  select(-time)
 
-# figure 1 - 12+ vs. 18+, no waning ---------------------------
-fig1 <- ggplot(data = all_res_for_plot, aes(x = date, y = mle, fill = R0, 
-                                            linetype = Scenario)) +
+# figure 1a - 12+ vs. 18+, 10-19 age group, no waning ---------
+fig1a <- ggplot(data = all_res_for_plot %>%
+                        filter(age_group == 2,
+                               outcome != "Daily Deaths") %>%
+                        group_by(Scenario, R0, date, outcome) %>%
+                        summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum"), 
+                aes(x = date, y = mle, fill = R0, linetype = Scenario)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = R0), alpha = 0.3) +
+  geom_line() +
+  labs(y = "Value", x = "Time (days)") +
+  ylim(0,NA) +
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
+  theme(legend.position = "bottom",
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+        axis.text.y = element_text(size = 14),
+        strip.text.x = element_text(size = 14),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 14),
+        axis.title=element_text(size=14,face="bold")) +
+  facet_wrap(~outcome, scales = "free_y", nrow = 4)
+fig1a
+
+# figure 1b - 12+ vs. 18+, !10-19 age group, no waning --------
+fig1b <- ggplot(data = all_res_for_plot %>%
+                        filter(age_group != 2,
+                               outcome != "Daily Deaths") %>%
+                        group_by(Scenario, R0, date, outcome) %>%
+                        summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum"), 
+                aes(x = date, y = mle, fill = R0, 
+                                              linetype = Scenario)) +
   geom_line() +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = R0), alpha = 0.3) +
   labs(y = "Value", x = "Time (days)") +
@@ -135,11 +220,19 @@ fig1 <- ggplot(data = all_res_for_plot, aes(x = date, y = mle, fill = R0,
         legend.title = element_text(size = 14),
         axis.title=element_text(size=14,face="bold")) +
   facet_wrap(~outcome, scales = "free_y", nrow = 4)
+fig1b
+
+fig1_no_legend <- plot_grid(fig1a + theme(legend.position = "none"), 
+                  fig1b + theme(legend.position = "none"), 
+                  labels = "AUTO", nrow = 1)
+
+legend <- get_legend(
+  fig1a + theme(legend.box.margin = margin(0, 0, 0, 12))
+)
+
+fig1 <- plot_grid(fig1_no_legend, legend, rel_heights = c(3, .4), nrow = 2)
 fig1
 
-ggsave(filename = "inst/extdata/results/figure 1 alt.jpg", plot = fig1,
+ggsave(filename = "inst/extdata/results/figure 1.jpg", plot = fig1,
        units = "in", height = 10, width = 8, dpi = 300)
 
-
-
-# old code 
