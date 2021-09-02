@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------
-# Hleper data wrangling function -----------------------------------
+# Helper data wrangling functions ----------------------------------
 # ------------------------------------------------------------------
 
 wide_to_long <- function(x, times) {
@@ -12,6 +12,23 @@ wide_to_long <- function(x, times) {
                  values_to = "value")
 }
 
+wrangle_results <- function(x){
+  
+  rtn_mle <- x %>%
+    filter(sim == 0)
+  
+  rtn_bounds <- x %>%
+    filter(sim != 0) %>%
+    group_by(time, state, age_group) %>%
+    summarise(lower = quantile(value, probs = 0.025),
+              upper = quantile(value, probs = 0.975)) 
+  
+  rtn <- left_join(rtn_mle, rtn_bounds, by = c("time", "state", "age_group")) %>%
+    rename(mean = value) %>%
+    select(-sim)
+  
+  return(rtn)
+}
 
 # ------------------------------------------------------------------
 # Forward simulation function wrapper ------------------------------
@@ -85,36 +102,16 @@ forward_sim_func_wrap <- function(start_date,
   tmp_mle <- lapply(out_mle, wide_to_long, times) %>%
     bind_rows() %>%
     mutate(sim = 0)
-  
-  # get outcomes ------------------------------------------------------
-  # cases_mle <- params$sigma * rowSums(out_mle$E + out_mle$Ev_1d + out_mle$Ev_2d) * params$p_report
-  # infectious_mle <- (out_mle$I + out_mle$Iv_1d + out_mle$Iv_2d)
-  # hosp_admissions_mle <- rowSums(sweep(infectious_mle, 2, h, "*"))
-  # hosp_occ_mle <- (out_mle$H + out_mle$Hv_1d + out_mle$Hv_2d)
-  # ic_mle <- rowSums(sweep(hosp_occ_mle, 2, i1, "*"))
-  # ic_occ_mle <- (out_mle$IC + out_mle$ICv_1d + out_mle$ICv_2d)
-  # hosp_after_ic_mle <- sweep(ic_occ_mle, 2, i2, "*")
-  # hosp_after_ic_occ_mle <- (out_mle$H_IC + out_mle$H_ICv_1d + out_mle$H_ICv_2d)
-  # deaths_mle <- rowSums(sweep(ic_occ_mle, 2, d_ic, "*") + sweep(hosp_occ_mle, 2, d, "*") + sweep(hosp_after_ic_occ_mle, 2, d_hic, "*"))
-
 
   # run for beta draws ------------------------------------------------
   n_beta <- length(beta_d)
-  # rtn_cases <- matrix(,nrow = length(times), ncol = n_beta)
-  # rtn_hosp <- rtn_cases
-  # rtn_ic <- rtn_cases
-  # rtn_deaths <- rtn_cases
-
   rtn_out <- list()
 
   for(i in 1:n_beta){
     print(i)
   
     # reset flags
-    # flag_relaxed <- 0
-    # flag_very_relaxed <- 0
-    # flag_normal <- 0
-    
+    # need to make sure they are saved to the global environment
     assign("flag_relaxed", 0, envir = .GlobalEnv) 
     assign("flag_very_relaxed", 0, envir = .GlobalEnv)
     assign("flag_normal", 0, envir = .GlobalEnv)
@@ -124,9 +121,6 @@ forward_sim_func_wrap <- function(start_date,
     params$c_start <- contact_matrices$june_2021[[i]]
     params$normal <- contact_matrices$baseline_2017[[i]]
     
-    # print(params$beta)
-    # print(params$c_start)
-    # print(params$normal)
     # run model
     seir_out <- lsoda(initial_conditions, times, age_struct_seir_ode, params)
     seir_out <- as.data.frame(seir_out)
@@ -138,45 +132,8 @@ forward_sim_func_wrap <- function(start_date,
         mutate(sim = i)
   
     rtn_out[[i]] <- tmp
-  
-    # get outcomes
-    # daily_cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d) * params$p_report
-    # infectious <- (out$I + out$Iv_1d + out$Iv_2d)
-    # hosp_admissions <- rowSums(sweep(infectious, 2, h, "*"))
-    # hosp_occ <- (out$H + out$Hv_1d + out$Hv_2d)
-    # ic <- rowSums(sweep(hosp_occ, 2, i1, "*"))
-    # ic_occ <- (out$IC + out$ICv_1d + out$ICv_2d)
-    # hosp_after_ic <- sweep(ic_occ, 2, i2, "*")
-    # hosp_after_ic_occ <- (out$H_IC + out$H_ICv_1d + out$H_ICv_2d)
-    # daily_deaths <- rowSums(sweep(ic_occ, 2, d_ic, "*") + sweep(hosp_occ, 2, d, "*") + sweep(hosp_after_ic_occ, 2, d_hic, "*"))
-    # 
-    # rtn_cases[,i]  <- daily_cases
-    # rtn_hosp[,i]   <- hosp_admissions
-    # rtn_ic[,i]     <- ic
-    # rtn_deaths[,i] <- daily_deaths
   }
 
-  # get confidence bounds of model runs for total pop
-  # bounds_cases  <- apply(rtn_cases,1,function(x) quantile(x, c(0.025,0.975)))
-  # bounds_hosp   <- apply(rtn_hosp,1,function(x) quantile(x, c(0.025,0.975)))
-  # bounds_ic     <- apply(rtn_ic,1,function(x) quantile(x, c(0.025,0.975)))
-  # bounds_deaths <- apply(rtn_deaths,1,function(x) quantile(x, c(0.025,0.975)))
-  # 
-  # # output ---------------------------------------------------------
-  # df_total <- data.frame(time = times,
-  #                        cases_mle = cases_mle,
-  #                        cases_lower = bounds_cases[1,],
-  #                        cases_upper = bounds_cases[2,],
-  #                        hosp_mle = hosp_admissions_mle,
-  #                        hosp_lower = bounds_hosp[1,],
-  #                        hosp_upper = bounds_hosp[2,],
-  #                        ic_mle = ic_mle,
-  #                        ic_lower = bounds_ic[1,],
-  #                        ic_upper = bounds_ic[2,],
-  #                        deaths_mle = deaths_mle,
-  #                        deaths_lower = bounds_deaths[1,],
-  #                        deaths_upper = bounds_deaths[2,]
-  # )
   
   # return outouts
   rtn_out$mle <- tmp_mle
