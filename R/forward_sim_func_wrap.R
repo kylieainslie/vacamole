@@ -124,9 +124,9 @@ forward_sim_func_wrap <- function(start_date,
     params$c_start <- contact_matrices$june_2021[[i]]
     params$normal <- contact_matrices$baseline_2017[[i]]
     
-    print(params$beta)
-    print(params$c_start)
-    print(params$normal)
+    # print(params$beta)
+    # print(params$c_start)
+    # print(params$normal)
     # run model
     seir_out <- lsoda(initial_conditions, times, age_struct_seir_ode, params)
     seir_out <- as.data.frame(seir_out)
