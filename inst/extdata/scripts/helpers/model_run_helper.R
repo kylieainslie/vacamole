@@ -70,7 +70,7 @@ june_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2
 # parameter inputs -------------------------------------------------
 s <- 0.5
 g <- 0.5
-r0 <- 3.45
+r0 <- 5.75
 
 # determine transmission rate (beta) for r0 ------------------------
 S <- diag(n_vec - 1)
@@ -166,6 +166,38 @@ basis1 <- convert_vac_schedule(
   extra_end_date = "2022-03-31"
 )
 
+# baseline parameter inputs
+params <- list(beta = 0.0003934816 * 2 ,  # transmission rate
+               beta1 = 0.14,              # amplitude of seasonal forcing
+               gamma = g,                 # 1/gamma = infectious period
+               sigma = s,                 # 1/sigma = latent period
+               epsilon = 0.01,            # import case
+               N = n_vec,                 # Population (no need to change)
+               h = h,                     # Rate from infection to hospital admission/ time from infection to hosp admission
+               i1 = i1,
+               i2 = i2,
+               d = d, 
+               d_ic = d_ic,
+               d_hic = d_hic,
+               r = r,
+               r_ic = r_ic,
+               p_report = 1/3, #p_reported_by_age,
+               c_start = june_2021$mean,
+               c_lockdown = february_2021$mean,
+               c_relaxed = june_2020$mean,
+               c_very_relaxed = june_2021$mean,
+               c_normal = baseline_2017$mean,
+               keep_cm_fixed = FALSE,
+               vac_inputs = basis1,
+               use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
+               thresh_n = 0.5/100000 * sum(n_vec),         # somewhat arbitrary cut-off ***need to check if realistic
+               thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
+               thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
+               thresh_u = 100000/100000 * sum(n_vec),        #35.7  # 20 for IC admissions
+               no_vac = FALSE,
+               t_calendar_start = yday(as.Date("2020-01-01")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
+               beta_change = NULL 
+)
 # ------------------------------------------------------------------
 # old code ---------------------------------------------------------
 # ------------------------------------------------------------------
