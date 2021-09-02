@@ -70,15 +70,18 @@ age_struct_seir_ode <- function(times,init,params){
     cases <- sum(sigma * (E + Ev_1d + Ev_2d) * p_report)
     criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
     # initialise flags
-    if(times == 0){
+    if(times == 0 | params$keep_cm_fixed){
       flag_relaxed <- 0
       flag_very_relaxed <- 0
       flag_normal <- 0
     }
     
     # determine contact matrix to use based on criteria
-    tmp2 <- choose_contact_matrix(params, criteria, flag_relaxed, 
-                                  flag_very_relaxed, flag_normal, 
+    tmp2 <- choose_contact_matrix(params = params, 
+                                  criteria = criteria, 
+                                  flag_relaxed = flag_relaxed, 
+                                  flag_very_relaxed = flag_very_relaxed, 
+                                  flag_normal = flag_normal, 
                                   keep_fixed = keep_cm_fixed)
     contact_mat <- tmp2$contact_matrix
     flag_relaxed <- tmp2$flag_relaxed
