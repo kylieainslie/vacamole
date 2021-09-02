@@ -6,7 +6,8 @@
 # Data and model parameters are loaded/defined in the script 
 # inst/extdata/scripts/model_run_helper.R
 source("inst/extdata/scripts/helpers/model_run_helper.R")
-library(foreach)
+source("R/forward_sim_func_wrap.R")
+#library(foreach)
 # read in vac schedules --------------------------------------------
 basis_12plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
   select(-starts_with("X"))
@@ -21,7 +22,7 @@ output_from_model_fit <- readRDS(paste0("inst/extdata/results/model_fits/output_
 init_cond_22june2021 <- unlist(lapply(unname(output_from_model_fit$`end_date_2021-06-22`), tail,1))
 beta_mles <- data.frame(beta = readRDS(paste0("inst/extdata/results/model_fits/mles_from_fits_", date_of_fit,".rds"))) %>%
   mutate(end_date = names(output_from_model_fit))
-beta_draws <-  readRDS(paste0("inst/extdata/results/model_fits/beta_draws_from_fits_", date_of_fit, ".rds"))
+beta_draws <- readRDS(paste0("inst/extdata/results/model_fits/beta_draws_from_fits_", date_of_fit, ".rds"))
 
 index <- which(beta_mles$end_date == "end_date_2021-06-22")
 cm <- list(baseline_2017 = baseline_2017,
@@ -34,7 +35,8 @@ cm <- list(baseline_2017 = baseline_2017,
 
 beta_delta_mle <- 0.0003934816 * 2 # R0 = 4.6
 beta_delta_lower <- 0.0005902224   # R0 = 3.45
-beta_delta_upper <- 0.001539711    # R0 = 9
+beta_delta_upper <- 0.0009837041   # R0 = 5.75
+  #0.001539711    # R0 = 9
 
 # -------------------------------------------------------------------
 # run models --------------------------------------------------------
@@ -71,6 +73,7 @@ basis_18plus1 <- convert_vac_schedule(
   add_extra_dates = TRUE,
   extra_end_date = "2022-03-31"
 )
+
 # 12+ mle
 forward_sim_func_wrap(start_date = "2021-06-22",
                       end_date = "2021-03-31",
@@ -78,9 +81,9 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_m = beta_mles[index,1],
                       vac_inputs = basis_12plus1,
                       beta_c = beta_delta_mle,
-                      beta_draws = beta_draws[[index]][1:3],
+                      beta_d = beta_draws[[index]][1:25,1],
                       contact_matrices = cm,
-                      tag = "test" #paste0("results_12plus_mle_beta_",todays_date)
+                      tag = paste0("results_12plus_mle_beta_",todays_date)
                       )
 
 # 12+ lower
@@ -90,7 +93,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_m = beta_mles[index,1],
                       vac_inputs = basis_12plus1,
                       beta_c = beta_delta_lower,
-                      beta_draws = beta_draws[[index]],
+                      beta_d = beta_draws[[index]][1:25,1],
                       contact_matrices = cm,
                       tag = paste0("results_12plus_lower_beta_",todays_date)
 )
@@ -102,7 +105,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_m = beta_mles[index,1],
                       vac_inputs = basis_12plus1,
                       beta_c = beta_delta_upper,
-                      beta_draws = beta_draws[[index]],
+                      beta_d = beta_draws[[index]][1:25,1],
                       contact_matrices = cm,
                       tag = paste0("results_12plus_upper_beta_",todays_date)
 )
@@ -114,7 +117,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_m = beta_mles[index,1],
                       vac_inputs = basis_18plus1,
                       beta_c = beta_delta_mle,
-                      beta_draws = beta_draws[[index]],
+                      beta_d = beta_draws[[index]][1:25,1],
                       contact_matrices = cm,
                       tag = paste0("results_18plus_mle_beta_",todays_date)
 )
@@ -125,7 +128,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_m = beta_mles[index,1],
                       vac_inputs = basis_18plus1,
                       beta_c = beta_delta_lower,
-                      beta_draws = beta_draws[[index]],
+                      beta_d = beta_draws[[index]][1:25,1],
                       contact_matrices = cm,
                       tag = paste0("results_18plus_lower_beta_",todays_date)
 )
@@ -137,7 +140,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_m = beta_mles[index,1],
                       vac_inputs = basis_18plus1,
                       beta_c = beta_delta_upper,
-                      beta_draws = beta_draws[[index]],
+                      beta_d = beta_draws[[index]][1:25,1],
                       contact_matrices = cm,
                       tag = paste0("results_18plus_upper_beta_",todays_date)
 )
