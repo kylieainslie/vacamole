@@ -215,5 +215,18 @@ fig1 <- plot_grid(fig1_no_legend, legend, rel_heights = c(3, .4), nrow = 2)
 fig1
 
 ggsave(filename = "inst/extdata/results/figure 1.jpg", plot = fig1,
-       units = "in", height = 10, width = 8, dpi = 300)
+       units = "in", height = 10, width = 12, dpi = 300)
+
+# table 1 ----------------------------------------------------
+table1_10_19 <- all_res_for_plot %>%
+  filter(age_group == 2,
+         outcome != "Daily Deaths") %>%
+  group_by(Scenario, R0, outcome) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+
+table1_not_10_19 <- all_res_for_plot %>%
+  filter(age_group != 2,
+         outcome != "Daily Deaths") %>%
+  group_by(Scenario, R0, outcome) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 

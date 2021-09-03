@@ -253,7 +253,7 @@ fig2c <- ggplot(data = data_for_bar_plot,
   facet_wrap(~Scenario, nrow = 2) +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
-        axis.text.x = element_text(size = 14),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
         axis.text.y = element_text(size = 14),
         strip.text.x = element_text(size = 14),
         legend.text = element_text(size = 14),
@@ -261,11 +261,11 @@ fig2c <- ggplot(data = data_for_bar_plot,
         axis.title=element_text(size=14,face="bold"))
 fig2c
 
-fig2 <- plot_grid(fig2ab, fig2c, labels = c("", "C"), rel_widths = c(1, 0.8), ncol = 2)
+fig2 <- plot_grid(fig2ab, fig2c, labels = c("", "C"), rel_widths = c(1, 0.7), ncol = 2)
 fig2
 
-ggsave(filename = "inst/extdata/results/figure 2.jpg", plot = fig1,
-       units = "in", height = 8, width = 10, dpi = 300)
+ggsave(filename = "inst/extdata/results/figure 2.jpg", plot = fig2,
+       units = "in", height = 8, width = 12, dpi = 300)
 
 
 
