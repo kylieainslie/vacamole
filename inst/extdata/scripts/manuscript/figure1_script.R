@@ -165,7 +165,7 @@ fig1a <- ggplot(data = all_res_for_plot %>%
                 aes(x = date, y = mle, fill = R0, linetype = Scenario)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = R0), alpha = 0.3) +
   geom_line() +
-  labs(y = "Value", x = "Time (days)") +
+  labs(y = "Value", x = "Date") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
   theme(legend.position = "bottom",
@@ -189,7 +189,7 @@ fig1b <- ggplot(data = all_res_for_plot %>%
                                               linetype = Scenario)) +
   geom_line() +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = R0), alpha = 0.3) +
-  labs(y = "Value", x = "Time (days)") +
+  labs(y = "Value", x = "Date") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
   theme(legend.position = "bottom",
