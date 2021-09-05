@@ -7,7 +7,9 @@
 library(dplyr)
 library(ggplot2)
 library(cowplot)
+library(tidyr)
 
+source("R/forward_sim_func_wrap.R")
 # read in simulation results --------------------------------
 file_date <- "2021-09-02"
 
@@ -220,6 +222,8 @@ legend2 <- get_legend(
 )
 
 fig2ab <- plot_grid(fig2_no_legend, legend2, rel_heights = c(3, .4), nrow = 2)
+ggsave(filename = "inst/extdata/results/figure 2 alt.jpg", plot = fig2ab,
+       units = "in", height = 10, width = 12, dpi = 300)
 
 # figure 2c - bar chart of cases by vac status ----------------
 totals <- all_res %>%
@@ -268,87 +272,30 @@ ggsave(filename = "inst/extdata/results/figure 2.jpg", plot = fig2,
        units = "in", height = 10, width = 12, dpi = 300)
 
 # table 2 -----------------------------------------------------
-table1_10_19_wane <- all_res_for_plot_wane %>%
+table2_10_19_wane <- all_res_for_plot_wane %>%
   filter(age_group == 2,
          outcome != "Daily Deaths") %>%
   group_by(Scenario, R0, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
-table1_not_10_19_wane <- all_res_for_plot_wane %>%
+table2_not_10_19_wane <- all_res_for_plot_wane %>%
   filter(age_group != 2,
          outcome != "Daily Deaths") %>%
   group_by(Scenario, R0, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
-# calculate percent differnce_wane
-table1_not_10_19_12plus_wane <- table1_not_10_19_wane %>% filter(Scenario == "12+")
-table1_not_10_19_18plus_wane <- table1_not_10_19_wane %>% filter(Scenario == "18+")
-perc_diff_wane <- (table1_not_10_19_12plus_wane[,4:6] * 100)/table1_not_10_19_18plus_wane[,4:6] - 100
+# calculate percent difference_wane
+# 10-19
+table2_10_19_12plus_wane <- table2_10_19_wane %>% filter(Scenario == "12+")
+table2_10_19_18plus_wane <- table2_10_19_wane %>% filter(Scenario == "18+")
+(table2_10_19_12plus_wane[,4:6] * 100)/table2_10_19_18plus_wane[,4:6] - 100
 
+# not 10-19
+table2_not_10_19_12plus_wane <- table2_not_10_19_wane %>% filter(Scenario == "12+")
+table2_not_10_19_18plus_wane <- table2_not_10_19_wane %>% filter(Scenario == "18+")
+(table2_not_10_19_12plus_wane[,4:6] * 100)/table2_not_10_19_18plus_wane[,4:6] - 100
 
-# -------------------------------------------------------------
-# create same fig for hospital admissions and put in supplement
-# figure 2a - 12+ vs. 18+, no waning vs. waning, 10-19 
-# age group ---------------------------------------------------
-figs3a <- ggplot(data = all_res %>%
-                  filter(age_group == 2,
-                         outcome == "Hospital Admissions",
-                         R0 == "4.6") %>%
-                  group_by(Scenario, Immunity, date, outcome) %>%
-                  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum"), 
-                aes(x = date, y = mle, fill = Immunity, linetype = Scenario)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = Immunity), alpha = 0.3) +
-  geom_line() +
-  labs(y = "Hospital Admissions", x = "Date") +
-  ylim(0,NA) +
-  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
-  theme(legend.position = "bottom",
-        panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
-        axis.text.y = element_text(size = 14),
-        strip.text.x = element_text(size = 14),
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) #+
-  #facet_wrap(~outcome, scales = "free_y", nrow = 4)
-figs3a
-
-# figure 2b - 12+ vs. 18+, no waning vs. waning, !10-19 
-# age group ---------------------------------------------------
-figs3b <- ggplot(data = all_res %>%
-                  filter(age_group != 2,
-                         outcome == "Hospital Admissions",
-                         R0 == "4.6") %>%
-                  group_by(Scenario, Immunity, date, outcome) %>%
-                  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum"), 
-                aes(x = date, y = mle, fill = Immunity, 
-                    linetype = Scenario)) +
-  geom_line() +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = Immunity), alpha = 0.3) +
-  labs(y = "Hospital Admissions", x = "Date") +
-  ylim(0,NA) +
-  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
-  theme(legend.position = "bottom",
-        panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
-        axis.text.y = element_text(size = 14),
-        strip.text.x = element_text(size = 14),
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) #+
-  #facet_wrap(~outcome, scales = "free_y", nrow = 4)
-figs3b
-
-figs3_no_legend <- plot_grid(figs3a + theme(legend.position = "none"), 
-                            figs3b + theme(legend.position = "none"), 
-                            labels = "AUTO", nrow = 2)
-
-legend3 <- get_legend(
-  figs3a + theme(legend.box.margin = margin(0, 0, 0, 12))
-)
-
-figs3ab <- plot_grid(figs3_no_legend, legend2, rel_heights = c(3, .4), nrow = 2)
-
+# Keep? -------------------------------------------------------
 # figure 2c - bar chart of cases by vac status ----------------
 totals <- all_res %>%
   filter(outcome == "Hospital Admissions",

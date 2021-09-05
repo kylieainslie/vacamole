@@ -241,3 +241,6 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       contact_matrices = cm,
                       tag = paste0("results_18plus_wane_upper_beta_",todays_date)
 )
+
+
+# sensitivity analysis where control measures stay in place -----
