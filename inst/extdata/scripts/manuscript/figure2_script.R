@@ -267,6 +267,25 @@ fig2
 ggsave(filename = "inst/extdata/results/figure 2.jpg", plot = fig2,
        units = "in", height = 10, width = 12, dpi = 300)
 
+# table 2 -----------------------------------------------------
+table1_10_19_wane <- all_res_for_plot_wane %>%
+  filter(age_group == 2,
+         outcome != "Daily Deaths") %>%
+  group_by(Scenario, R0, outcome) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+
+table1_not_10_19_wane <- all_res_for_plot_wane %>%
+  filter(age_group != 2,
+         outcome != "Daily Deaths") %>%
+  group_by(Scenario, R0, outcome) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+
+# calculate percent differnce_wane
+table1_not_10_19_12plus_wane <- table1_not_10_19_wane %>% filter(Scenario == "12+")
+table1_not_10_19_18plus_wane <- table1_not_10_19_wane %>% filter(Scenario == "18+")
+perc_diff_wane <- (table1_not_10_19_12plus_wane[,4:6] * 100)/table1_not_10_19_18plus_wane[,4:6] - 100
+
+
 # -------------------------------------------------------------
 # create same fig for hospital admissions and put in supplement
 # figure 2a - 12+ vs. 18+, no waning vs. waning, 10-19 

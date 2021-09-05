@@ -9,7 +9,7 @@ library(dplyr)
 library(ggplot2)
 library(cowplot)
 # -----------------------------------------------------------
-
+source("R/forward_sim_func_wrap.R")
 # read in simulation results --------------------------------
 file_date <- "2021-09-02"
 
@@ -230,3 +230,7 @@ table1_not_10_19 <- all_res_for_plot %>%
   group_by(Scenario, R0, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
+# calculate percent differnce
+table1_not_10_19_12plus <- table1_not_10_19 %>% filter(Scenario == "12+")
+table1_not_10_19_18plus <- table1_not_10_19 %>% filter(Scenario == "18+")
+perc_diff <- (table1_not_10_19_12plus[,4:6] * 100)/table1_not_10_19_18plus[,4:6] - 100
