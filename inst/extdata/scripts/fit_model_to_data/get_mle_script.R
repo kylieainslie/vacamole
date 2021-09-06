@@ -9,15 +9,32 @@ library(lubridate)
 
 # Read in OSIRIS data ------------------------------
 source("inst/extdata/scripts/model_run_helper.R")
-source("~/vacamole/R/model_run_wrapper.R")
-# read in OSIRIS data
-osiris <- readRDS("inst/extdata/data/real_data/Osiris_Data_20210730_1043.rds")
+source("R/model_run_wrapper.R")
+source("R/likelihood_func.R")
 
-osiris1 <- osiris %>%
-  #filter(!is.na(date)) %>%
-  #complete(date = seq.Date(min(date), max(date), by="day"), fill = list(inc = 0)) %>%
+# read in OSIRIS data
+path <- "/rivm/r/COVID-19/Surveillance/Data/OSIRIS/Geschoond/"
+file <- list.files(path, pattern = ".rds") 
+osiris <- readRDS(paste0(path,file)) 
+
+osiris_tally <- osiris %>%
+  select(OSIRISNR, INFECTIEZIEKTE, ZIE1eZiekteDt, Land) %>%
+  filter(Land == "Nederland",
+         INFECTIEZIEKTE %in% c("NCOV", "Weak Positive", "Antitgen Pos. + Symptoms", "PCR Positief", "Antigen Positief")) %>%
+  select(-Land) %>%
+  rename(date = ZIE1eZiekteDt) %>%
+  group_by(date) %>%
+  summarise(inc = n()) %>%
+  filter(!is.na(date)) %>%
+  complete(date = seq.Date(min(date), max(date), by="day"), fill = list(inc = 0))
+
+#osiris_tally <- readRDS("inst/extdata/data/real_data/Osiris_Data_20210730_1043.rds")
+
+osiris1 <- osiris_tally %>%
   mutate(roll_avg = zoo::rollmean(inc, k = 7, fill = 0)) %>%
   filter(date < max(date)-2) # remove last 3 days due to reporting delay
+
+last_date_in_osiris <- tail(osiris1$date,1)
 
 # plot data
 p <- ggplot(osiris1, aes(x = date, y = inc)) +
@@ -92,44 +109,7 @@ params <- list(dt = 1,
                t_calendar_start = yday(as.Date("2020-01-01"))   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
 )
 
-# --------------------------------------------------
-# likelihood function
-likelihood_func <- function(x,
-                            contact_matrix,
-                            t,
-                            data,
-                            params,
-                            init,
-                            stochastic = FALSE) {
-  #params$beta <- x[1] # pars["beta"]
-  
-  # params$beta1 <- beta1 #pars["beta1"]
-  r0 <- x[1]
-  S_diag <- diag(init[c(2:10)])
-  rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
-  params$beta <- (r0 / rho) * params$gamma
-  
-  if (stochastic){
-    seir_out <- stochastic_age_struct_seir_ode(times = t,init = init, params = params)
-    out <- apply(seir_out, 3, rowSums)
-    daily_cases <- params$sigma * (out[,"E"] + out[,"Ev_1d"] + out[,"Ev_2d"]) * params$p_report
-    daily_cases <- ifelse(daily_cases == 0, 0.0001, daily_cases) # prevent likelihood function function from being Inf
-  } else {
-    seir_out <- lsoda(init,t,age_struct_seir_ode,params) #
-    seir_out <- as.data.frame(seir_out)
-    out <- postprocess_age_struct_model_output(seir_out)
-    daily_cases <- (params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d)) * params$p_report
-    daily_cases <- ifelse(daily_cases == 0, 0.0001, daily_cases) # prevent likelihood function function from being Inf
-  }
-  
-  inc_obs <- data$inc
 
-  # lik <- sum(dpois(x = inc_obs,lambda = incidence,log=TRUE))
-  alpha <- x[2]
-  size <- daily_cases * (alpha/(1-alpha))
-  lik <- -sum(dnbinom(x = inc_obs, mu = daily_cases, size = size, log = TRUE))
-  lik
-}
 # ---------------------------------------------------
 # Determine MLE using optim
 
@@ -164,37 +144,37 @@ likelihood_func <- function(x,
 # Hessian Magic ------------------------------------
 # estres_exp <- optim(previous_estimates$par, minloglik_exp,
 #                     ts =  tvector, Ns = Nvector, obs = observeds, method = "BFGS", hessian = TRUE)
-parameter_draws <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
-betas <- data.frame(beta = (parameter_draws[,1] / rho) * params$gamma) %>%
-  mutate(index = 1:200)
+# parameter_draws <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
+# betas <- data.frame(beta = (parameter_draws[,1] / rho) * params$gamma) %>%
+#   mutate(index = 1:200)
 # --------------------------------------------------
 # run simulation over many parameter values
-function_wrapper <- function(x, contact_matrix, init, t){
-  params$beta <- x[1]
-  params$c_start <- contact_matrix[[x[2]]]
-  seir_out <- lsoda(init, t, age_struct_seir_ode, params) #
-  seir_out <- as.data.frame(seir_out)
-  out_mle <- postprocess_age_struct_model_output(seir_out)
-  daily_cases <- params$sigma * rowSums(out_mle$E + out_mle$Ev_1d + out_mle$Ev_2d) * params$p_report
-  return(daily_cases)
-}
-# run model for each combination of parameters
-out <- apply(betas, 1, function_wrapper, contact_matrix = baseline_2017, 
-             init = init, t = time_vec) # rows are time points, columns are different simulations
-# --------------------------------------------------
-
-# plot with confidence bounds
-bounds <- apply(out,1,function(x) quantile(x, c(0.025,0.975)))
-
-plot(osiris2$inc ~ time_vec, col = "red", pch = 16, 
-     xlab = "Time (days)",ylab = "Daily Cases"
-     #, ylim = c(0,700)
-     ) 
-lines(daily_cases_mle,col = "blue")
-lines(bounds[1,], col = "blue", lty = 2, lwd = 0.5)
-lines(bounds[2,], col = "blue", lty = 2, lwd = 0.5)
-legend("topright", c("Data","Model","95% credible intervals"),
-       col = c("red","blue","blue"), lty = c(0,1,2), pch = c(16,NA,NA))
+# function_wrapper <- function(x, contact_matrix, init, t){
+#   params$beta <- x[1]
+#   params$c_start <- contact_matrix[[x[2]]]
+#   seir_out <- lsoda(init, t, age_struct_seir_ode, params) #
+#   seir_out <- as.data.frame(seir_out)
+#   out_mle <- postprocess_age_struct_model_output(seir_out)
+#   daily_cases <- params$sigma * rowSums(out_mle$E + out_mle$Ev_1d + out_mle$Ev_2d) * params$p_report
+#   return(daily_cases)
+# }
+# # run model for each combination of parameters
+# out <- apply(betas, 1, function_wrapper, contact_matrix = baseline_2017, 
+#              init = init, t = time_vec) # rows are time points, columns are different simulations
+# # --------------------------------------------------
+# 
+# # plot with confidence bounds
+# bounds <- apply(out,1,function(x) quantile(x, c(0.025,0.975)))
+# 
+# plot(osiris2$inc ~ time_vec, col = "red", pch = 16, 
+#      xlab = "Time (days)",ylab = "Daily Cases"
+#      #, ylim = c(0,700)
+#      ) 
+# lines(daily_cases_mle,col = "blue")
+# lines(bounds[1,], col = "blue", lty = 2, lwd = 0.5)
+# lines(bounds[2,], col = "blue", lty = 2, lwd = 0.5)
+# legend("topright", c("Data","Model","95% credible intervals"),
+#        col = c("red","blue","blue"), lty = c(0,1,2), pch = c(16,NA,NA))
 
 # --------------------------------------------------
 # re-run mle for each set of time points
@@ -234,7 +214,7 @@ breakpoints <- list(
     as.Date("2021-06-26"),  # all restrictions relaxed, except masks on public transport, nightclubs reopen
     as.Date("2021-07-10"),  # catering industry reopens, test for entry with large events, nightclubs close
     as.Date("2021-07-19"),  # work from home advisory re-instated
-    as.Date("2021-07-27")   # last date in osiris
+    as.Date(last_date_in_osiris)   # last date in osiris
   ),  
   contact_matrix = list( baseline_2017, 
                          baseline_2017, 
