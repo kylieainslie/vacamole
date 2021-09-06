@@ -57,11 +57,12 @@ figsxa <- ggplot(data = basis_12plus_long,
   geom_line() +
   labs(y = "Vaccine Coverage", x = "Date") +
   ylim(0,1) +
-  scale_x_date(date_breaks = "2 months", date_labels = "%d %b %Y") +
+  scale_x_date(date_breaks = "3 months", date_labels = "%d %b %Y") +
   facet_grid(.~age_group) +
   theme(#legend.position = "none",
     panel.background = element_blank(),
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+    axis.text.x = element_blank(), #element_text(angle = 45, hjust = 1, size = 14),
+    axis.title.x = element_blank(),
     axis.text.y = element_text(size = 14),
     strip.text.x = element_text(size = 14),
     #legend.text = element_text(size = 14),
@@ -117,11 +118,12 @@ figsxb <- ggplot(data = basis_18plus_long,
   geom_line() +
   labs(y = "Vaccine Coverage", x = "Date") +
   ylim(0,1) +
-  scale_x_date(date_breaks = "2 months", date_labels = "%d %b %Y") +
-  facet_grid(.~age_group) +
+  scale_x_date(date_breaks = "3 months", date_labels = "%d %b") +
+  facet_wrap(~age_group, nrow = 1) +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+        #axis.title.x = element_blank(),
         axis.text.y = element_text(size = 14),
         strip.text.x = element_text(size = 14),
         legend.text = element_text(size = 14),
@@ -130,7 +132,8 @@ figsxb <- ggplot(data = basis_18plus_long,
 figsxb
 
 figsx_no_legend <- plot_grid(figsxa + theme(legend.position = "none"), 
-                             figsxb + theme(legend.position = "none"), 
+                             figsxb + theme(legend.position = "none"),
+                             rel_heights = c(0.75,1),
                              labels = "AUTO", nrow = 2)
 legend <- get_legend(
   figsxb + theme(legend.box.margin = margin(12, 0, 0, 0))
@@ -140,4 +143,4 @@ figsx <- plot_grid(figsx_no_legend, legend, rel_heights = c(3, .4), nrow = 2)
 figsx
 
 ggsave(filename = "inst/extdata/results/figure SX.jpg", plot = figsx,
-       units = "in", height = 6, width = 10, dpi = 300)
+       units = "in", height = 8, width = 12, dpi = 300)

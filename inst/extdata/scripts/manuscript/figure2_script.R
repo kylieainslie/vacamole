@@ -7,7 +7,9 @@
 library(dplyr)
 library(ggplot2)
 library(cowplot)
+library(tidyr)
 
+source("R/forward_sim_func_wrap.R")
 # read in simulation results --------------------------------
 file_date <- "2021-09-02"
 
@@ -171,7 +173,7 @@ fig2a <- ggplot(data = all_res %>%
                 aes(x = date, y = mle, fill = Immunity, linetype = Scenario)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = Immunity), alpha = 0.3) +
   geom_line() +
-  labs(y = "Value", x = "Date") +
+  labs(y = "Daily Cases", x = "Date") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
   theme(legend.position = "bottom",
@@ -181,8 +183,8 @@ fig2a <- ggplot(data = all_res %>%
         strip.text.x = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) +
-  facet_wrap(~outcome, scales = "free_y", nrow = 4)
+        axis.title=element_text(size=14,face="bold")) #+
+  #facet_wrap(~outcome, scales = "free_y", nrow = 4)
 fig2a
 
 # figure 2b - 12+ vs. 18+, no waning vs. waning, !10-19 
@@ -197,7 +199,7 @@ fig2b <- ggplot(data = all_res %>%
                     linetype = Scenario)) +
   geom_line() +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = Immunity), alpha = 0.3) +
-  labs(y = "Value", x = "Date") +
+  labs(y = "Daily Cases", x = "Date") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
   theme(legend.position = "bottom",
@@ -207,8 +209,8 @@ fig2b <- ggplot(data = all_res %>%
         strip.text.x = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) +
-  facet_wrap(~outcome, scales = "free_y", nrow = 4)
+        axis.title=element_text(size=14,face="bold")) #+
+  #facet_wrap(~outcome, scales = "free_y", nrow = 4)
 fig2b
 
 fig2_no_legend <- plot_grid(fig2a + theme(legend.position = "none"), 
@@ -220,6 +222,8 @@ legend2 <- get_legend(
 )
 
 fig2ab <- plot_grid(fig2_no_legend, legend2, rel_heights = c(3, .4), nrow = 2)
+ggsave(filename = "inst/extdata/results/figure 2 alt.jpg", plot = fig2ab,
+       units = "in", height = 10, width = 12, dpi = 300)
 
 # figure 2c - bar chart of cases by vac status ----------------
 totals <- all_res %>%
@@ -265,7 +269,78 @@ fig2 <- plot_grid(fig2ab, fig2c, labels = c("", "C"), rel_widths = c(1, 0.7), nc
 fig2
 
 ggsave(filename = "inst/extdata/results/figure 2.jpg", plot = fig2,
-       units = "in", height = 8, width = 12, dpi = 300)
+       units = "in", height = 10, width = 12, dpi = 300)
+
+# table 2 -----------------------------------------------------
+table2_10_19_wane <- all_res_for_plot_wane %>%
+  filter(age_group == 2,
+         outcome != "Daily Deaths") %>%
+  group_by(Scenario, R0, outcome) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+
+table2_not_10_19_wane <- all_res_for_plot_wane %>%
+  filter(age_group != 2,
+         outcome != "Daily Deaths") %>%
+  group_by(Scenario, R0, outcome) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+
+# calculate percent difference_wane
+# 10-19
+table2_10_19_12plus_wane <- table2_10_19_wane %>% filter(Scenario == "12+")
+table2_10_19_18plus_wane <- table2_10_19_wane %>% filter(Scenario == "18+")
+(table2_10_19_12plus_wane[,4:6] * 100)/table2_10_19_18plus_wane[,4:6] - 100
+
+# not 10-19
+table2_not_10_19_12plus_wane <- table2_not_10_19_wane %>% filter(Scenario == "12+")
+table2_not_10_19_18plus_wane <- table2_not_10_19_wane %>% filter(Scenario == "18+")
+(table2_not_10_19_12plus_wane[,4:6] * 100)/table2_not_10_19_18plus_wane[,4:6] - 100
+
+# Keep? -------------------------------------------------------
+# figure 2c - bar chart of cases by vac status ----------------
+totals <- all_res %>%
+  filter(outcome == "Hospital Admissions",
+         R0 == "4.6") %>%
+  group_by(Scenario, R0, Immunity) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+
+data_for_bar_plot <- all_res %>%
+  filter(outcome == "Hospital Admissions",
+         R0 == "4.6") %>%
+  group_by(Scenario, R0, Immunity, vac_status) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum") %>%
+  left_join(., totals, by = c("Scenario", "R0", "Immunity")) %>%
+  mutate(mle_prop = mle.x/mle.y,
+         lower_prop = lower.x/lower.y,
+         upper_prop = upper.x/upper.y,
+         vac_status = factor(case_when(
+           vac_status == "unvac" ~ "Unvaccinated",
+           vac_status == "partvac" ~ "Partially Vaccinated",
+           vac_status == "fullvac" ~ "Fully Vaccinated"
+         ), levels = c("Unvaccinated", "Partially Vaccinated", "Fully Vaccinated")))
+
+figs3c <- ggplot(data = data_for_bar_plot, 
+                aes(x=vac_status, y=mle_prop, fill=Immunity)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  geom_errorbar(aes(ymin=lower_prop, ymax=upper_prop), width=.2,
+                position=position_dodge(.9)) +
+  ylim(0,1) +
+  labs(y = "Proportion of Hospital Admissions", x = "Vaccination Status") +
+  facet_wrap(~Scenario, nrow = 2) +
+  theme(legend.position = "bottom",
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+        axis.text.y = element_text(size = 14),
+        strip.text.x = element_text(size = 14),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 14),
+        axis.title=element_text(size=14,face="bold"))
+figs3c
+
+figs3 <- plot_grid(figs3ab, figs3c, labels = c("", "C"), rel_widths = c(1, 0.7), ncol = 2)
+figs3
+
+ggsave(filename = "inst/extdata/results/figure S3.jpg", plot = figs3,
+       units = "in", height = 10, width = 12, dpi = 300)
 
 
 
