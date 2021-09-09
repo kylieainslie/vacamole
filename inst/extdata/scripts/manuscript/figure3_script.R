@@ -1,7 +1,7 @@
 # -------------------------------------
 # plot of outcomes by age group
 # -------------------------------------
-
+# need to run figure1_script.R and figure2_script.R first
 # -------------------------------------------------------------
 # a) no waning
 fig3a <- ggplot(data = all_res %>%
@@ -26,6 +26,8 @@ fig3a <- ggplot(data = all_res %>%
   facet_wrap(~outcome, scales = "free_y", nrow = 3)
 fig3a
 
+ggsave(filename = "inst/extdata/results/figure 3a.jpg", plot = fig3a,
+       units = "in", height = 8, width = 8, dpi = 300)
 # -------------------------------------------------------------
 # b) waning
 fig3b <- ggplot(data = all_res %>%
