@@ -327,15 +327,19 @@ for (j in 1:n_bp) {
   beta_draws[[j]] <- data.frame(beta = (parameter_draws[[j]][,1] / rho) * params$gamma) %>%
      mutate(index = 1:200)
   # --------------------------------------------------
+  # run for mle to get initial conditions for next timepoint
+  seir_out <- lsoda(init_update, times, age_struct_seir_ode, params)
+  seir_out <- as.data.frame(seir_out)
+  out_mle[[j]] <- postprocess_age_struct_model_output(seir_out)
 
 } # end of for loop over breakpoints
 
+todays_date <- Sys.Date()
 # save outputs
 saveRDS(mles, file = paste0(path, "mles_from_fits_", todays_date, ".rds"))
 saveRDS(beta_draws, file = paste0(path, "beta_draws_from_fits_", todays_date, ".rds"))
-# name list elements for easier indexing
-# names(out_mle) <- paste0("end_date_", breakpoints$date)
-# names(daily_cases_mle) <- paste0("end_date_", breakpoints$date)
+names(out_mle) <- paste0("end_date_", breakpoints$date) # name list elements for easier indexing
+saveRDS(out_mles, file = paste0(path, "output_from_fits_", todays_date, ".rds"))
 
 # ----------------------------------------------------
 # run simulations for mle, lower, and upper bounds 
