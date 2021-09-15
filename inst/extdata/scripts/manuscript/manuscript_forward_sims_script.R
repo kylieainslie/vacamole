@@ -15,8 +15,15 @@ basis_12plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt2021070
 basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
   select(-starts_with("X"))
 
+# sensitivity analysis vac schedules -------------------------------
+basis_12plus_oct <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA October.csv") %>%
+  select(-starts_with("X"))
+
+basis_12plus_nov <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA November.csv") %>%
+  select(-starts_with("X"))
+
 # model wrapper function inputs ------------------------------------
-date_of_fit <- "2021-08-25"
+date_of_fit <- "2021-09-08"
 
 output_from_model_fit <- readRDS(paste0("inst/extdata/results/model_fits/output_from_fits_", date_of_fit, ".rds"))
 init_cond_22june2021 <- unlist(lapply(unname(output_from_model_fit$`end_date_2021-06-22`), tail,1))
@@ -49,7 +56,7 @@ todays_date <- Sys.Date()
 # parallel::stopCluster(cl)
 # no waning ---------------------------------------------------------
 basis_12plus1 <- convert_vac_schedule(
-  vac_schedule = basis_12plus,
+  vac_schedule = basis_12plus_oct,
   ve = ve,
   hosp_multiplier = h_multiplier,
   delay = delays,
