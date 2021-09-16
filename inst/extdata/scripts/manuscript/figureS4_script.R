@@ -25,7 +25,7 @@ lower_res_12plus_nov <- readRDS(paste0("inst/extdata/results/results_12plus_nov_
 upper_res_12plus_nov <- readRDS(paste0("inst/extdata/results/results_12plus_nov_upper_beta_", file_date, ".rds"))
 
 # 18+
-file_date2 <- "2021-09-02"
+file_date2 <- "2021-09-16"
 mle_res_12plus_jun <- readRDS(paste0("inst/extdata/results/results_12plus_mle_beta_", file_date2, ".rds"))
 lower_res_12plus_jun <- readRDS(paste0("inst/extdata/results/results_12plus_lower_beta_", file_date2, ".rds"))
 upper_res_12plus_jun <- readRDS(paste0("inst/extdata/results/results_12plus_upper_beta_", file_date2, ".rds"))
@@ -36,7 +36,7 @@ lower_res_18plus <- readRDS(paste0("inst/extdata/results/results_18plus_lower_be
 upper_res_18plus <- readRDS(paste0("inst/extdata/results/results_18plus_upper_beta_", file_date2, ".rds"))
 
 # wrangle raw results ----------------------------------------
-# 12 + - October
+# 12 + - June
 mle_12plus_jun_all <- wrangle_results(mle_res_12plus_jun)
 lower_12plus_jun_all <- wrangle_results(lower_res_12plus_jun)
 upper_12plus_jun_all <- wrangle_results(upper_res_12plus_jun)
