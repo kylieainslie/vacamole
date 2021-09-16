@@ -10,7 +10,8 @@
 #' @keywords vacamole
 #' @export
 
-choose_contact_matrix <- function(params, 
+choose_contact_matrix <- function(times,
+                                  params, 
                                   criteria, 
                                   flag_relaxed, 
                                   flag_very_relaxed, 
@@ -26,6 +27,7 @@ choose_contact_matrix <- function(params,
   c_relaxed <- params$c_relaxed
   c_very_relaxed <- params$c_very_relaxed
   c_normal <- params$c_normal
+  t_normal <- params$t_normal
   
   if(keep_fixed){
      contact_matrix <- c_start
@@ -39,7 +41,16 @@ choose_contact_matrix <- function(params,
       }
       if(criteria <= thresh_m){flag_relaxed <- flag_relaxed + 1}
       if(criteria <= thresh_l){flag_very_relaxed <- flag_very_relaxed + 1}
-      if(criteria <= thresh_n){flag_normal <- flag_normal + 1 }
+      if(criteria <= thresh_n){
+        if(is.null(t_normal)){
+          flag_normal <- flag_normal + 1
+        } else if (times < t_normal) {
+          flag_normal <- 0
+        } else{
+          flag_normal <- flag_normal + 1
+        }
+         
+      }
     # for contact matrix
       if (flag_relaxed > 0 & flag_very_relaxed == 0) {contact_matrix <- c_relaxed
       } else if (flag_very_relaxed > 0 & flag_normal == 0) { contact_matrix <- c_very_relaxed
@@ -47,15 +58,6 @@ choose_contact_matrix <- function(params,
       } else {contact_matrix <- c_start}
   } 
   
-  # cat("flag_relaxed: ", flag_relaxed, "\n")
-  # cat("flag_very_relaxed: ", flag_very_relaxed, "\n")
-  # cat("flag_normal: ", flag_normal, "\n")
-  # if(identical(contact_matrix, c_lockdown)){ cat("criteria: ", criteria, "contact matrix: c_lockdown", "\n")
-  # } else if(identical(contact_matrix, c_relaxed)){cat("criteria: ", criteria, "contact matrix: c_relaxed", "\n")
-  # } else if (identical(contact_matrix, c_very_relaxed)){ cat("criteria: ", criteria, "contact matrix: c_very_relaxed", "\n")
-  # } else if (identical(contact_matrix, c_normal)){cat("criteria: ", criteria, "contact matrix: c_normal", "\n")
-  # } else {cat("criteria: ", criteria, "contact matrix: c_start", "\n")}
-
   rtn <- list(contact_matrix = contact_matrix,
               flag_relaxed = flag_relaxed,
               flag_very_relaxed = flag_very_relaxed,

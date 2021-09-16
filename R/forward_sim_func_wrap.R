@@ -41,6 +41,7 @@ forward_sim_func_wrap <- function(start_date,
                                   vac_inputs,
                                   beta_c,
                                   beta_d,
+                                  t_normal,
                                   contact_matrices,
                                   tag){
   
@@ -83,7 +84,8 @@ forward_sim_func_wrap <- function(start_date,
                  thresh_u = 100000/100000 * sum(n_vec),        #35.7  # 20 for IC admissions
                  no_vac = FALSE,
                  t_calendar_start = yday(as.Date("2020-01-01")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
-                 beta_change =  beta_c 
+                 beta_change =  beta_c,
+                 t_normal = t_normal
   )
 
 

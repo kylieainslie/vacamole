@@ -77,7 +77,8 @@ age_struct_seir_ode <- function(times,init,params){
     }
     
     # determine contact matrix to use based on criteria
-    tmp2 <- choose_contact_matrix(params = params, 
+    tmp2 <- choose_contact_matrix(times = t,
+                                  params = params, 
                                   criteria = criteria, 
                                   flag_relaxed = flag_relaxed, 
                                   flag_very_relaxed = flag_very_relaxed, 
