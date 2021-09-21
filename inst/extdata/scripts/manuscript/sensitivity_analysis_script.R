@@ -7,7 +7,8 @@
 # inst/extdata/scripts/model_run_helper.R
 source("inst/extdata/scripts/helpers/model_run_helper.R")
 source("R/forward_sim_func_wrap.R")
-#library(foreach)
+
+
 # read in vac schedules --------------------------------------------
 basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
   select(-starts_with("X"))
@@ -51,6 +52,7 @@ todays_date <- Sys.Date()
 # cl <- parallel::makeCluster(6)
 # doParallel::registerDoParallel(cl)
 # parallel::stopCluster(cl)
+
 # no waning ---------------------------------------------------------
 basis_12plus1 <- convert_vac_schedule(
   vac_schedule = basis_12plus_nov,
