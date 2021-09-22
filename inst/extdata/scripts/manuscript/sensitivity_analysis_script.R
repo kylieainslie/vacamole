@@ -90,7 +90,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_d = beta_draws[[index]][,1],
                       t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
-                      tag = paste0("results_12plus_mle_beta_",todays_date)
+                      tag = paste0("results_12plus_nov_mle_beta_",todays_date)
                       )
 
 # 12+ lower
@@ -103,7 +103,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_d = beta_draws[[index]][,1],
                       t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
-                      tag = paste0("results_12plus_lower_beta_",todays_date)
+                      tag = paste0("results_12plus_nov_lower_beta_",todays_date)
 )
 
 # 12+ upper
@@ -116,7 +116,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_d = beta_draws[[index]][,1],
                       t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
-                      tag = paste0("results_12plus_upper_beta_",todays_date)
+                      tag = paste0("results_12plus_nov_upper_beta_",todays_date)
 )
 
 # 18+ mle
@@ -129,7 +129,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_d = beta_draws[[index]][,1],
                       t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
-                      tag = paste0("results_18plus_mle_beta_",todays_date)
+                      tag = paste0("results_18plus_nov_mle_beta_",todays_date)
 )
 # 18+ lower
 forward_sim_func_wrap(start_date = "2021-06-22",
@@ -141,7 +141,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_d = beta_draws[[index]][,1],
                       t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
-                      tag = paste0("results_18plus_lower_beta_",todays_date)
+                      tag = paste0("results_18plus_nov_lower_beta_",todays_date)
 )
 
 # 18+ upper
@@ -154,6 +154,6 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_d = beta_draws[[index]][,1],
                       t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
-                      tag = paste0("results_18plus_upper_beta_",todays_date)
+                      tag = paste0("results_18plus_nov_upper_beta_",todays_date)
 )
 
