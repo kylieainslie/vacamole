@@ -13,6 +13,9 @@ source("R/forward_sim_func_wrap.R")
 basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
   select(-starts_with("X"))
 
+basis_12plus_jun <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
+  select(-starts_with("X"))
+
 # sensitivity analysis vac schedules -------------------------------
 basis_12plus_oct <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA October.csv") %>%
   select(-starts_with("X"))
@@ -55,7 +58,7 @@ todays_date <- Sys.Date()
 
 # no waning ---------------------------------------------------------
 basis_12plus1 <- convert_vac_schedule(
-  vac_schedule = basis_12plus_nov,
+  vac_schedule = basis_12plus_jun,
   ve = ve,
   hosp_multiplier = h_multiplier,
   delay = delays,
@@ -90,7 +93,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_d = beta_draws[[index]][,1],
                       t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
-                      tag = paste0("results_12plus_nov_mle_beta_",todays_date)
+                      tag = paste0("results_12plus_jun_mle_beta_",todays_date)
                       )
 
 # 12+ lower
@@ -103,7 +106,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_d = beta_draws[[index]][,1],
                       t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
-                      tag = paste0("results_12plus_nov_lower_beta_",todays_date)
+                      tag = paste0("results_12plus_jun_lower_beta_",todays_date)
 )
 
 # 12+ upper
@@ -116,7 +119,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_d = beta_draws[[index]][,1],
                       t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
-                      tag = paste0("results_12plus_nov_upper_beta_",todays_date)
+                      tag = paste0("results_12plus_jun_upper_beta_",todays_date)
 )
 
 # 18+ mle

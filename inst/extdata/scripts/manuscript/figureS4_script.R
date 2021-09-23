@@ -9,31 +9,35 @@ library(tidyr)
 library(dplyr)
 library(ggplot2)
 library(cowplot)
-# -----------------------------------------------------------
+# source files ----------------------------------------------
 source("R/forward_sim_func_wrap.R")
+
+# set working directory -------------------------------------
+setwd("inst/extdata/results/sensitivity_analysis/")
+
 # read in simulation results --------------------------------
-file_date <- "2021-09-15"
+file_date <- "2021-09-16"
 
 # 12+ - October
-mle_res_12plus_oct <- readRDS(paste0("inst/extdata/results/results_12plus_oct_mle_beta_", file_date, ".rds"))
-lower_res_12plus_oct <- readRDS(paste0("inst/extdata/results/results_12plus_oct_lower_beta_", file_date, ".rds"))
-upper_res_12plus_oct <- readRDS(paste0("inst/extdata/results/results_12plus_oct_upper_beta_", file_date, ".rds"))
+mle_res_12plus_oct <- readRDS(paste0("results_12plus_oct_mle_beta_", file_date, ".rds"))
+lower_res_12plus_oct <- readRDS(paste0("results_12plus_oct_lower_beta_", file_date, ".rds"))
+upper_res_12plus_oct <- readRDS(paste0("results_12plus_oct_upper_beta_", file_date, ".rds"))
 
 # 12+ - November
-mle_res_12plus_nov <- readRDS(paste0("inst/extdata/results/results_12plus_nov_mle_beta_", file_date, ".rds"))
-lower_res_12plus_nov <- readRDS(paste0("inst/extdata/results/results_12plus_nov_lower_beta_", file_date, ".rds"))
-upper_res_12plus_nov <- readRDS(paste0("inst/extdata/results/results_12plus_nov_upper_beta_", file_date, ".rds"))
+mle_res_12plus_nov <- readRDS(paste0("results_12plus_nov_mle_beta_", file_date, ".rds"))
+lower_res_12plus_nov <- readRDS(paste0("results_12plus_nov_lower_beta_", file_date, ".rds"))
+upper_res_12plus_nov <- readRDS(paste0("results_12plus_nov_upper_beta_", file_date, ".rds"))
 
 # 18+
-file_date2 <- "2021-09-16"
-mle_res_12plus_jun <- readRDS(paste0("inst/extdata/results/results_12plus_mle_beta_", file_date2, ".rds"))
-lower_res_12plus_jun <- readRDS(paste0("inst/extdata/results/results_12plus_lower_beta_", file_date2, ".rds"))
-upper_res_12plus_jun <- readRDS(paste0("inst/extdata/results/results_12plus_upper_beta_", file_date2, ".rds"))
+file_date2 <- "2021-09-22"
+mle_res_12plus_jun <- readRDS(paste0("results_12plus_mle_beta_", file_date2, ".rds"))
+lower_res_12plus_jun <- readRDS(paste0("results_12plus_lower_beta_", file_date2, ".rds"))
+upper_res_12plus_jun <- readRDS(paste0("results_12plus_upper_beta_", file_date2, ".rds"))
 
 
-mle_res_18plus <- readRDS(paste0("inst/extdata/results/results_18plus_mle_beta_", file_date2, ".rds"))
-lower_res_18plus <- readRDS(paste0("inst/extdata/results/results_18plus_lower_beta_", file_date2, ".rds"))
-upper_res_18plus <- readRDS(paste0("inst/extdata/results/results_18plus_upper_beta_", file_date2, ".rds"))
+mle_res_18plus <- readRDS(paste0("results_18plus_nov_mle_beta_", file_date, ".rds"))
+lower_res_18plus <- readRDS(paste0("results_18plus_nov_lower_beta_", file_date, ".rds"))
+upper_res_18plus <- readRDS(paste0("results_18plus_nov_upper_beta_", file_date, ".rds"))
 
 # wrangle raw results ----------------------------------------
 # 12 + - June
