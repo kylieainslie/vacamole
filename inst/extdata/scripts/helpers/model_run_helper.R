@@ -10,7 +10,6 @@ library(tidyr)
 library(readxl)
 library(rARPACK)
 library(readr)
-#library(lazymcmc)
 library(lubridate)
 
 # Source functions -------------------------------------------------
@@ -60,12 +59,12 @@ n <- 17407585 # Dutch population size
 n_vec <- n * age_dist
 
 # contact matrices --------------------------------------------------
-baseline_2017 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_baseline_2017.rds")
-april_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_april_2020.rds")
-june_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2020.rds")
+baseline_2017  <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_baseline_2017.rds")
+april_2020     <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_april_2020.rds")
+june_2020      <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2020.rds")
 september_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_september_2020.rds")
-february_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_february_2021.rds")
-june_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2021.rds")
+february_2021  <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_february_2021.rds")
+june_2021      <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2021.rds")
 
 # parameter inputs -------------------------------------------------
 s <- 0.5
