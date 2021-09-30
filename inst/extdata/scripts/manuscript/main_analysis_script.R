@@ -33,9 +33,9 @@ cm <- list(baseline_2017 = baseline_2017,
            june_2021 = june_2021
            )
 
-beta_delta_mle <- 0.0003934816 * 2 # R0 = 4.6
-beta_delta_lower <- 0.0005902224   # R0 = 3.45
-beta_delta_upper <- 0.0009837041   # R0 = 5.75
+betas_for_delta_period <- rnorm(n = 200, mean = 0.0003934816 * 2, sd = sqrt(2*(0.0003934816 * 2))) # R0 = 4.6
+betas_for_alpha_period <- rnorm(n = 300, mean = 0.0005902224, sd = sqrt(0.0005902224 * 2))   # R0 = 3.45
+betas_upper <- rnorm(n = 200, mean = 0.0009837041, sd = sqrt(0.0009837041 * 2))   # R0 = 5.75
   #0.001539711    # R0 = 9
 
 # -------------------------------------------------------------------
