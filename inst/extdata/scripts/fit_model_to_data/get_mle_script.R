@@ -15,6 +15,11 @@ source("R/likelihood_func.R")
 # read in OSIRIS data
 path <- "/rivm/r/COVID-19/Surveillance/Data/OSIRIS/Geschoond/"
 file <- list.files(path, pattern = ".rds") 
+if (identical(file, character(0))) {
+  path <- paste0(path,"Previous/")
+  file <- list.files(path, pattern = ".rds") %>%
+    max()
+}
 osiris <- readRDS(paste0(path,file)) 
 
 osiris_tally <- osiris %>%
@@ -116,40 +121,39 @@ params <- list(dt = 1,
 
 breakpoints <- list( 
   date = c( 
-    as.Date("2020-03-16"),  # closure of hospitality, schools, daycares
-    as.Date("2020-03-24"),  # casinos subject to same measures as food/beverage outlets
-    as.Date("2020-04-29"),  # Children and young people can participate in outdoor activities
-    as.Date("2020-05-11"),  # reopening of primary schools and daycare @ 50% capacity
-    as.Date("2020-06-01"),  # cafes/restaurants reopen with max 30 visitor,
+    as.Date("2020-03-16"),  # 1) closure of hospitality, schools, daycares
+    as.Date("2020-03-24"),  # 2) casinos subject to same measures as food/beverage outlets
+    as.Date("2020-04-29"),  # 3) Children and young people can participate in outdoor activities
+    as.Date("2020-05-11"),  # 4) reopening of primary schools and daycare @ 50% capacity
+    as.Date("2020-06-01"),  # 5) cafes/restaurants reopen with max 30 visitor,
                             # primary schools and daycares open at 100% 
-    as.Date("2020-07-01"),  # secondary schools reopen @ 100% capacity
-    as.Date("2020-08-06"),  # Small groups allowed at universities
-    as.Date("2020-08-18"),  # maximum 6 people in household
-    as.Date("2020-09-20"),  # groups <= 50 people, some hospitality closes at midnight or 1 AM 
-    as.Date("2020-09-29"),  # max 3 visitors at home, max group size 30, face masks in public areas
-    as.Date("2020-10-14"),  # cafes/restaurants close, no team sports, 3 visitors at home per day
-    as.Date("2020-10-23"),  # hotels can't sell alcohol after 20:00
-    as.Date("2020-11-04"),  # 2 visitors per day, groups <= 20
-    as.Date("2020-11-19"),  # 3 visitors per day, groups <= 30
-    as.Date("2020-12-01"),  # masks mandatory in all public and indoor areas
-    as.Date("2020-12-15"),  # non-essential shops close
-    as.Date("2021-01-01"),  # end of year
-    as.Date("2021-01-20"),  # 1 visitor per day/curfew (23/01/2021)
-    as.Date("2021-02-08"),  # Primary schools, child care, special ed reopen
-    #as.Date("2021-02-15"),  # Alpha becomes dominant variant
-    as.Date("2021-03-01"),  # secondary schools partially reopen, contact professions reopen (3/3/2021)
-    as.Date("2021-03-16"),  # some retail reopens
-    as.Date("2021-03-31"),  # curfew to start at 22:00 instead of 21:00
-    as.Date("2021-04-19"),  # out of school care fully reopens
-    as.Date("2021-04-28"),  # curfew canceled
-    as.Date("2021-05-19"),  # <27 can play outdoor sports, groups <= 30, non-essential travel allowed within NL 
-    as.Date("2021-06-05"),  # 4 visitors per day, museums reopen, group <= 50, restaurants reopen
-    as.Date("2021-06-22"),  # vaccination of 12-17 year olds starts, Delta becomes dominant strain
-    as.Date("2021-06-26"),  # all restrictions relaxed, except masks on public transport, nightclubs reopen
-    as.Date("2021-07-10"),  # catering industry reopens, test for entry with large events, nightclubs close
-    as.Date("2021-07-19"),  # work from home advisory re-instated
-    as.Date("2021-08-01"),  # 
-    as.Date(last_date_in_osiris)   # last date in osiris
+    as.Date("2020-07-01"),  # 6) secondary schools reopen @ 100% capacity
+    as.Date("2020-08-06"),  # 7) Small groups allowed at universities
+    as.Date("2020-08-18"),  # 8) maximum 6 people in household
+    as.Date("2020-09-20"),  # 9) groups <= 50 people, some hospitality closes at midnight or 1 AM 
+    as.Date("2020-09-29"),  # 10) max 3 visitors at home, max group size 30, face masks in public areas
+    as.Date("2020-10-14"),  # 11) cafes/restaurants close, no team sports, 3 visitors at home per day
+    as.Date("2020-10-23"),  # 12) hotels can't sell alcohol after 20:00
+    as.Date("2020-11-04"),  # 13) 2 visitors per day, groups <= 20
+    as.Date("2020-11-19"),  # 14) 3 visitors per day, groups <= 30
+    as.Date("2020-12-01"),  # 15) masks mandatory in all public and indoor areas
+    as.Date("2020-12-15"),  # 16) non-essential shops close
+    as.Date("2021-01-01"),  # 17) end of year
+    as.Date("2021-01-20"),  # 18) 1 visitor per day/curfew (23/01/2021)
+    as.Date("2021-02-08"),  # 19) Primary schools, child care, special ed reopen
+    as.Date("2021-03-01"),  # 20) secondary schools partially reopen, contact professions reopen (3/3/2021)
+    as.Date("2021-03-16"),  # 21) some retail reopens
+    as.Date("2021-03-31"),  # 22) curfew to start at 22:00 instead of 21:00
+    as.Date("2021-04-19"),  # 23) out of school care fully reopens
+    as.Date("2021-04-28"),  # 24) curfew canceled
+    as.Date("2021-05-19"),  # 25) <27 can play outdoor sports, groups <= 30, non-essential travel allowed within NL 
+    as.Date("2021-06-05"),  # 26) 4 visitors per day, museums reopen, group <= 50, restaurants reopen
+    as.Date("2021-06-22"),  # 27) vaccination of 12-17 year olds starts, Delta becomes dominant strain
+    as.Date("2021-06-26"),  # 28) all restrictions relaxed, except masks on public transport, nightclubs reopen
+    as.Date("2021-07-10"),  # 29) catering industry reopens, test for entry with large events, nightclubs close
+    as.Date("2021-07-19"),  # 30) work from home advisory re-instated
+    as.Date("2021-08-01"),  # 31)
+    as.Date(last_date_in_osiris)   # 32) last date in osiris
   ),  
   contact_matrix = list( baseline_2017, 
                          baseline_2017, 
@@ -170,7 +174,6 @@ breakpoints <- list(
                          september_2020,
                          september_2020,
                          february_2021,
-                         #february_2021,
                          february_2021,
                          february_2021,
                          february_2021,
