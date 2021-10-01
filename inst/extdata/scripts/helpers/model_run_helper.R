@@ -136,17 +136,16 @@ ve_trans <- list(
 
 ve_hosp <- list(
   # alpha = list(
-  pfizer = c(0.94, 0.96),      # Stowe et al. (pre-print) (against Delta)
-                               # https://media.tghn.org/articles/Effectiveness_of_COVID-19_vaccines_against_hospital_admission_with_the_Delta_B._G6gnnqJ.pdf
-  moderna = c(0.94, 0.96),     # assumed same as pfizer 
-  astrazeneca = c(0.71, 0.92), # Stowe et al. (pre-print) (against Delta)
+  pfizer = c(0.81, 0.95),      # Dutch data
+  moderna = c(0.81, 0.95),     # assumed same as pfizer because Dutch estimates were weird
+  astrazeneca = c(0.83, 0.95), # Dutch data
   jansen = c(0.85)             # from RIVM website: https://www.rivm.nl/en/covid-19-vaccination/vaccines/efficacy-and-protection
   #)
   #delta = list(
-  pfizer = c(0.89, 0.96),      # from Brechje (pre-print)
-  moderna = c(0.95, 0.85),     # from Brechje (pre-print)
-  astrazeneca = c(0.88, 0.94), # from Brechje (pre-print)
-  jansen = c(0.92)             # from Brechje (pre-print)
+  # pfizer = c(0.89, 0.96),      # from Brechje (pre-print)
+  # moderna = c(0.95, 0.85),     # from Brechje (pre-print)
+  # astrazeneca = c(0.88, 0.94), # from Brechje (pre-print)
+  # jansen = c(0.92)             # from Brechje (pre-print)
   #)
 )
 
