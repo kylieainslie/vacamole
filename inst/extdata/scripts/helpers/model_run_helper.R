@@ -104,10 +104,10 @@ ve <- list(
     jansen = c(0.767) # from Corchado-Garcia et al. 2021 medRxiv (need to check if this is against alpha!)
   #),
   # delta = list(
-  #   pfizer = c(0.58, 0.82), # from Pouwels et al. 2021
-  #   moderna = c(0.75, 0.82), # no data for moderna second dose, assuming same as pfizer
-  #   astrazeneca = c(0.43, 0.67), 
-  #   jansen = c(0.27) # from Dutch data, check exact value with Brechje
+  #   pfizer = c(0.57, 0.69), # from 
+  #   moderna = c(0.66, 0.82), # from 
+  #   astrazeneca = c(0.41, 0.54), # from 
+  #   jansen = c(0.5) # from 
   # )
 )
 
@@ -119,19 +119,35 @@ delays <- list(
 )
 
 ve_trans <- list(
-  pfizer = c(0.26, 0.58), # de Gier et al. # 0.3, 0.54 from Shah et al. 2021
-  moderna = c(0.51, 0.70), # de Gier et al.
-  astrazeneca = c(0.15, 0.88), # de Gier et al.
+  # alpha = list(
+  pfizer = c(0.26, 0.70), # de Gier et al. # 0.3, 0.54 from Shah et al. 2021
+  moderna = c(0.51, 0.88), # de Gier et al.
+  astrazeneca = c(0.15, 0.58), # de Gier et al.
   jansen = c(0.77) # de Gier et al.
+  # ),
+  # delta = list(
+  # pfizer = c(0.46, 0.52), # de Gier et al (updated)
+  # moderna = c(0.66, 0.24), # de Gier et al. (updated)
+  # astrazeneca = c(0, 0.25), # de Gier et al. (updated)
+  # jansen = c(0.42) # de Gier et al. (updated)
+  # )
 ) # no available data
 
 ve_hosp <- list(
-  pfizer = c(0.94, 0.96),      # Stowe et al. (pre-print) (against Delta)
-                               # https://media.tghn.org/articles/Effectiveness_of_COVID-19_vaccines_against_hospital_admission_with_the_Delta_B._G6gnnqJ.pdf
-  moderna = c(0.94, 0.96),     # assumed same as pfizer 
-  astrazeneca = c(0.71, 0.92), # Stowe et al. (pre-print) (against Delta)
+  # alpha = list(
+  pfizer = c(0.81, 0.95),      # Dutch data
+  moderna = c(0.81, 0.95),     # assumed same as pfizer because Dutch estimates were weird
+  astrazeneca = c(0.83, 0.95), # Dutch data
   jansen = c(0.85)             # from RIVM website: https://www.rivm.nl/en/covid-19-vaccination/vaccines/efficacy-and-protection
+  #)
+  #delta = list(
+  # pfizer = c(0.89, 0.96),      # from Brechje (pre-print)
+  # moderna = c(0.95, 0.85),     # from Brechje (pre-print)
+  # astrazeneca = c(0.88, 0.94), # from Brechje (pre-print)
+  # jansen = c(0.92)             # from Brechje (pre-print)
+  #)
 )
+
 
 # hospitalisations multiplier
 # calculated as (1-ve_hosp)/(1-ve)

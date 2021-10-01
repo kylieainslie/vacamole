@@ -8,7 +8,7 @@ library(tidyverse)
 library(lubridate)
 
 # Read in OSIRIS data ------------------------------
-source("inst/extdata/scripts/model_run_helper.R")
+source("inst/extdata/scripts/helpers/model_run_helper.R")
 source("R/model_run_wrapper.R")
 source("R/likelihood_func.R")
 
@@ -110,74 +110,8 @@ params <- list(dt = 1,
 )
 
 
-# ---------------------------------------------------
-# Determine MLE using optim
-
-# res <- optim(par = c(2.3, 0.01), 
-#              fn = likelihood_func,
-#              method = "L-BFGS-B",
-#              lower = c(1,0.001),
-#              upper = c(10,1),
-#              t = time_vec,
-#              data = osiris2,
-#              params = params,
-#              init = init,
-#              stochastic = FALSE,
-#              hessian = TRUE
-#              )
-# 
-# res$par
-
-# plot to check fit --------------------------------
-# S_diag <- diag(init[c(2:10)])
-# rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
-# params$beta <- (res$par[1] / rho) * params$gamma
-# #params$beta <- res$par[1]
-# seir_out <- lsoda(init, time_vec, age_struct_seir_ode, params) #
-# seir_out <- as.data.frame(seir_out)
-# out_mle <- postprocess_age_struct_model_output(seir_out)
-# daily_cases_mle <- params$sigma * rowSums(out_mle$E + out_mle$Ev_1d + out_mle$Ev_2d) * params$p_report
-# 
-# plot(daily_cases_mle ~ time_vec, type = "l") # ylim = c(0, 8000)
-# points(osiris2$inc ~ time_vec, col = "red", pch = 16)
-
-# Hessian Magic ------------------------------------
-# estres_exp <- optim(previous_estimates$par, minloglik_exp,
-#                     ts =  tvector, Ns = Nvector, obs = observeds, method = "BFGS", hessian = TRUE)
-# parameter_draws <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
-# betas <- data.frame(beta = (parameter_draws[,1] / rho) * params$gamma) %>%
-#   mutate(index = 1:200)
 # --------------------------------------------------
-# run simulation over many parameter values
-# function_wrapper <- function(x, contact_matrix, init, t){
-#   params$beta <- x[1]
-#   params$c_start <- contact_matrix[[x[2]]]
-#   seir_out <- lsoda(init, t, age_struct_seir_ode, params) #
-#   seir_out <- as.data.frame(seir_out)
-#   out_mle <- postprocess_age_struct_model_output(seir_out)
-#   daily_cases <- params$sigma * rowSums(out_mle$E + out_mle$Ev_1d + out_mle$Ev_2d) * params$p_report
-#   return(daily_cases)
-# }
-# # run model for each combination of parameters
-# out <- apply(betas, 1, function_wrapper, contact_matrix = baseline_2017, 
-#              init = init, t = time_vec) # rows are time points, columns are different simulations
-# # --------------------------------------------------
-# 
-# # plot with confidence bounds
-# bounds <- apply(out,1,function(x) quantile(x, c(0.025,0.975)))
-# 
-# plot(osiris2$inc ~ time_vec, col = "red", pch = 16, 
-#      xlab = "Time (days)",ylab = "Daily Cases"
-#      #, ylim = c(0,700)
-#      ) 
-# lines(daily_cases_mle,col = "blue")
-# lines(bounds[1,], col = "blue", lty = 2, lwd = 0.5)
-# lines(bounds[2,], col = "blue", lty = 2, lwd = 0.5)
-# legend("topright", c("Data","Model","95% credible intervals"),
-#        col = c("red","blue","blue"), lty = c(0,1,2), pch = c(16,NA,NA))
-
-# --------------------------------------------------
-# re-run mle for each set of time points
+# fit model to data for each time window
 # --------------------------------------------------
 
 breakpoints <- list( 
@@ -326,6 +260,7 @@ for (j in 1:n_bp) {
   
   # draw 200 parameter values
   parameter_draws[[j]] <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
+  print(solve(res$hessian))
   beta_draws[[j]] <- data.frame(beta = (parameter_draws[[j]][,1] / rho) * params$gamma) %>%
      mutate(index = 1:200)
   # --------------------------------------------------
