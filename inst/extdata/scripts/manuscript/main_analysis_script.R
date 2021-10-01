@@ -32,11 +32,22 @@ cm <- list(baseline_2017 = baseline_2017,
            february_2021 = february_2021,
            june_2021 = june_2021
            )
-
-# for sd, use sqrt(var) of beta from fits to last time window
-my_sd <- sqrt(0.000049)
-betas_for_delta_period <- rnorm(n = 200, mean = 0.0003934816 * 2, sd = my_sd) # R0 = 4.6
-betas_for_alpha_period <- rnorm(n = 300, mean = 0.0005902224, sd = my_sd)   # R0 = 3.45
+# for sd, use sqrt(var) of beta from fits to last time window before
+# forward simulations
+my_sd <- 0.0000945 
+sigma <- matrix(c(0.0000945, -0.0000261,
+                  -0.0000261, 0.00176), nrow = 2)
+#test <- mvrnorm(n = 200, mu = c(0.0003934816 * 2, 0.01), Sigma = sigma)
+betas_for_delta_period <- truncnorm::rtruncnorm(n = 200, 
+                                                a = 0.000001, 
+                                                b = Inf, 
+                                                mean = 0.0003934816 * 2, 
+                                                sd = my_sd) # R0 = 4.6
+betas_for_alpha_period <- truncnorm::rtruncnorm(n = 200, 
+                                                a = 0.000001,
+                                                b = Inf,
+                                                mean = 0.0005902224, 
+                                                sd = my_sd)   # R0 = 3.45
 #betas_upper <- rnorm(n = 200, mean = 0.0009837041, sd = my_sd)   # R0 = 5.75
   #0.001539711    # R0 = 9
 
