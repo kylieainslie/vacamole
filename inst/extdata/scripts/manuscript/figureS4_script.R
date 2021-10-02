@@ -10,6 +10,7 @@ library(dplyr)
 library(ggplot2)
 library(cowplot)
 # source files ----------------------------------------------
+source("inst/extdata/scripts/helpers/model_run_helper.R")
 source("R/forward_sim_func_wrap.R")
 
 # set working directory -------------------------------------
@@ -28,13 +29,13 @@ mle_res_12plus_nov <- readRDS(paste0("results_12plus_nov_mle_beta_", file_date, 
 lower_res_12plus_nov <- readRDS(paste0("results_12plus_nov_lower_beta_", file_date, ".rds"))
 upper_res_12plus_nov <- readRDS(paste0("results_12plus_nov_upper_beta_", file_date, ".rds"))
 
-# 18+
+# 12+ - June
 file_date2 <- "2021-09-22"
-mle_res_12plus_jun <- readRDS(paste0("results_12plus_mle_beta_", file_date2, ".rds"))
-lower_res_12plus_jun <- readRDS(paste0("results_12plus_lower_beta_", file_date2, ".rds"))
-upper_res_12plus_jun <- readRDS(paste0("results_12plus_upper_beta_", file_date2, ".rds"))
+mle_res_12plus_jun <- readRDS(paste0("results_12plus_jun_mle_beta_", file_date2, ".rds"))
+lower_res_12plus_jun <- readRDS(paste0("results_12plus_jun_lower_beta_", file_date2, ".rds"))
+upper_res_12plus_jun <- readRDS(paste0("results_12plus_jun_upper_beta_", file_date2, ".rds"))
 
-
+# 18+
 mle_res_18plus <- readRDS(paste0("results_18plus_nov_mle_beta_", file_date, ".rds"))
 lower_res_18plus <- readRDS(paste0("results_18plus_nov_lower_beta_", file_date, ".rds"))
 upper_res_18plus <- readRDS(paste0("results_18plus_nov_upper_beta_", file_date, ".rds"))
@@ -298,12 +299,14 @@ all_res_for_plot <- bind_rows(all_12plus_jun, all_12plus_oct, all_12plus_nov, al
 # figure 1a - 12+ vs. 18+, 10-19 age group, no waning ---------
 figS4a <- ggplot(data = all_res_for_plot %>%
                         filter(age_group == 2,
-                               outcome != "Daily Deaths") %>%
+                               outcome != "Daily Deaths"
+                               #outcome == "Daily Cases"
+                               ) %>%
                         group_by(Scenario, R0, date, outcome) %>%
                         summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum"), 
                 aes(x = date, y = mle, fill = R0, linetype = Scenario)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = R0), alpha = 0.3) +
   geom_line() +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = R0), alpha = 0.3) +
   labs(y = "Value", x = "Date") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
@@ -353,7 +356,7 @@ legend <- get_legend(
 figS4 <- plot_grid(figS4_no_legend, legend, rel_heights = c(3, .4), nrow = 2)
 figS4
 
-ggsave(filename = "inst/extdata/results/figure S4.jpg", plot = figS4,
+ggsave(filename = "../figures/figure S4.jpg", plot = figS4,
        units = "in", height = 10, width = 12, dpi = 300)
 
 # table S4 ----------------------------------------------------

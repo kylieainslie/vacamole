@@ -10,7 +10,6 @@ library(tidyr)
 library(readxl)
 library(rARPACK)
 library(readr)
-#library(lazymcmc)
 library(lubridate)
 
 # Source functions -------------------------------------------------
@@ -60,12 +59,12 @@ n <- 17407585 # Dutch population size
 n_vec <- n * age_dist
 
 # contact matrices --------------------------------------------------
-baseline_2017 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_baseline_2017.rds")
-april_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_april_2020.rds")
-june_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2020.rds")
+baseline_2017  <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_baseline_2017.rds")
+april_2020     <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_april_2020.rds")
+june_2020      <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2020.rds")
 september_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_september_2020.rds")
-february_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_february_2021.rds")
-june_2021 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2021.rds")
+february_2021  <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_february_2021.rds")
+june_2021      <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2021.rds")
 
 # parameter inputs -------------------------------------------------
 s <- 0.5
@@ -214,90 +213,3 @@ params <- list(beta = 0.0003934816 * 2 ,  # transmission rate
                t_calendar_start = yday(as.Date("2020-01-01")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
                beta_change = NULL 
 )
-# ------------------------------------------------------------------
-# old code ---------------------------------------------------------
-# ------------------------------------------------------------------
-# initial states ---------------------------------------------------
-# Jacco's suggested way to determine initial conditions
-# init_states_dat <- data.frame(
-#   age_group = c(
-#     "0-9", "10-19", "20-29", "30-39", "40-49",
-#     "50-59", "60-69", "70-79", "80+"
-#   ),
-#   n = n_vec,
-#   # from Scott
-#   n_recovered = c(
-#     30720, 397100, 642600, 419000, 412200, 505900,
-#     349100, 206800, 115900 + 33200
-#   ),
-#   # from sitrep for 26 januari tot 2 februari:
-#   # https://www.rivm.nl/coronavirus-covid-19/actueel/wekelijkse-update-epidemiologische-situatie-covid-19-in-nederland)
-#   n_cases = c(
-#     835, 2851, 4591, 3854, 3925, 5191, 3216, 1819,
-#     1376 + 485
-#   ),
-#   # from NICE data (n_hosp/n_ic refers to occupancy on 1 Feb 2021)
-#   n_hosp = c(2, 1, 8, 19, 29, 76, 142, 159, 186),
-#   n_ic = c(0, 2, 6, 9, 25, 83, 181, 150, 12),
-#   # from NICE data: people with length of stay >= 9 days
-#   n_hosp_after_ic = c(2, 2, 9, 15, 45, 158, 321, 392, 266)
-# ) %>%
-#   mutate(
-#     n_infections = n_cases * 2.2, # calibrated to match osiris data
-#     init_E = n_infections * (2 / 7),
-#     init_I = n_infections * (2 / 7),
-#     init_S = n - n_recovered - init_E - init_I - n_hosp - n_ic - n_hosp_after_ic
-#   )
-# 
-# # determine transmission rate for reff ------------------------------
-# reff <- 1.04 # from RIVM open data for 1 Feb 2021 (midpoint between
-# #              0.94 (wt) and 1.13 (UK variant))
-# S2 <- diag(init_states_dat$init_S)
-# rho2 <- as.numeric(eigs(S2 %*% t5, 1)$values)
-# beta2 <- reff / rho2 * g
-# # check
-# B <- t5
-# K2 <- beta2 * (1 / g) * S2 %*% B
-# as.numeric(eigs(K2, 1)$values) # this should be r0
-# 
-# # callibrate distribution of cases across age groups ----------------
-# w <- eigen(K2)$vectors[, 1] / sum(eigen(K2)$vectors[, 1]) # should match dist_cases (I think!)
-# x <- init_states_dat$n_cases / sum(init_states_dat$n_cases)
-# A <- diag(x / w)
-# B_prime <- A %*% B
-# rho2_prime <- as.numeric(eigs(S2 %*% B_prime, 1)$values)
-# beta2_prime <- reff / rho2_prime * g
-# K2_prime <- beta2_prime * (1 / g) * S2 %*% B_prime
-# dom_eig_vec <- eigen(K2_prime)$vectors[, 1]
-# w_prime <- dom_eig_vec / sum(dom_eig_vec)
-# as.numeric(eigs(K2_prime, 1)$values)
-# 
-# # Specify initial values -------------------------------------------
-# empty_state <- c(rep(0, 9))
-# init <- c(
-#   t = 0,
-#   S = init_states_dat$init_S,
-#   Shold_1d = empty_state,
-#   Sv_1d = empty_state,
-#   Shold_2d = empty_state,
-#   Sv_2d = empty_state,
-#   E = init_states_dat$init_E,
-#   Ev_1d = empty_state,
-#   Ev_2d = empty_state,
-#   I = init_states_dat$init_I,
-#   Iv_1d = empty_state,
-#   Iv_2d = empty_state,
-#   H = init_states_dat$n_hosp,
-#   Hv_1d = empty_state,
-#   Hv_2d = empty_state,
-#   H_IC = init_states_dat$n_hosp_after_ic,
-#   H_ICv_1d = empty_state,
-#   H_ICv_2d = empty_state,
-#   IC = init_states_dat$n_ic,
-#   ICv_1d = empty_state,
-#   ICv_2d = empty_state,
-#   D = empty_state,
-#   R = init_states_dat$n_recovered,
-#   Rv_1d = empty_state,
-#   Rv_2d = empty_state
-# )
