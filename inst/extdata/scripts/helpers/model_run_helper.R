@@ -102,14 +102,15 @@ ve <- list(
     moderna = c(0.66, 0.8), # assumed to be the same as pfizer
     astrazeneca = c(0.61, 0.79), # from Pritchard et al. 2021 Nature 
     jansen = c(0.767) # from Corchado-Garcia et al. 2021 medRxiv (need to check if this is against alpha!)
-  #),
-  # delta = list(
-  #   pfizer = c(0.57, 0.69), # from 
-  #   moderna = c(0.66, 0.82), # from 
-  #   astrazeneca = c(0.41, 0.54), # from 
-  #   jansen = c(0.5) # from 
-  # )
+  #)
 )
+
+ve_delta <- list(
+    pfizer = c(0.57, 0.69), # from
+    moderna = c(0.66, 0.82), # from
+    astrazeneca = c(0.41, 0.54), # from
+    jansen = c(0.5) # from
+  )
 
 delays <- list(
   pfizer = c(14, 7),
@@ -120,18 +121,19 @@ delays <- list(
 
 ve_trans <- list(
   # alpha = list(
-  pfizer = c(0.26, 0.70), # de Gier et al. # 0.3, 0.54 from Shah et al. 2021
-  moderna = c(0.51, 0.88), # de Gier et al.
+  pfizer = c(0.26, 0.70),      # de Gier et al. # 0.3, 0.54 from Shah et al. 2021
+  moderna = c(0.51, 0.88),     # de Gier et al.
   astrazeneca = c(0.15, 0.58), # de Gier et al.
-  jansen = c(0.77) # de Gier et al.
-  # ),
-  # delta = list(
-  # pfizer = c(0.46, 0.52), # de Gier et al (updated)
-  # moderna = c(0.66, 0.24), # de Gier et al. (updated)
-  # astrazeneca = c(0, 0.25), # de Gier et al. (updated)
-  # jansen = c(0.42) # de Gier et al. (updated)
+  jansen = c(0.77)             # de Gier et al.
   # )
-) # no available data
+)
+
+ve_trans_delta = list(
+  pfizer = c(0.46, 0.52),   # de Gier et al (updated)
+  moderna = c(0.66, 0.24),  # de Gier et al. (updated)
+  astrazeneca = c(0, 0.25), # de Gier et al. (updated)
+  jansen = c(0.42)          # de Gier et al. (updated)
+)
 
 ve_hosp <- list(
   # alpha = list(
@@ -140,14 +142,14 @@ ve_hosp <- list(
   astrazeneca = c(0.83, 0.95), # Dutch data
   jansen = c(0.85)             # from RIVM website: https://www.rivm.nl/en/covid-19-vaccination/vaccines/efficacy-and-protection
   #)
-  #delta = list(
-  # pfizer = c(0.89, 0.96),      # from Brechje (pre-print)
-  # moderna = c(0.95, 0.85),     # from Brechje (pre-print)
-  # astrazeneca = c(0.88, 0.94), # from Brechje (pre-print)
-  # jansen = c(0.92)             # from Brechje (pre-print)
-  #)
 )
 
+ve_hosp_delta = list(
+  pfizer = c(0.89, 0.96),      # from Brechje (pre-print)
+  moderna = c(0.95, 0.85),     # from Brechje (pre-print)
+  astrazeneca = c(0.88, 0.94), # from Brechje (pre-print)
+  jansen = c(0.92)             # from Brechje (pre-print)
+)
 
 # hospitalisations multiplier
 # calculated as (1-ve_hosp)/(1-ve)
@@ -158,6 +160,12 @@ h_multiplier <- list(
   jansen = (1-ve_hosp$jansen)/(1-ve$jansen)
 )
 
+h_multiplier_delta <- list(
+  pfizer = (1-ve_hosp_delta$pfizer)/(1-ve_delta$pfizer),
+  moderna = (1-ve_hosp_delta$moderna)/(1-ve_delta$moderna),
+  astrazeneca = (1-ve_hosp_delta$astrazeneca)/(1-ve_delta$astrazeneca),
+  jansen = (1-ve_hosp_delta$jansen)/(1-ve_delta$jansen)
+)
 # read in vac schedules --------------------------------------------
 basis_12plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
   select(-starts_with("X"))
