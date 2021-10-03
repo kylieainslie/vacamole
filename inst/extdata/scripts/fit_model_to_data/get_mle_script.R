@@ -54,7 +54,7 @@ p
 empty_state <- c(rep(0, 9))
 init <- c(
   t = 0,
-  S = n_vec - 1,
+  S = c(n_vec[1:4], n_vec[5]-1, n_vec[6:9]),
   Shold_1d = empty_state,
   Sv_1d = empty_state,
   Shold_2d = empty_state,
