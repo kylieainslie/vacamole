@@ -126,7 +126,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       beta_d = beta_draws[[index]][,1],
                       t_normal = NULL,
                       contact_matrices = cm,
-                      tag = paste0("results_18plus_mle_beta_",todays_date)
+                      tag = paste0("results_18plus_alpha_",todays_date)
 )
 # delta -------------------------------------------------------------
 # 12+ 
