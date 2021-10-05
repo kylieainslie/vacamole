@@ -221,3 +221,34 @@ params <- list(beta = 0.0003934816 * 2 ,  # transmission rate
                t_calendar_start = yday(as.Date("2020-01-01")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
                beta_change = NULL 
 )
+
+# initial values
+empty_state <- c(rep(0, 9))
+init <- c(
+  t = 0,
+  S = c(n_vec[1:4], n_vec[5]-1, n_vec[6:9]),
+  Shold_1d = empty_state,
+  Sv_1d = empty_state,
+  Shold_2d = empty_state,
+  Sv_2d = empty_state,
+  E = empty_state,
+  Ev_1d = empty_state,
+  Ev_2d = empty_state,
+  I = c(rep(0,4),1,rep(0,4)),
+  Iv_1d = empty_state,
+  Iv_2d = empty_state,
+  H = empty_state,
+  Hv_1d = empty_state,
+  Hv_2d = empty_state,
+  H_IC = empty_state,
+  H_ICv_1d = empty_state,
+  H_ICv_2d = empty_state,
+  IC = empty_state,
+  ICv_1d = empty_state,
+  ICv_2d = empty_state,
+  D = empty_state,
+  R = empty_state,
+  Rv_1d = empty_state,
+  Rv_2d = empty_state
+)
+
