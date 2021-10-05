@@ -4,11 +4,13 @@
 # need to run figure1_script.R and figure2_script.R first
 # -------------------------------------------------------------
 # a) no waning
-fig3a <- ggplot(data = all_res %>%
-                   filter(outcome != "Daily Deaths",
-                          Immunity == "No Waning") %>%
-                   group_by(Scenario, Immunity, date, age_group, outcome) %>%
-                   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum"), 
+dat_fig3a <- all_res %>%
+  filter(outcome != "Daily Deaths",
+         Immunity == "No Waning") %>%
+  group_by(Variant, Scenario, date, age_group, outcome) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+
+fig3a <- ggplot(data = dat_fig3a, 
                  aes(x = date, y = mle, fill = age_group, linetype = Scenario)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = age_group), alpha = 0.3) +
   geom_line(aes(color = age_group)) +
@@ -29,12 +31,14 @@ fig3a
 ggsave(filename = "inst/extdata/results/figure 3a.jpg", plot = fig3a,
        units = "in", height = 8, width = 8, dpi = 300)
 # -------------------------------------------------------------
-# b) waning
-fig3b <- ggplot(data = all_res %>%
-                   filter(outcome != "Daily Deaths",
-                          Immunity == "Waning") %>%
-                   group_by(Scenario, Immunity, date, age_group, outcome) %>%
-                   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum"), 
+# b) waning - make supplemental figure
+dat_fig3b <- all_res %>%
+  filter(outcome != "Daily Deaths",
+         Immunity == "Waning") %>%
+  group_by(Variant, Scenario, date, age_group, outcome) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+
+fig3b <- ggplot(data = dat_fig3b, 
                  aes(x = date, y = mle, fill = age_group, linetype = Scenario)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = age_group), alpha = 0.3) +
   geom_line(aes(color = age_group)) +
@@ -49,7 +53,7 @@ fig3b <- ggplot(data = all_res %>%
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
         axis.title=element_text(size=14,face="bold")) +
-  facet_wrap(~outcome, scales = "free_y", nrow = 3)
+  facet_grid(outcome~Variant, scales = "free_y")
 fig3b
 
 # -------------------------------------------------------------

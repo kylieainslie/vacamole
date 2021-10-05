@@ -127,17 +127,19 @@ fig2a <- ggplot(data = dat_fig2a,
         strip.text.x = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) +
-  facet_wrap(~Variant, scales = "free_y", nrow = 1)
+        axis.title=element_text(size=14,face="bold")) #+
+  #facet_wrap(~Variant, scales = "free_y", nrow = 1)
 fig2a
 
 # figure 2b - 12+ vs. 18+, no waning vs. waning, !10-19 
 # age group ---------------------------------------------------
-fig2b <- ggplot(data = all_res %>%
-                  filter(age_group != 2,
-                         outcome == "Daily Cases") %>%
-                  group_by(Variant, Scenario, Immunity, date, outcome) %>%
-                  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum"), 
+dat_fig2b <- all_res %>%
+  filter(age_group != 2,
+         outcome == "Daily Cases") %>%
+  group_by(Variant, Scenario, Immunity, date, outcome) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+
+fig2b <- ggplot(data = dat_fig2b, 
                 aes(x = date, y = mle, fill = Immunity, 
                     linetype = Scenario)) +
   geom_line(aes(color = Scenario)) +
