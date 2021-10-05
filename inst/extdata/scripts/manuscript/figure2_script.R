@@ -13,12 +13,12 @@ source("R/forward_sim_func_wrap.R")
 # read in simulation results --------------------------------
 file_date <- "2021-10-01"
 file_path <- "inst/extdata/results/main_analysis/"
-# 12+
+# alpha
 alpha_12plus_wane   <- readRDS(paste0(file_path,"results_12plus_wane_alpha_", file_date, ".rds"))
-delta_18plus_wane <- readRDS(paste0(file_path,"results_18plus_wane_alpha_", file_date, ".rds"))
+alpha_18plus_wane <- readRDS(paste0(file_path,"results_18plus_wane_alpha_", file_date, ".rds"))
 #upper_res_12plus_wane <- readRDS(paste0("inst/extdata/results/results_12plus_wane_upper_beta_", file_date, ".rds"))
 
-# 18+
+# delta
 delta_12plus_wane   <- readRDS(paste0(file_path, "results_12plus_wane_delta_", file_date, ".rds"))
 delta_18plus_wane <- readRDS(paste0(file_path, "results_18plus_wane_delta_", file_date, ".rds"))
 #upper_res_18plus_wane <- readRDS(paste0("inst/extdata/results/results_18plus_wane_upper_beta_", file_date, ".rds"))
@@ -107,15 +107,13 @@ all_res <- bind_rows(all_res_for_plot, all_res_for_plot_wane)
 
 # figure 2a - 12+ vs. 18+, no waning vs. waning, 10-19 
 # age group ---------------------------------------------------
-fig2a <- ggplot(data = all_res %>%
-                  filter(age_group == 2,
-                         outcome == "Daily Cases",
-                         Variant == "Alpha",
-                         Scenario == "12+",
-                         Immunity == "No Waning"
-                         ) %>%
-                  group_by(Variant, Scenario, Immunity, date, outcome) %>%
-                  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum"), 
+dat_fig2a <- all_res %>%
+  filter(age_group == 2,
+         outcome == "Daily Cases") %>%
+  group_by(Variant, Scenario, Immunity, date, outcome) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+
+fig2a <- ggplot(data = dat_fig2a, 
                 aes(x = date, y = mle, fill = Immunity, linetype = Scenario)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = Immunity), alpha = 0.3) +
   geom_line(aes(color = Immunity)) +
@@ -129,8 +127,8 @@ fig2a <- ggplot(data = all_res %>%
         strip.text.x = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) #+
-  #facet_wrap(~Variant, scales = "free_y", nrow = 1)
+        axis.title=element_text(size=14,face="bold")) +
+  facet_wrap(~Variant, scales = "free_y", nrow = 1)
 fig2a
 
 # figure 2b - 12+ vs. 18+, no waning vs. waning, !10-19 

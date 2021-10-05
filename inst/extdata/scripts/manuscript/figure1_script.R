@@ -34,8 +34,8 @@ delta_12plus_wrangled <- wrangle_results(delta_12plus) %>%
 delta_18plus_wrangled <- wrangle_results(delta_18plus) %>%
   mutate(Scenario = "18+", Variant = "Delta")
 
-data_combined <- bind_rows(alpha_12plus_wrangled, alpha_18plus_wrangled
-                           #delta_12plus_wrangled, delta_18plus_wrangled
+data_combined <- bind_rows(alpha_12plus_wrangled, alpha_18plus_wrangled,
+                           delta_12plus_wrangled, delta_18plus_wrangled
                            ) %>%
   pivot_wider(names_from = state, values_from = mean:upper) %>%
   group_by(Variant, Scenario, time) %>%
@@ -156,23 +156,30 @@ legend <- get_legend(
 fig1 <- plot_grid(fig1_no_legend, legend, rel_heights = c(3, .4), nrow = 2)
 fig1
 
-ggsave(filename = "inst/extdata/results/figure 1.jpg", plot = fig1,
+ggsave(filename = "inst/extdata/results/figures/figure 1 new.jpg", plot = fig1,
        units = "in", height = 10, width = 12, dpi = 300)
 
 # table 1 ----------------------------------------------------
 table1_10_19 <- all_res_for_plot %>%
   filter(age_group == 2,
          outcome != "Daily Deaths") %>%
-  group_by(Scenario, R0, outcome) %>%
+  group_by(Variant, Scenario, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
 table1_not_10_19 <- all_res_for_plot %>%
   filter(age_group != 2,
          outcome != "Daily Deaths") %>%
-  group_by(Scenario, R0, outcome) %>%
+  group_by(Variant, Scenario, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
 # calculate percent differnce
+table1_10_19_12plus <- table1_10_19 %>% filter(Scenario == "12+")
+table1_10_19_18plus <- table1_10_19 %>% filter(Scenario == "18+")
+abs_diff <- table1_10_19_18plus[,4:6] - table1_10_19_12plus[,4:6]
+perc_diff <- (table1_10_19_12plus[,4:6] * 100)/table1_10_19_18plus[,4:6] - 100
+
 table1_not_10_19_12plus <- table1_not_10_19 %>% filter(Scenario == "12+")
 table1_not_10_19_18plus <- table1_not_10_19 %>% filter(Scenario == "18+")
-perc_diff <- (table1_not_10_19_12plus[,4:6] * 100)/table1_not_10_19_18plus[,4:6] - 100
+abs_diff2 <- table1_not_10_19_18plus[,4:6] - table1_not_10_19_12plus[,4:6]
+perc_diff2 <- (table1_not_10_19_12plus[,4:6] * 100)/table1_not_10_19_18plus[,4:6] - 100
+
