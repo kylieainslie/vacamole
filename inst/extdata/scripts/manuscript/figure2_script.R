@@ -122,13 +122,15 @@ fig2a <- ggplot(data = dat_fig2a,
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+        axis.text.x = element_blank(),#lement_text(angle = 45, hjust = 1, size = 14),
         axis.text.y = element_text(size = 14),
+        axis.ticks.x = element_blank(),
+        axis.title.x = element_blank(),
         strip.text.x = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) #+
-  #facet_wrap(~Variant, scales = "free_y", nrow = 1)
+        axis.title=element_text(size=14,face="bold")) +
+  facet_wrap(~Variant, scales = "free_y", nrow = 1)
 fig2a
 
 # figure 2b - 12+ vs. 18+, no waning vs. waning, !10-19 
@@ -142,7 +144,7 @@ dat_fig2b <- all_res %>%
 fig2b <- ggplot(data = dat_fig2b, 
                 aes(x = date, y = mle, fill = Immunity, 
                     linetype = Scenario)) +
-  geom_line(aes(color = Scenario)) +
+  geom_line(aes(color = Immunity)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = Immunity), alpha = 0.3) +
   labs(y = "Daily Cases", x = "Date") +
   ylim(0,NA) +
@@ -160,14 +162,16 @@ fig2b
 
 fig2_no_legend <- plot_grid(fig2a + theme(legend.position = "none"), 
                             fig2b + theme(legend.position = "none"), 
-                            labels = "AUTO", nrow = 2)
+                            labels = "AUTO", nrow = 2, rel_heights = c(0.65,1))
 
 legend2 <- get_legend(
   fig2a + theme(legend.box.margin = margin(0, 0, 0, 12))
 )
 
 fig2ab <- plot_grid(fig2_no_legend, legend2, rel_heights = c(3, .4), nrow = 2)
-ggsave(filename = "inst/extdata/results/figure 2 alt.jpg", plot = fig2ab,
+fig2ab
+
+ggsave(filename = "inst/extdata/results/figure 2 new.jpg", plot = fig2ab,
        units = "in", height = 10, width = 12, dpi = 300)
 
 # figure 2c - bar chart of cases by vac status ----------------
