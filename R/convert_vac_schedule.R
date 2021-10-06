@@ -15,7 +15,7 @@ convert_vac_schedule <- function(vac_schedule,
                                  ve_trans,
                                  before_feb = FALSE,
                                  add_child_vac = FALSE,
-                                 child_vac_coverage = 0.7,
+                                 child_vac_coverage = 0.75,
                                  child_doses_per_day = 50000,
                                  child_vac_start_date = "2021-09-01",
                                  wane = FALSE,
@@ -74,22 +74,36 @@ if(add_extra_dates){
   vac_schedule_orig_new <- extra_dat
 }
 
-# add vaccination of children 12 - 17 starting September 1, 2021
-# assume 50,000 vaccines per day for 21 days to get 85% coverage in this age group
-# this equates to an increase in vaccination coverage in this age group of 
-# 0.0243 per day for a total of 0.51 after 21 days.
-# we assume the second dose is given 6 weeks after the first dose
+# add vaccination of children 5-11 starting October 1, 2021
+# assume 50,000 vaccines per day for 2 days to get 75% coverage in this age group
+# we assume the second dose is given 3 weeks after the first dose
 if(add_child_vac){
-  p_child_12_17_doses <- 0.6 * child_vac_coverage
-  n_child_12_17_doses <- n_vec_10[2] * p_child_12_17_doses
-  days_child_12_17 <- ceiling(n_child_12_17_doses/child_doses_per_day)
-  p_child_12_17_doses_per_day <- p_child_12_17_doses/days_child_12_17
-
+  
+  # 5-9 year olds
+  p_child_5_9_doses <- 0.5 * child_vac_coverage
+  n_child_5_9_doses <- n_vec_10[1] * p_child_5_9_doses
+  days_child_5_9 <- ceiling(n_child_5_9_doses/child_doses_per_day)
+  p_child_5_9_doses_per_day <- p_child_5_9_doses/days_child_5_9
+  
+  # 10-11 year olds
+  p_child_10_11_doses <- 0.2 * child_vac_coverage
+  n_child_10_11_doses <- n_vec_10[2] * p_child_10_11_doses
+  days_child_10_11 <- ceiling(n_child_10_11_doses/child_doses_per_day)
+  p_child_10_11_doses_per_day <- p_child_10_11_doses/days_child_10_11
+  
+  # define start and end dates for vaccinating each group
+  start_date_5_9 <- as.Date(child_vac_start_date) + days_child_10_11
+  end_date_5_9 <- as.Date(child_vac_start_date) + days_child_10_11 + days_child_5_9
+  start_date_10_11 <- as.Date(child_vac_start_date)
+  end_date_10_11 <- as.Date(child_vac_start_date) + days_child_10_11
+  
   vac_schedule_orig_new <- vac_schedule_orig_new %>%
-    mutate(pf_d1_2 = ifelse(date >= as.Date(child_vac_start_date) & date <= (as.Date(child_vac_start_date) + days_child_12_17), 
-                            pf_d1_2 + p_child_12_17_doses_per_day, pf_d1_2),
-          pf_d2_2 = ifelse(date >= (as.Date(child_vac_start_date) + 42) & date <= (as.Date(child_vac_start_date) + days_child_12_17 + 42),
-                           pf_d2_2 + p_child_12_17_doses_per_day, pf_d2_2))
+    # vaccinate 10-11 first, then 5-9
+    mutate(pf_d1_1 = ifelse(date >= start_date_5_9 & date <= end_date_5_9, pf_d1_1 + p_child_5_9_doses_per_day, pf_d1_1),
+           pf_d2_1 = ifelse(date >= start_date_5_9 + 21 & date <= end_date_5_9 + 21, pf_d2_1 + p_child_5_9_doses_per_day, pf_d2_1),
+           pf_d1_2 = ifelse(date >= start_date_10_11 & date <= end_date_10_11, pf_d1_2 + p_child_10_11_doses_per_day, pf_d1_2),
+           pf_d2_2 = ifelse(date >= start_date_10_11 + 21 & date <= end_date_10_11 + 21,pf_d2_2 + p_child_10_11_doses_per_day, pf_d2_2)
+           )
 
   vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
 } else {
