@@ -36,20 +36,33 @@ age_struct_seir_ode <- function(times,init,params){
     R = c(R1, R2, R3, R4, R5, R6, R7, R8, R9)
     Rv_1d = c(Rv_1d1, Rv_1d2, Rv_1d3, Rv_1d4, Rv_1d5, Rv_1d6, Rv_1d7, Rv_1d8, Rv_1d9)
     Rv_2d = c(Rv_2d1, Rv_2d2, Rv_2d3, Rv_2d4, Rv_2d5, Rv_2d6, Rv_2d7, Rv_2d8, Rv_2d9)
-    
+
     # determine vaccination rate -----------------------------------
-    time_point <- floor(times) + 1
-    
-    alpha <- vac_inputs$alpha_dose1[time_point,]
-    alpha2 <- vac_inputs$alpha_dose2[time_point,]
-    eta <- vac_inputs$eta_dose1[time_point,]
-    eta2 <- vac_inputs$eta_dose2[time_point,]
-    delay <- vac_inputs$delay_dose1[time_point,]
-    delay2 <- vac_inputs$delay_dose2[time_point,]
-    eta_hosp <- vac_inputs$eta_hosp_dose1[time_point,]
-    eta_hosp2 <- vac_inputs$eta_hosp_dose2[time_point,]
-    eta_trans <- vac_inputs$eta_trans_dose1[time_point,]
-    eta_trans2 <- vac_inputs$eta_trans_dose2[time_point,]
+    if(!no_vac){
+      index <- floor(times) + 1
+
+      alpha <- vac_inputs$alpha_dose1[index,]
+      alpha2 <- vac_inputs$alpha_dose2[index,]
+      eta <- vac_inputs$eta_dose1[index,]
+      eta2 <- vac_inputs$eta_dose2[index,]
+      delay <- vac_inputs$delay_dose1[index,]
+      delay2 <- vac_inputs$delay_dose2[index,]
+      eta_hosp <- vac_inputs$eta_hosp_dose1[index,]
+      eta_hosp2 <- vac_inputs$eta_hosp_dose2[index,]
+      eta_trans <- vac_inputs$eta_trans_dose1[index,]
+      eta_trans2 <- vac_inputs$eta_trans_dose2[index,]
+    } else {
+      alpha <- 0
+      alpha2 <- 0
+      eta <- 1
+      eta2 <- 1
+      delay <- 1
+      delay2 <- 1
+      eta_hosp <- 1
+      eta_hosp2 <- 1
+      eta_trans <- 1
+      eta_trans2 <- 1
+    }
     
     # determine contact matrix based on criteria --------------------
     ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d))
@@ -57,25 +70,32 @@ age_struct_seir_ode <- function(times,init,params){
     cases <- sum(sigma * (E + Ev_1d + Ev_2d) * p_report)
     criteria <- (use_cases) * cases + (!use_cases) * ic_admin 
     # initialise flags
-    if(times == 0){
+    if(times == 0 | params$keep_cm_fixed){
       flag_relaxed <- 0
       flag_very_relaxed <- 0
       flag_normal <- 0
     }
     
     # determine contact matrix to use based on criteria
-    tmp2 <- choose_contact_matrix(params, times, criteria, flag_relaxed, 
-                                  flag_very_relaxed, flag_normal, keep_fixed = keep_cm_fixed)
+    tmp2 <- choose_contact_matrix(times = t,
+                                  params = params, 
+                                  criteria = criteria, 
+                                  flag_relaxed = flag_relaxed, 
+                                  flag_very_relaxed = flag_very_relaxed, 
+                                  flag_normal = flag_normal, 
+                                  keep_fixed = keep_cm_fixed)
     contact_mat <- tmp2$contact_matrix
     flag_relaxed <- tmp2$flag_relaxed
     flag_very_relaxed <- tmp2$flag_very_relaxed
     flag_normal <- tmp2$flag_normal
     
+    if(flag_normal > 0){beta = beta_change}
     # determine force of infection ----------------------------------
-    calendar_day <- t_calendar_start + times
-    beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day/365.24))
-    # lambda <- beta * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
+    calendar_day <- ifelse(times > 365, t_calendar_start + times - 365, t_calendar_start + times)
+    beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day/365.24)) # incorporate seasonality in transmission rate
+
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
+    lambda <- ifelse(lambda < 0, 0, lambda)
     # ---------------------------------------------------------------
     
     ################################################################
@@ -85,7 +105,7 @@ age_struct_seir_ode <- function(times,init,params){
     dSv_1d <- (1/delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d 
     dShold_2d <- alpha2 * Sv_1d - (1/delay2) * Shold_2d - eta * lambda * Shold_2d
     dSv_2d <- (1/delay2) * Shold_2d - eta2 * lambda * Sv_2d
-    dE <- lambda * (S + Shold_1d) - sigma * E
+    dE <- lambda * (S + Shold_1d) - sigma * E + epsilon
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta2 * lambda * Sv_2d - sigma * Ev_2d 
     dI <- sigma * E - (gamma + h) * I 

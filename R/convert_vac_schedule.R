@@ -13,11 +13,12 @@ convert_vac_schedule <- function(vac_schedule,
                                  hosp_multiplier, 
                                  delay, 
                                  ve_trans,
+                                 before_feb = FALSE,
                                  add_child_vac = FALSE,
-                                 child_vac_coverage = 0.7,
+                                 child_vac_coverage = 0.75,
                                  child_doses_per_day = 50000,
                                  child_vac_start_date = "2021-09-01",
-                                 wane = TRUE,
+                                 wane = FALSE,
                                  k = 0.03,
                                  t0 = 180,
                                  add_extra_dates = FALSE,
@@ -28,10 +29,12 @@ age_dist_10 <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,
 n <- 17407585 # Dutch population size
 n_vec_10 <- n * age_dist_10
 
+date_vec <- as.Date(vac_schedule$date, format = "%m/%d/%Y")
+
 # take the difference for each row ------------------------------------------------------------
-vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[-1,-1]))) %>%
+vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[,-1]))) %>%
   add_row(vac_schedule[1,-1],.before = 1) %>%
-  mutate(date = seq.Date(from = as.Date("2021-01-04"), to = as.Date("2021-12-30"), by = 1),
+  mutate(date = date_vec,
          pf_d1_9 = (pf_d1_9 * n_vec_10[9] + pf_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
          pf_d2_9 = (pf_d2_9 * n_vec_10[9] + pf_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
          mo_d1_9 = (mo_d1_9 * n_vec_10[9] + mo_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
@@ -45,6 +48,7 @@ vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[-1,-1]))) %>%
          -az_d2_10, -ja_d1_10, -ja_d2_10) 
 
 # filter for dates before 1 February 2021 -----------------------------------------------------
+if (before_feb){
 before_feb <- vac_schedule_orig %>%
   filter(date < as.Date("2021-02-01")) %>%
   select(-date) %>%
@@ -57,10 +61,12 @@ before_feb <- vac_schedule_orig %>%
 vac_schedule_orig_new <- vac_schedule_orig %>%
   filter(date > as.Date("2021-01-31")) %>%
   add_row(before_feb, .before = 1)
-
+} else {
+  vac_schedule_orig_new <- vac_schedule_orig
+}
 # add extra rows for dates further in the future (so there's no error when running the model)
 if(add_extra_dates){
-  extra_dates <- seq.Date(from = as.Date("2021-01-31"), to = as.Date(extra_end_date), by = 1)
+  extra_dates <- seq.Date(from = date_vec[1], to = as.Date(extra_end_date), by = 1)
   na_to_zero <- function(x){ ifelse(is.na(x), 0, x) }
   extra_dat <- data.frame(date = extra_dates) %>%
     full_join(vac_schedule_orig_new, extra_dates, by = "date") %>%
@@ -68,22 +74,36 @@ if(add_extra_dates){
   vac_schedule_orig_new <- extra_dat
 }
 
-# add vaccination of children 12 - 17 starting September 1, 2021
-# assume 50,000 vaccines per day for 21 days to get 85% coverage in this age group
-# this equates to an increase in vaccination coverage in this age group of 
-# 0.0243 per day for a total of 0.51 after 21 days.
-# we assume the second dose is given 6 weeks after the first dose
+# add vaccination of children 5-11 starting October 1, 2021
+# assume 50,000 vaccines per day for 2 days to get 75% coverage in this age group
+# we assume the second dose is given 3 weeks after the first dose
 if(add_child_vac){
-  p_child_12_17_doses <- 0.6 * child_vac_coverage
-  n_child_12_17_doses <- n_vec_10[2] * p_child_12_17_doses
-  days_child_12_17 <- ceiling(n_child_12_17_doses/child_doses_per_day)
-  p_child_12_17_doses_per_day <- p_child_12_17_doses/days_child_12_17
-
+  
+  # 5-9 year olds
+  p_child_5_9_doses <- 0.5 * child_vac_coverage
+  n_child_5_9_doses <- n_vec_10[1] * p_child_5_9_doses
+  days_child_5_9 <- ceiling(n_child_5_9_doses/child_doses_per_day)
+  p_child_5_9_doses_per_day <- p_child_5_9_doses/days_child_5_9
+  
+  # 10-11 year olds
+  p_child_10_11_doses <- 0.2 * child_vac_coverage
+  n_child_10_11_doses <- n_vec_10[2] * p_child_10_11_doses
+  days_child_10_11 <- ceiling(n_child_10_11_doses/child_doses_per_day)
+  p_child_10_11_doses_per_day <- p_child_10_11_doses/days_child_10_11
+  
+  # define start and end dates for vaccinating each group
+  start_date_5_9 <- as.Date(child_vac_start_date) + days_child_10_11
+  end_date_5_9 <- as.Date(child_vac_start_date) + days_child_10_11 + days_child_5_9
+  start_date_10_11 <- as.Date(child_vac_start_date)
+  end_date_10_11 <- as.Date(child_vac_start_date) + days_child_10_11
+  
   vac_schedule_orig_new <- vac_schedule_orig_new %>%
-    mutate(pf_d1_2 = ifelse(date >= as.Date(child_vac_start_date) & date <= (as.Date(child_vac_start_date) + days_child_12_17), 
-                            pf_d1_2 + p_child_12_17_doses_per_day, pf_d1_2),
-          pf_d2_2 = ifelse(date >= (as.Date(child_vac_start_date) + 42) & date <= (as.Date(child_vac_start_date) + days_child_12_17 + 42),
-                           pf_d2_2 + p_child_12_17_doses_per_day, pf_d2_2))
+    # vaccinate 10-11 first, then 5-9
+    mutate(pf_d1_1 = ifelse(date >= start_date_5_9 & date <= end_date_5_9, pf_d1_1 + p_child_5_9_doses_per_day, pf_d1_1),
+           pf_d2_1 = ifelse(date >= start_date_5_9 + 21 & date <= end_date_5_9 + 21, pf_d2_1 + p_child_5_9_doses_per_day, pf_d2_1),
+           pf_d1_2 = ifelse(date >= start_date_10_11 & date <= end_date_10_11, pf_d1_2 + p_child_10_11_doses_per_day, pf_d1_2),
+           pf_d2_2 = ifelse(date >= start_date_10_11 + 21 & date <= end_date_10_11 + 21,pf_d2_2 + p_child_10_11_doses_per_day, pf_d2_2)
+           )
 
   vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
 } else {
@@ -216,8 +236,8 @@ hosp_mult_dose2 <- frac_pf_dose2 * ve_hosp_p_dose2 +
   frac_ja_dose2 * ve_hosp_j_dose2
 colnames(hosp_mult_dose2) <- paste0("hosp_mult", name_suffix_d1)
 
-eta_hosp_dose1 <- 1 - hosp_mult_dose1
-eta_hosp_dose2 <- 1 - hosp_mult_dose2
+eta_hosp_dose1 <- hosp_mult_dose1
+eta_hosp_dose2 <- hosp_mult_dose2
 
 # VE against hospitalisation
 # dose 1
