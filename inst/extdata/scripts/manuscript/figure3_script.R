@@ -31,8 +31,8 @@ fig3 <- ggplot(data = dat_fig3,
   facet_grid(outcome~Variant, scales = "free_y")
 fig3
 
-ggsave(filename = "inst/extdata/results/figure 3 no inserts.jpg", plot = fig3a,
-       units = "in", height = 8, width = 8, dpi = 300)
+ggsave(filename = "inst/extdata/results/figure 3 no inserts.jpg", plot = fig3,
+       units = "in", height = 8, width = 12, dpi = 300)
 
 # add inserts
 # helper function
@@ -83,7 +83,7 @@ dat_figS4 <- all_res %>%
   group_by(Variant, Scenario, date, age_group, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
-fig3b <- ggplot(data = dat_fig3b, 
+figS4 <- ggplot(data = dat_figS4, 
                  aes(x = date, y = mle, fill = age_group, linetype = Scenario)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = age_group), alpha = 0.3) +
   geom_line(aes(color = age_group)) +
@@ -99,22 +99,25 @@ fig3b <- ggplot(data = dat_fig3b,
         legend.title = element_text(size = 14),
         axis.title=element_text(size=14,face="bold")) +
   facet_grid(outcome~Variant, scales = "free_y")
-fig3b
+figS4
+
+ggsave(filename = "inst/extdata/results/figure S4.jpg", plot = figS4,
+       units = "in", height = 8, width = 12, dpi = 300)
 
 # -------------------------------------------------------------
 # combine plots
-fig3_no_legend <- plot_grid(fig3a + theme(legend.position = "none"), 
-                             fig3b + theme(legend.position = "none"), 
-                             labels = "AUTO", nrow = 1)
-
-legend3 <- get_legend(
-  figs3a + theme(legend.box.margin = margin(0, 0, 0, 12))
-)
-
-fig3 <- plot_grid(fig3_no_legend, legend3, rel_heights = c(3, .4), nrow = 2)
-fig3
-
-# save output -------------------------------------------------
-ggsave(filename = "inst/extdata/results/figure 3.jpg", plot = fig3,
-       units = "in", height = 12, width = 10, dpi = 300)
+# fig3_no_legend <- plot_grid(fig3a + theme(legend.position = "none"), 
+#                              fig3b + theme(legend.position = "none"), 
+#                              labels = "AUTO", nrow = 1)
+# 
+# legend3 <- get_legend(
+#   figs3a + theme(legend.box.margin = margin(0, 0, 0, 12))
+# )
+# 
+# fig3 <- plot_grid(fig3_no_legend, legend3, rel_heights = c(3, .4), nrow = 2)
+# fig3
+# 
+# # save output -------------------------------------------------
+# ggsave(filename = "inst/extdata/results/figure 3.jpg", plot = fig3,
+#        units = "in", height = 12, width = 10, dpi = 300)
 

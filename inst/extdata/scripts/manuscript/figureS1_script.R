@@ -9,7 +9,7 @@ library(ggplot2)
 #library(cowplot)
 
 # read in model fit data set ---------------------------------
-file_date <- "2021-08-26"
+file_date <- "2021-10-01"
 
 model_fit <- readRDS(paste0("inst/extdata/results/model_fits/model_fit_df_", file_date, ".rds"))
 # subset for period before childhood vaccination started

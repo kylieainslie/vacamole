@@ -120,6 +120,8 @@ fig2a <- ggplot(data = dat_fig2a,
   labs(y = "Daily Cases", x = "Date") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
+  scale_colour_viridis_d() +
+  scale_fill_viridis_d() +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
         axis.text.x = element_blank(),#lement_text(angle = 45, hjust = 1, size = 14),
@@ -149,6 +151,8 @@ fig2b <- ggplot(data = dat_fig2b,
   labs(y = "Daily Cases", x = "Date") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
+  scale_colour_viridis_d() +
+  scale_fill_viridis_d() +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
@@ -171,7 +175,7 @@ legend2 <- get_legend(
 fig2ab <- plot_grid(fig2_no_legend, legend2, rel_heights = c(3, .4), nrow = 2)
 fig2ab
 
-ggsave(filename = "inst/extdata/results/figure 2 new.jpg", plot = fig2ab,
+ggsave(filename = "inst/extdata/results/figure 2 viridis.jpg", plot = fig2ab,
        units = "in", height = 10, width = 12, dpi = 300)
 
 # table 2 -----------------------------------------------------
