@@ -9,6 +9,7 @@ library(dplyr)
 library(ggplot2)
 library(cowplot)
 # -----------------------------------------------------------
+source("inst/extdata/scripts/helpers/model_run_helper.R")
 source("R/forward_sim_func_wrap.R")
 # read in simulation results --------------------------------
 file_date <- "2021-10-01"

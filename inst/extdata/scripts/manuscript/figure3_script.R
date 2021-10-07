@@ -2,15 +2,18 @@
 # plot of outcomes by age group
 # -------------------------------------
 # need to run figure1_script.R and figure2_script.R first
+source("inst/extdata/scripts/manuscript/figure1_script.R")
+source("inst/extdata/scripts/manuscript/figure2_script.R")
+library(patchwork)
 # -------------------------------------------------------------
 # a) no waning
-dat_fig3a <- all_res %>%
+dat_fig3 <- all_res %>%
   filter(outcome != "Daily Deaths",
          Immunity == "No Waning") %>%
   group_by(Variant, Scenario, date, age_group, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
-fig3a <- ggplot(data = dat_fig3a, 
+fig3 <- ggplot(data = dat_fig3, 
                  aes(x = date, y = mle, fill = age_group, linetype = Scenario)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = age_group), alpha = 0.3) +
   geom_line(aes(color = age_group)) +
@@ -25,14 +28,20 @@ fig3a <- ggplot(data = dat_fig3a,
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
         axis.title=element_text(size=14,face="bold")) +
-  facet_wrap(~outcome, scales = "free_y", nrow = 3)
-fig3a
+  facet_grid(outcome~Variant, scales = "free_y")
+fig3
 
-ggsave(filename = "inst/extdata/results/figure 3a.jpg", plot = fig3a,
+ggsave(filename = "inst/extdata/results/figure 3 no inserts.jpg", plot = fig3a,
        units = "in", height = 8, width = 8, dpi = 300)
+
+# add inserts
+
+ggsave(filename = "inst/extdata/results/figure 3.jpg", plot = fig3a,
+       units = "in", height = 8, width = 8, dpi = 300)
+
 # -------------------------------------------------------------
 # b) waning - make supplemental figure
-dat_fig3b <- all_res %>%
+dat_figS4 <- all_res %>%
   filter(outcome != "Daily Deaths",
          Immunity == "Waning") %>%
   group_by(Variant, Scenario, date, age_group, outcome) %>%
