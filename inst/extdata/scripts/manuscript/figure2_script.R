@@ -178,13 +178,13 @@ ggsave(filename = "inst/extdata/results/figure 2 new.jpg", plot = fig2ab,
 table2_10_19_wane <- all_res_for_plot_wane %>%
   filter(age_group == 2,
          outcome != "Daily Deaths") %>%
-  group_by(Scenario, R0, outcome) %>%
+  group_by(Variant, Scenario, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
 table2_not_10_19_wane <- all_res_for_plot_wane %>%
   filter(age_group != 2,
          outcome != "Daily Deaths") %>%
-  group_by(Scenario, R0, outcome) %>%
+  group_by(Variant, Scenario, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
 # calculate percent difference_wane

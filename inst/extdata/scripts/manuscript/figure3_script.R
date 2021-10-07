@@ -35,7 +35,43 @@ ggsave(filename = "inst/extdata/results/figure 3 no inserts.jpg", plot = fig3a,
        units = "in", height = 8, width = 8, dpi = 300)
 
 # add inserts
+# helper function
+annotation_custom2 <- function (grob, xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf, data) 
+{
+  layer(data = data, stat = StatIdentity, position = PositionIdentity, 
+        geom = ggplot2:::GeomCustomAnn,
+        inherit.aes = TRUE, params = list(grob = grob, 
+                                          xmin = xmin, xmax = xmax, 
+                                          ymin = ymin, ymax = ymax))
+}
 
+# plot to be inset
+inset_plot <- ggplot(data = dat_fig3 %>% 
+                       filter(Variant == "Delta",
+                              outcome == "Daily Cases"), 
+                     aes(x = date, y = mle, fill = age_group, linetype = Scenario)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = age_group), alpha = 0.3) +
+  geom_line(aes(color = age_group)) +
+  labs(y = "Value", x = "Date") +
+  ylim(0,NA) +
+  scale_x_date(limits = c(as.Date("2021-08-01"), as.Date("2021-11-01")), 
+               date_breaks = "2 weeks", date_labels = "%d %b %Y") +
+  theme(legend.position = "bottom",
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+        axis.text.y = element_text(size = 14),
+        strip.text.x = element_text(size = 14),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 14),
+        axis.title=element_text(size=14,face="bold"))
+
+# add inset to main plot
+fig3 +
+  annotation_custom2(grob=ggplotGrob(inset_plot), 
+                     data = data.frame(outcome="Daily Cases", Variant = "Delta"),
+                     ymin = 5000, ymax=15000, xmin=as.Date("2021-11-08"), xmax=as.Date("2022-03-25"))  
+
+# save plot
 ggsave(filename = "inst/extdata/results/figure 3.jpg", plot = fig3a,
        units = "in", height = 8, width = 8, dpi = 300)
 
