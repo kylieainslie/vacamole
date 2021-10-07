@@ -74,7 +74,7 @@ basis_5plus1_delta <- convert_vac_schedule(vac_schedule = basis_12plus_jun,
 # alpha --------------------------------------------------------------
 # 5+
 forward_sim_func_wrap(start_date = "2021-06-22",
-                      end_date = "2021-06-30",
+                      end_date = "2021-03-31",
                       init_cond = init_cond_22june2021,
                       beta_m = beta_mles[index,1],
                       vac_inputs = basis_5plus1_alpha,
@@ -88,7 +88,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
 # delta ---------------------------------------------------------------
 # 5+
 forward_sim_func_wrap(start_date = "2021-06-22",
-                      end_date = "2021-06-30",
+                      end_date = "2021-03-31",
                       init_cond = init_cond_22june2021,
                       beta_m = beta_mles[index,1],
                       vac_inputs = basis_5plus1_delta,
