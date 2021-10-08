@@ -146,13 +146,13 @@ ggsave(filename = "inst/extdata/results/figures/figure 4.jpg", plot = fig4,
        units = "in", height = 10, width = 12, dpi = 300)
 
 # table 1 ----------------------------------------------------
-table4_10_19 <- all_res_for_plot %>%
+table4_0_19 <- all_res_for_plot4 %>%
   filter(age_group %in% c(1,2),
          outcome != "Daily Deaths") %>%
   group_by(Variant, Scenario, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
-table4_not_10_19 <- all_res_for_plot %>%
+table4_not_0_19 <- all_res_for_plot4 %>%
   filter(age_group %in% c(3:9),
          outcome != "Daily Deaths") %>%
   group_by(Variant, Scenario, outcome) %>%
@@ -164,7 +164,7 @@ table4_0_19_18plus <- table4_0_19 %>% filter(Scenario == "18+")
 abs_diff <- table4_0_19_18plus[,4:6] - table4_0_19_5plus[,4:6]
 perc_diff <- (table4_0_19_5plus[,4:6] * 100)/table4_0_19_18plus[,4:6] - 100
 
-table4_not_0_19_12plus <- table4_not_0_19 %>% filter(Scenario == "5+")
+table4_not_0_19_5plus <- table4_not_0_19 %>% filter(Scenario == "5+")
 table4_not_0_19_18plus <- table4_not_0_19 %>% filter(Scenario == "18+")
 abs_diff2 <- table4_not_0_19_18plus[,4:6] - table4_not_0_19_5plus[,4:6]
 perc_diff2 <- (table4_not_0_19_12plus[,4:6] * 100)/table4_not_0_19_18plus[,4:6] - 100
