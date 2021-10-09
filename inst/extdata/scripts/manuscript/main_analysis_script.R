@@ -137,7 +137,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       vac_inputs = basis_12plus1_delta,
                       beta_c = betas_for_delta_period,
                       beta_d = beta_draws[[index]][,1],
-                      t_normal = NULL,
+                      t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
                       tag = paste0("results_12plus_delta_",todays_date)
 )
@@ -150,7 +150,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       vac_inputs = basis_18plus1_delta,
                       beta_c = betas_for_delta_period,
                       beta_d = beta_draws[[index]][,1],
-                      t_normal = NULL,
+                      t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
                       tag = paste0("results_18plus_delta_",todays_date)
 )
@@ -193,7 +193,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       vac_inputs = basis_12plus1_delta_wane,
                       beta_c = betas_for_delta_period,
                       beta_d = beta_draws[[index]][,1],
-                      t_normal = NULL,
+                      t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
                       tag = paste0("results_12plus_wane_delta_",todays_date)
 )
@@ -206,7 +206,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       vac_inputs = basis_18plus1_delta_wane,
                       beta_c = betas_for_delta_period,
                       beta_d = beta_draws[[index]][,1],
-                      t_normal = NULL,
+                      t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
                       tag = paste0("results_18plus_wane_delta_",todays_date)
 )

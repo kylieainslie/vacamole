@@ -7,7 +7,7 @@
 source("inst/extdata/scripts/manuscript/figure1_script.R")
 
 # read in simulation results --------------------------------
-file_date <- "2021-10-01"
+file_date <- "2021-10-07"
 file_path <- "inst/extdata/results/sensitivity_analysis/"
 # alpha, no wane
 alpha_5plus <- readRDS(paste0(file_path, "results_5plus_alpha_", file_date, ".rds"))
