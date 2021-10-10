@@ -13,7 +13,7 @@ convert_vac_schedule <- function(vac_schedule,
                                  hosp_multiplier, 
                                  delay, 
                                  ve_trans,
-                                 before_feb = FALSE,
+                                 #before_feb = FALSE,
                                  add_child_vac = FALSE,
                                  child_vac_coverage = 0.75,
                                  child_doses_per_day = 50000,
@@ -48,22 +48,22 @@ vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[,-1]))) %>%
          -az_d2_10, -ja_d1_10, -ja_d2_10) 
 
 # filter for dates before 1 February 2021 -----------------------------------------------------
-if (before_feb){
-before_feb <- vac_schedule_orig %>%
-  filter(date < as.Date("2021-02-01")) %>%
-  select(-date) %>%
-  summarise_all(sum) %>%
-  mutate(date = as.Date("2021-01-31")) %>%
-  select(date, pf_d1_1:ja_d2_9)
+# if (before_feb){
+# before_feb <- vac_schedule_orig %>%
+#   filter(date < as.Date("2021-02-01")) %>%
+#   select(-date) %>%
+#   summarise_all(sum) %>%
+#   mutate(date = as.Date("2021-01-31")) %>%
+#   select(date, pf_d1_1:ja_d2_9)
 
 # filter so start date is 1 Feb 2021 with row for Jan 31 to reflect 
 # people who have already been vaccinated -----------------------------------------------------
-vac_schedule_orig_new <- vac_schedule_orig %>%
-  filter(date > as.Date("2021-01-31")) %>%
-  add_row(before_feb, .before = 1)
-} else {
+# vac_schedule_orig_new <- vac_schedule_orig %>%
+#   filter(date > as.Date("2021-01-31")) %>%
+#   add_row(before_feb, .before = 1)
+# } else {
   vac_schedule_orig_new <- vac_schedule_orig
-}
+# }
 # add extra rows for dates further in the future (so there's no error when running the model)
 if(add_extra_dates){
   extra_dates <- seq.Date(from = date_vec[1], to = as.Date(extra_end_date), by = 1)
@@ -74,8 +74,7 @@ if(add_extra_dates){
   vac_schedule_orig_new <- extra_dat
 }
 
-# add vaccination of children 5-11 starting October 1, 2021
-# assume 50,000 vaccines per day for 2 days to get 75% coverage in this age group
+# add vaccination of children 5-11 
 # we assume the second dose is given 3 weeks after the first dose
 if(add_child_vac){
   

@@ -63,13 +63,13 @@ todays_date <- Sys.Date()
 # with vaccination of 5-11 year olds
 basis_5plus1_alpha <- convert_vac_schedule(vac_schedule = basis_12plus_jun,
   ve = ve, hosp_multiplier = h_multiplier, ve_trans = ve_trans, delay = delays,
-  wane = FALSE, before_feb = FALSE, add_child_vac = TRUE, child_vac_start_date = "2021-08-22",
-  add_extra_dates = TRUE, extra_end_date = "2022-03-31")
+  wane = FALSE, before_feb = FALSE, add_child_vac = TRUE, child_vac_start_date = "2021-10-01",
+  add_extra_dates = TRUE, extra_end_date = "2022-06-30")
 
 basis_5plus1_delta <- convert_vac_schedule(vac_schedule = basis_12plus_jun,
   ve = ve_delta, hosp_multiplier = h_multiplier_delta, ve_trans = ve_trans_delta, delay = delays,
-  wane = FALSE, before_feb = FALSE, add_child_vac = TRUE, child_vac_start_date = "2021-08-22",
-  add_extra_dates = TRUE, extra_end_date = "2022-03-31")
+  wane = FALSE, before_feb = FALSE, add_child_vac = TRUE, child_vac_start_date = "2021-10-01",
+  add_extra_dates = TRUE, extra_end_date = "2022-06-30")
 
 # alpha --------------------------------------------------------------
 # 5+
