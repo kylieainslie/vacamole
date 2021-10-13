@@ -13,10 +13,8 @@ source("inst/extdata/scripts/helpers/model_run_helper.R")
 source("R/forward_sim_func_wrap.R")
 # read in simulation results --------------------------------
 file_date <- "2021-10-09"
-file_path <- "inst/extdata/results/main_analysis/"
-# alpha, no wane
-# alpha_12plus <- readRDS(paste0(file_path, "results_12plus_alpha_", file_date, ".rds"))
-# alpha_18plus <- readRDS(paste0(file_path, "results_18plus_alpha_", file_date, ".rds"))
+file_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/code/vacamole/inst/extdata/results/main_analysis/"
+#file_path <- "inst/extdata/results/main_analysis/"
 
 # delta, no wane
 delta_5plus  <- readRDS(paste0(file_path, "results_5plus_delta_", file_date, ".rds"))
@@ -24,10 +22,6 @@ delta_12plus <- readRDS(paste0(file_path, "results_12plus_delta_", file_date, ".
 delta_18plus <- readRDS(paste0(file_path, "results_18plus_delta_", file_date, ".rds"))
 
 # wrangle raw results ----------------------------------------
-# alpha_12plus_wrangled <- wrangle_results(alpha_12plus) %>%
-#   mutate(Scenario = "12+", Variant = "Alpha")
-# alpha_18plus_wrangled <- wrangle_results(alpha_18plus) %>%
-#   mutate(Scenario = "18+", Variant = "Alpha")
 delta_5plus_wrangled  <- wrangle_results(delta_5plus) 
 delta_12plus_wrangled <- wrangle_results(delta_12plus) 
 delta_18plus_wrangled <- wrangle_results(delta_18plus) 
@@ -137,8 +131,7 @@ fig1a
 # data wrangling --------------------------------------------
 table1 <- all_res_for_plot %>%
   filter(#age_group == 2,
-    outcome != "Daily Deaths",
-    date >= as.Date("2021-11-01")) %>%
+    outcome != "Daily Deaths") %>%
   mutate(age_group2 = case_when(
     age_group == 1 ~ "0-9",
     age_group == 2 ~ "10-19",
@@ -147,16 +140,34 @@ table1 <- all_res_for_plot %>%
   group_by(Scenario, age_group2, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
-# calculate percent differnce
-table1 <- table1 %>%
+# calculate percent difference
+table1a <- table1 %>%
   group_by(age_group2, outcome) %>%
   mutate(abs_diff = mle - mle[Scenario == "18+"],
          abs_diff_lower = lower - lower[Scenario == "18+"],
          abs_diff_upper = upper - upper[Scenario == "18+"],
          perc_diff = (mle * 100)/mle[Scenario == "18+"] - 100,
          perc_diff_lower = (lower * 100)/lower[Scenario == "18+"] - 100,
-         perc_diff_upper = (upper * 100)/upper[Scenario == "18+"] - 100)
+         perc_diff_upper = (upper * 100)/upper[Scenario == "18+"] - 100) %>%
+  mutate_if(is.numeric, round, 1) %>%
+  as.data.frame()
 
+save_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/results/main_analysis/"
+write.csv(table1, file = paste0(save_path, "table1.csv"))
+
+table1 %>%
+  group_by(Scenario, outcome) %>%
+  summarise_if(is.numeric, sum) %>%
+  ungroup() %>%
+  group_by(outcome) %>%
+  mutate(abs_diff = mle - mle[Scenario == "18+"],
+         abs_diff_lower = lower - lower[Scenario == "18+"],
+         abs_diff_upper = upper - upper[Scenario == "18+"],
+         perc_diff = (mle * 100)/mle[Scenario == "18+"] - 100,
+         perc_diff_lower = (lower * 100)/lower[Scenario == "18+"] - 100,
+         perc_diff_upper = (upper * 100)/upper[Scenario == "18+"] - 100) %>%
+  mutate_if(is.numeric, round, 1) %>%
+  as.data.frame()
 
 # bar plot of percent difference ----------------------------
 fig1_inset <- ggplot(data = table1 %>%

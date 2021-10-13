@@ -159,10 +159,10 @@ figS4b
 # 
 # figS4 <- plot_grid(figS4_no_legend, legend, rel_heights = c(3, .4), nrow = 2)
 # figS4
-save_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/code/vacamole/inst/extdata/results/figures/"
+save_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/results/figures/"
 ggsave(filename = paste0(save_path,"figure S4a.jpg"), plot = figS4a,
        units = "in", height = 10, width = 12, dpi = 300)
-ggsave(filename = paste0(save_path,"figure S4a.jpg"), plot = figS4b,
+ggsave(filename = paste0(save_path,"figure S4b.jpg"), plot = figS4b,
        units = "in", height = 10, width = 12, dpi = 300)
 
 # table S4 ----------------------------------------------------

@@ -12,17 +12,14 @@ library(tidyr)
 source("R/forward_sim_func_wrap.R")
 # read in simulation results --------------------------------
 file_date <- "2021-10-09"
-file_path <- "inst/extdata/results/sensitivity_analysis/"
-# alpha
-# alpha_12plus_wane   <- readRDS(paste0(file_path,"results_12plus_wane_alpha_", file_date, ".rds"))
-# alpha_18plus_wane <- readRDS(paste0(file_path,"results_18plus_wane_alpha_", file_date, ".rds"))
-#upper_res_12plus_wane <- readRDS(paste0("inst/extdata/results/results_12plus_wane_upper_beta_", file_date, ".rds"))
+file_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/code/vacamole/inst/extdata/results/sensitivity_analysis/"
 
-# delta
+#file_path <- "inst/extdata/results/sensitivity_analysis/"
+
+# delta, wane
 delta_5plus_wane  <- readRDS(paste0(file_path, "results_5plus_delta_wane_", file_date, ".rds"))
 delta_12plus_wane <- readRDS(paste0(file_path, "results_12plus_wane_delta_", file_date, ".rds"))
 delta_18plus_wane <- readRDS(paste0(file_path, "results_18plus_wane_delta_", file_date, ".rds"))
-#upper_res_18plus_wane <- readRDS(paste0("inst/extdata/results/results_18plus_wane_upper_beta_", file_date, ".rds"))
 
 # wrangle raw results ----------------------------------------
 delta_5plus_wane_wrangled  <- wrangle_results(delta_5plus_wane) 
@@ -119,8 +116,6 @@ dat_fig2 <- all_res %>%
   group_by(Immunity, Scenario, age_group2, date, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
-cols <- c("red4","forestgreen","midnightblue")
-
 fig2a <- ggplot(data = dat_fig2 %>%
                   filter(Immunity == "No Waning"), 
                 aes(x = date, y = mle, fill = age_group2,linetype = Scenario)) +
@@ -151,37 +146,74 @@ ggsave(filename = "inst/extdata/results/figure 2.jpg", plot = fig2a,
 # data wrangling --------------------------------------------
 table2 <- all_res_for_plot_wane %>%
   filter(#age_group == 2,
-    outcome != "Daily Deaths",
-    date >= as.Date("2021-11-01")) %>%
+    outcome != "Daily Deaths") %>%
   mutate(age_group2 = case_when(
     age_group == 1 ~ "0-9",
     age_group == 2 ~ "10-19",
     age_group %in% c(3:9) ~ ">19"),
     age_group2 = factor(age_group2, levels = c("0-9", "10-19", ">19"))) %>%
   group_by(Scenario, age_group2, outcome) %>%
-  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum") %>%
+  ungroup()
 
-# calculate percent differnce
-table2 <- table2 %>%
+# calculate percent difference
+table2a <- table2 %>%
   group_by(age_group2, outcome) %>%
   mutate(abs_diff = mle - mle[Scenario == "18+"],
          abs_diff_lower = lower - lower[Scenario == "18+"],
          abs_diff_upper = upper - upper[Scenario == "18+"],
          perc_diff = (mle * 100)/mle[Scenario == "18+"] - 100,
          perc_diff_lower = (lower * 100)/lower[Scenario == "18+"] - 100,
-         perc_diff_upper = (upper * 100)/upper[Scenario == "18+"] - 100)
+         perc_diff_upper = (upper * 100)/upper[Scenario == "18+"] - 100) %>%
+  mutate_if(is.numeric, round, 1) %>%
+  as.data.frame()
 
-# old ---------------------------------------------------------
-# fig2_no_legend <- plot_grid(fig2a + theme(legend.position = "none"), 
-#                             fig2b + theme(legend.position = "none"), 
-#                             labels = "AUTO", nrow = 2, rel_heights = c(0.65,1))
-# 
-# legend2 <- get_legend(
-#   fig2a + theme(legend.box.margin = margin(0, 0, 0, 12))
-# )
-# 
-# fig2ab <- plot_grid(fig2_no_legend, legend2, rel_heights = c(3, .4), nrow = 2)
-# fig2ab
+save_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/results/main_analysis/"
+write.csv(table2a, file = paste0(save_path, "table2.csv"))
 
+# all age groups together
+table2 %>%
+  group_by(Scenario, outcome) %>%
+  summarise_if(is.numeric, sum) %>%
+  ungroup() %>%
+  group_by(outcome) %>%
+  mutate(abs_diff = mle - mle[Scenario == "18+"],
+         abs_diff_lower = lower - lower[Scenario == "18+"],
+         abs_diff_upper = upper - upper[Scenario == "18+"],
+         perc_diff = (mle * 100)/mle[Scenario == "18+"] - 100,
+         perc_diff_lower = (lower * 100)/lower[Scenario == "18+"] - 100,
+         perc_diff_upper = (upper * 100)/upper[Scenario == "18+"] - 100) %>%
+  mutate_if(is.numeric, round, 1) %>%
+  as.data.frame()
+# cases by age group -----------------------------------
+dat_figS_waning <- all_res %>%
+  filter(outcome == "Daily Cases",
+         date >= as.Date("2021-11-01")) %>%
+  group_by(Immunity, Scenario, age_group, date, outcome) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+
+figS_waning <- ggplot(data = dat_figS_waning %>%
+                  filter(Immunity == "Waning"), 
+                aes(x = date, y = mle, fill = age_group)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = age_group), alpha = 0.3) +
+  geom_line(aes(color = age_group), size = 1) +
+  #scale_linetype_manual(values = c("dotted", "dashed", "solid")) +
+  labs(y = "Daily Cases", x = "Date") +
+  ylim(0,NA) +
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
+  theme(legend.position = "bottom",
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+        axis.text.y = element_text(size = 14),
+        strip.text.x = element_text(size = 14),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 14),
+        axis.title=element_text(size=14,face="bold")) +
+  facet_grid(Scenario~., scales = "free_y")
+figS_waning
+
+save_path_fig <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/results/figures/"
+ggsave(filename = paste0(save_path_fig, "figure_waning_by_age_group.jpg"), plot = figS_waning,
+       units = "in", height = 10, width = 12, dpi = 300)
 
 
