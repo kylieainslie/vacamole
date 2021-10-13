@@ -12,34 +12,32 @@ library(cowplot)
 source("inst/extdata/scripts/helpers/model_run_helper.R")
 source("R/forward_sim_func_wrap.R")
 # read in simulation results --------------------------------
-file_date <- "2021-10-01"
-file_path <- "inst/extdata/results/main_analysis/"
-# alpha, no wane
-alpha_12plus <- readRDS(paste0(file_path, "results_12plus_alpha_", file_date, ".rds"))
-alpha_18plus <- readRDS(paste0(file_path, "results_18plus_alpha_", file_date, ".rds"))
-#upper_res_12plus <- readRDS(paste0("inst/extdata/results/results_12plus_upper_beta_", file_date, ".rds"))
+file_date <- "2021-10-09"
+file_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/code/vacamole/inst/extdata/results/main_analysis/"
+#file_path <- "inst/extdata/results/main_analysis/"
 
 # delta, no wane
+delta_5plus  <- readRDS(paste0(file_path, "results_5plus_delta_", file_date, ".rds"))
 delta_12plus <- readRDS(paste0(file_path, "results_12plus_delta_", file_date, ".rds"))
 delta_18plus <- readRDS(paste0(file_path, "results_18plus_delta_", file_date, ".rds"))
-#upper_res_18plus <- readRDS(paste0("inst/extdata/results/results_18plus_upper_beta_", file_date, ".rds"))
 
 # wrangle raw results ----------------------------------------
-# 12 +
-alpha_12plus_wrangled <- wrangle_results(alpha_12plus) %>%
-  mutate(Scenario = "12+", Variant = "Alpha")
-alpha_18plus_wrangled <- wrangle_results(alpha_18plus) %>%
-  mutate(Scenario = "18+", Variant = "Alpha")
-delta_12plus_wrangled <- wrangle_results(delta_12plus) %>%
-  mutate(Scenario = "12+", Variant = "Delta")
-delta_18plus_wrangled <- wrangle_results(delta_18plus) %>%
-  mutate(Scenario = "18+", Variant = "Delta")
+delta_5plus_wrangled  <- wrangle_results(delta_5plus) 
+delta_12plus_wrangled <- wrangle_results(delta_12plus) 
+delta_18plus_wrangled <- wrangle_results(delta_18plus) 
 
-data_combined <- bind_rows(alpha_12plus_wrangled, alpha_18plus_wrangled,
-                           delta_12plus_wrangled, delta_18plus_wrangled
+data_combined <- bind_rows(delta_5plus_wrangled,
+                           delta_12plus_wrangled, 
+                           delta_18plus_wrangled,
+                           .id = "Scenario"
                            ) %>%
+  mutate(Scenario = case_when(
+    Scenario == 1 ~ "5+",
+    Scenario == 2 ~ "12+",
+    Scenario == 3 ~ "18+"), 
+    Scenario = factor(Scenario, levels = c("5+", "12+", "18+"))) %>%
   pivot_wider(names_from = state, values_from = mean:upper) %>%
-  group_by(Variant, Scenario, time) %>%
+  group_by(Scenario, time) %>%
   mutate(h = params$h,
          i1 = params$i1,
          i2 = params$i2,
@@ -83,7 +81,7 @@ data_combined <- bind_rows(alpha_12plus_wrangled, alpha_18plus_wrangled,
          deaths_fullvac_lower = d * lower_Hv_2d + d_ic * lower_ICv_2d + d_hic * lower_H_ICv_2d,
          deaths_fullvac_upper = d * upper_Hv_2d + d_ic * upper_ICv_2d + d_hic * upper_H_ICv_2d
   ) %>%
-  select(Variant, Scenario, time, age_group, cases_unvac_mle:deaths_fullvac_upper) %>%
+  select(Scenario, time, age_group, cases_unvac_mle:deaths_fullvac_upper) %>%
   pivot_longer(cases_unvac_mle:deaths_fullvac_upper, names_to = c("outcome", "vac_status", "estimate"), names_sep = "_", values_to = "value") %>%
   pivot_wider(names_from = "estimate", values_from = "value")
 
@@ -100,15 +98,22 @@ all_res_for_plot <- data_combined %>%
          ), levels = c("Daily Cases","Hospital Admissions","IC Admissions","Daily Deaths"))) %>%
   select(-time)
 
-# figure 1a - 12+ vs. 18+, 10-19 age group, no waning ---------
+# figure 1a: 5+ vs. 12+ vs. 18+ by age group ----------------------
 fig1a <- ggplot(data = all_res_for_plot %>%
-                        filter(age_group == 2,
-                               outcome != "Daily Deaths") %>%
-                        group_by(Variant, Scenario, date, outcome) %>%
+                        filter(#age_group == 2,
+                               outcome == "Daily Cases",
+                               date >= as.Date("2021-11-01")) %>%
+                        mutate(age_group2 = case_when(
+                          age_group == 1 ~ "0-9",
+                          age_group == 2 ~ "10-19",
+                          age_group %in% c(3:9) ~ ">19"),
+                          age_group2 = factor(age_group2, levels = c("0-9", "10-19", ">19"))) %>%
+                        group_by(Scenario, age_group2, date, outcome) %>%
                         summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum"), 
-                aes(x = date, y = mle, fill = Variant, linetype = Scenario)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = Variant), alpha = 0.3) +
-  geom_line(aes(color = Variant)) +
+                aes(x = date, y = mle, fill = age_group2,linetype = Scenario)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = age_group2), alpha = 0.3) +
+  geom_line(aes(color = age_group2), size = 1) +
+  scale_linetype_manual(values = c("dotted", "dashed", "solid")) +
   labs(y = "Value", x = "Date") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
@@ -119,68 +124,87 @@ fig1a <- ggplot(data = all_res_for_plot %>%
         strip.text.x = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) +
-  facet_wrap(~outcome, scales = "free_y", nrow = 4)
+        axis.title=element_text(size=14,face="bold")) #+
+  #facet_wrap(~outcome, scales = "free_y", nrow = 1)
 fig1a
 
-# figure 1b - 12+ vs. 18+, !10-19 age group, no waning --------
-fig1b <- ggplot(data = all_res_for_plot %>%
-                        filter(age_group != 2,
-                               outcome != "Daily Deaths") %>%
-                        group_by(Variant, Scenario, date, outcome) %>%
-                        summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum"), 
-                aes(x = date, y = mle, fill = Variant,linetype = Scenario)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = Variant), alpha = 0.3) +
-  geom_line(aes(color = Variant)) +
-  labs(y = "Value", x = "Date") +
-  ylim(0,NA) +
-  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
+# data wrangling --------------------------------------------
+table1 <- all_res_for_plot %>%
+  filter(#age_group == 2,
+    outcome != "Daily Deaths") %>%
+  mutate(age_group2 = case_when(
+    age_group == 1 ~ "0-9",
+    age_group == 2 ~ "10-19",
+    age_group %in% c(3:9) ~ ">19"),
+    age_group2 = factor(age_group2, levels = c("0-9", "10-19", ">19"))) %>%
+  group_by(Scenario, age_group2, outcome) %>%
+  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+
+# calculate percent difference
+table1a <- table1 %>%
+  group_by(age_group2, outcome) %>%
+  mutate(abs_diff = mle - mle[Scenario == "18+"],
+         abs_diff_lower = lower - lower[Scenario == "18+"],
+         abs_diff_upper = upper - upper[Scenario == "18+"],
+         perc_diff = (mle * 100)/mle[Scenario == "18+"] - 100,
+         perc_diff_lower = (lower * 100)/lower[Scenario == "18+"] - 100,
+         perc_diff_upper = (upper * 100)/upper[Scenario == "18+"] - 100) %>%
+  mutate_if(is.numeric, round, 1) %>%
+  as.data.frame()
+
+save_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/results/main_analysis/"
+write.csv(table1, file = paste0(save_path, "table1.csv"))
+
+table1 %>%
+  group_by(Scenario, outcome) %>%
+  summarise_if(is.numeric, sum) %>%
+  ungroup() %>%
+  group_by(outcome) %>%
+  mutate(abs_diff = mle - mle[Scenario == "18+"],
+         abs_diff_lower = lower - lower[Scenario == "18+"],
+         abs_diff_upper = upper - upper[Scenario == "18+"],
+         perc_diff = (mle * 100)/mle[Scenario == "18+"] - 100,
+         perc_diff_lower = (lower * 100)/lower[Scenario == "18+"] - 100,
+         perc_diff_upper = (upper * 100)/upper[Scenario == "18+"] - 100) %>%
+  mutate_if(is.numeric, round, 1) %>%
+  as.data.frame()
+
+# bar plot of percent difference ----------------------------
+fig1_inset <- ggplot(data = table1 %>%
+                       filter(Scenario != "18+"), 
+                     aes(x = outcome, y = abs(perc_diff), fill = age_group2)) +
+  geom_bar(stat = "Identity", position = position_dodge()) +
+  geom_errorbar(aes(ymin = abs(perc_diff_upper), ymax = abs(perc_diff_lower), width = 0.2),
+                position = position_dodge(0.9)) +
+  labs(x = "Outcome", y = "Percent Reduction (%)", fill = "Age Group") +
+  facet_wrap(~Scenario, nrow = 2) +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
         axis.text.y = element_text(size = 14),
         strip.text.x = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) +
-  facet_wrap(~outcome, scales = "free_y", nrow = 4)
-fig1b
+        axis.title=element_text(size=14,face = "bold"))
+fig1_inset
 
-fig1_no_legend <- plot_grid(fig1a + theme(legend.position = "none"), 
-                  fig1b + theme(legend.position = "none"), 
-                  labels = "AUTO", nrow = 1)
-
-legend <- get_legend(
-  fig1a + theme(legend.box.margin = margin(0, 0, 0, 12))
-)
-
-fig1 <- plot_grid(fig1_no_legend, legend, rel_heights = c(3, .4), nrow = 2)
+fig1 <- fig1a + annotation_custom(ggplotGrob(fig1_inset), 
+                                  xmin = as.Date("2022-02-01"), xmax = as.Date("2022-04-04"),
+                                  ymin = 15000, ymax = 100000)
 fig1
-
-ggsave(filename = "inst/extdata/results/figures/figure 1 new.jpg", plot = fig1,
+ggsave(filename = "inst/extdata/results/figures/figure_1_w_inset.jpg", plot = fig1,
        units = "in", height = 10, width = 12, dpi = 300)
 
-# table 1 ----------------------------------------------------
-table1_10_19 <- all_res_for_plot %>%
-  filter(age_group == 2,
-         outcome != "Daily Deaths") %>%
-  group_by(Variant, Scenario, outcome) %>%
-  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
-table1_not_10_19 <- all_res_for_plot %>%
-  filter(age_group != 2,
-         outcome != "Daily Deaths") %>%
-  group_by(Variant, Scenario, outcome) %>%
-  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
-
-# calculate percent differnce
-table1_10_19_12plus <- table1_10_19 %>% filter(Scenario == "12+")
-table1_10_19_18plus <- table1_10_19 %>% filter(Scenario == "18+")
-abs_diff <- table1_10_19_18plus[,4:6] - table1_10_19_12plus[,4:6]
-perc_diff <- (table1_10_19_12plus[,4:6] * 100)/table1_10_19_18plus[,4:6] - 100
-
-table1_not_10_19_12plus <- table1_not_10_19 %>% filter(Scenario == "12+")
-table1_not_10_19_18plus <- table1_not_10_19 %>% filter(Scenario == "18+")
-abs_diff2 <- table1_not_10_19_18plus[,4:6] - table1_not_10_19_12plus[,4:6]
-perc_diff2 <- (table1_not_10_19_12plus[,4:6] * 100)/table1_not_10_19_18plus[,4:6] - 100
-
+# old -------------------------------------------------------
+# fig1_no_legend <- plot_grid(fig1a + theme(legend.position = "none") + ylim(0, 100000), 
+#                   fig1b + theme(legend.position = "none") + ylim(0, 100000), 
+#                   fig1c + theme(legend.position = "none"),
+#                   labels = "AUTO", nrow = 1)
+# 
+# legend <- get_legend(
+#   fig1a + theme(legend.box.margin = margin(0, 0, 0, 12))
+# )
+# 
+# fig1 <- plot_grid(fig1_no_legend, legend, rel_heights = c(3, .4), nrow = 2)
+# fig1

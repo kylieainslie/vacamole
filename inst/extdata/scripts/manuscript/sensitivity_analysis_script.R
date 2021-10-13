@@ -61,32 +61,18 @@ todays_date <- Sys.Date()
 
 # no waning ---------------------------------------------------------
 # with vaccination of 5-11 year olds
-basis_5plus1_alpha <- convert_vac_schedule(vac_schedule = basis_12plus_jun,
-  ve = ve, hosp_multiplier = h_multiplier, ve_trans = ve_trans, delay = delays,
-  wane = FALSE, before_feb = FALSE, add_child_vac = TRUE, child_vac_start_date = "2021-10-01",
-  add_extra_dates = TRUE, extra_end_date = "2022-06-30")
-
 basis_5plus1_delta <- convert_vac_schedule(vac_schedule = basis_12plus_jun,
   ve = ve_delta, hosp_multiplier = h_multiplier_delta, ve_trans = ve_trans_delta, delay = delays,
   wane = FALSE, before_feb = FALSE, add_child_vac = TRUE, child_vac_start_date = "2021-10-01",
-  add_extra_dates = TRUE, extra_end_date = "2022-06-30")
+  add_extra_dates = TRUE, extra_end_date = "2022-03-31")
 
-# alpha --------------------------------------------------------------
-# 5+
-forward_sim_func_wrap(start_date = "2021-06-22",
-                      end_date = "2021-03-31",
-                      init_cond = init_cond_22june2021,
-                      beta_m = beta_mles[index,1],
-                      vac_inputs = basis_5plus1_alpha,
-                      beta_c = betas_for_alpha_period,
-                      beta_d = beta_draws[[index]][,1],
-                      t_normal = yday(as.Date("2021-11-01")) + 365,
-                      contact_matrices = cm,
-                      tag = paste0("results_5plus_alpha_",todays_date)
-                      )
+basis_5plus1_delta_wane <- convert_vac_schedule(vac_schedule = basis_12plus_jun,
+  ve = ve_delta, hosp_multiplier = h_multiplier_delta, ve_trans = ve_trans_delta, delay = delays,
+  wane = TRUE, before_feb = FALSE, add_child_vac = TRUE, child_vac_start_date = "2021-10-01",
+  add_extra_dates = TRUE, extra_end_date = "2022-03-31")
 
 # delta ---------------------------------------------------------------
-# 5+
+# 5+, no waning
 forward_sim_func_wrap(start_date = "2021-06-22",
                       end_date = "2021-03-31",
                       init_cond = init_cond_22june2021,
@@ -98,4 +84,15 @@ forward_sim_func_wrap(start_date = "2021-06-22",
                       contact_matrices = cm,
                       tag = paste0("results_5plus_delta_",todays_date)
 )
-
+# 5+, waning
+forward_sim_func_wrap(start_date = "2021-06-22",
+                      end_date = "2021-03-31",
+                      init_cond = init_cond_22june2021,
+                      beta_m = beta_mles[index,1],
+                      vac_inputs = basis_5plus1_delta_wane,
+                      beta_c = betas_for_delta_period,
+                      beta_d = beta_draws[[index]][,1],
+                      t_normal = yday(as.Date("2021-11-01")) + 365,
+                      contact_matrices = cm,
+                      tag = paste0("results_5plus_delta_wane",todays_date)
+)

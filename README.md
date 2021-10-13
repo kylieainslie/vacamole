@@ -1,2 +1,2 @@
 # vacamole
-Suite of infectious disease models with vaccination
+Deterministic SEIR model with vaccination
