@@ -183,7 +183,6 @@ basis1 <- convert_vac_schedule(
   delay = delays,
   ve_trans = ve_trans,
   wane = FALSE,
-  before_feb = FALSE,
   add_child_vac = FALSE,
   add_extra_dates = TRUE,
   extra_end_date = "2022-03-31"

@@ -13,8 +13,8 @@ source("inst/extdata/scripts/helpers/model_run_helper.R")
 source("R/forward_sim_func_wrap.R")
 # read in simulation results --------------------------------
 file_date <- "2021-10-09"
-file_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/code/vacamole/inst/extdata/results/main_analysis/"
-#file_path <- "inst/extdata/results/main_analysis/"
+#file_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/code/vacamole/inst/extdata/results/main_analysis/"
+file_path <- "/rivm/s/ainsliek/results/impact_vac/"
 
 # delta, no wane
 delta_5plus  <- readRDS(paste0(file_path, "results_5plus_delta_", file_date, ".rds"))
@@ -32,10 +32,10 @@ data_combined <- bind_rows(delta_5plus_wrangled,
                            .id = "Scenario"
                            ) %>%
   mutate(Scenario = case_when(
-    Scenario == 1 ~ "5+",
-    Scenario == 2 ~ "12+",
-    Scenario == 3 ~ "18+"), 
-    Scenario = factor(Scenario, levels = c("5+", "12+", "18+"))) %>%
+    Scenario == 1 ~ "Vaccination of 5+",
+    Scenario == 2 ~ "Vaccination of 12+",
+    Scenario == 3 ~ "Vaccination of 18+"), 
+    Scenario = factor(Scenario, levels = c("Vaccination of 5+", "Vaccination of 12+", "Vaccination of 18+"))) %>%
   pivot_wider(names_from = state, values_from = mean:upper) %>%
   group_by(Scenario, time) %>%
   mutate(h = params$h,
@@ -95,26 +95,26 @@ all_res_for_plot <- data_combined %>%
             outcome == "hosp" ~ "Hospital Admissions",
             outcome == "ic" ~ "IC Admissions",
             outcome == "deaths" ~ "Daily Deaths"
-         ), levels = c("Daily Cases","Hospital Admissions","IC Admissions","Daily Deaths"))) %>%
-  select(-time)
+         ), levels = c("Daily Cases","Hospital Admissions","IC Admissions","Daily Deaths")),
+         age_group2 = case_when(
+           age_group == 1 ~ "0-9 years",
+           age_group == 2 ~ "10-19 years",
+           age_group %in% c(3:9) ~ ">19 years"),
+         age_group2 = factor(age_group2, levels = c("0-9 years", "10-19 years", ">19 years"))
+         )
 
 # figure 1a: 5+ vs. 12+ vs. 18+ by age group ----------------------
 fig1a <- ggplot(data = all_res_for_plot %>%
                         filter(#age_group == 2,
                                outcome == "Daily Cases",
                                date >= as.Date("2021-11-01")) %>%
-                        mutate(age_group2 = case_when(
-                          age_group == 1 ~ "0-9",
-                          age_group == 2 ~ "10-19",
-                          age_group %in% c(3:9) ~ ">19"),
-                          age_group2 = factor(age_group2, levels = c("0-9", "10-19", ">19"))) %>%
                         group_by(Scenario, age_group2, date, outcome) %>%
                         summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum"), 
                 aes(x = date, y = mle, fill = age_group2,linetype = Scenario)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = age_group2), alpha = 0.3) +
   geom_line(aes(color = age_group2), size = 1) +
   scale_linetype_manual(values = c("dotted", "dashed", "solid")) +
-  labs(y = "Value", x = "Date") +
+  labs(y = "Cases per day", x = "Date of infection") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
   theme(legend.position = "bottom",
@@ -124,7 +124,10 @@ fig1a <- ggplot(data = all_res_for_plot %>%
         strip.text.x = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) #+
+        legend.box="vertical",
+        axis.title=element_text(size=14,face="bold")) +
+  guides(fill=guide_legend("Age Group"), colour = guide_legend("Age Group"),
+         linetype = guide_legend("Strategy")) # ,nrow=2,byrow=TRUE
   #facet_wrap(~outcome, scales = "free_y", nrow = 1)
 fig1a
 
@@ -132,29 +135,25 @@ fig1a
 table1 <- all_res_for_plot %>%
   filter(#age_group == 2,
     outcome != "Daily Deaths") %>%
-  mutate(age_group2 = case_when(
-    age_group == 1 ~ "0-9",
-    age_group == 2 ~ "10-19",
-    age_group %in% c(3:9) ~ ">19"),
-    age_group2 = factor(age_group2, levels = c("0-9", "10-19", ">19"))) %>%
   group_by(Scenario, age_group2, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
 # calculate percent difference
 table1a <- table1 %>%
   group_by(age_group2, outcome) %>%
-  mutate(abs_diff = mle - mle[Scenario == "18+"],
-         abs_diff_lower = lower - lower[Scenario == "18+"],
-         abs_diff_upper = upper - upper[Scenario == "18+"],
-         perc_diff = (mle * 100)/mle[Scenario == "18+"] - 100,
-         perc_diff_lower = (lower * 100)/lower[Scenario == "18+"] - 100,
-         perc_diff_upper = (upper * 100)/upper[Scenario == "18+"] - 100) %>%
+  mutate(abs_diff = mle - mle[Scenario == "Vaccination of 18+"],
+         abs_diff_lower = lower - lower[Scenario == "Vaccination of 18+"],
+         abs_diff_upper = upper - upper[Scenario == "Vaccination of 18+"],
+         perc_diff = (mle * 100)/mle[Scenario == "Vaccination of 18+"] - 100,
+         perc_diff_lower = (lower * 100)/lower[Scenario == "Vaccination of 18+"] - 100,
+         perc_diff_upper = (upper * 100)/upper[Scenario == "Vaccination of 18+"] - 100) %>%
   mutate_if(is.numeric, round, 1) %>%
   as.data.frame()
 
 save_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/results/main_analysis/"
 write.csv(table1, file = paste0(save_path, "table1.csv"))
 
+# overall 
 table1 %>%
   group_by(Scenario, outcome) %>%
   summarise_if(is.numeric, sum) %>%
@@ -170,29 +169,31 @@ table1 %>%
   as.data.frame()
 
 # bar plot of percent difference ----------------------------
-fig1_inset <- ggplot(data = table1 %>%
-                       filter(Scenario != "18+"), 
+fig1_inset <- ggplot(data = table1a %>%
+                       filter(Scenario != "Vaccination of 18+"), 
                      aes(x = outcome, y = abs(perc_diff), fill = age_group2)) +
   geom_bar(stat = "Identity", position = position_dodge()) +
   geom_errorbar(aes(ymin = abs(perc_diff_upper), ymax = abs(perc_diff_lower), width = 0.2),
                 position = position_dodge(0.9)) +
-  labs(x = "Outcome", y = "Percent Reduction (%)", fill = "Age Group") +
+  labs(x = "", y = "Percent Reduction (%)", fill = "Age Group") +
+  scale_x_discrete(labels = c("Daily\nCases", "Hospital\nAdmissions", "IC\n Admissions")) +
   facet_wrap(~Scenario, nrow = 2) +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+        axis.text.x = element_text(size = 12), #angle = 45, hjust = 1, 
         axis.text.y = element_text(size = 14),
         strip.text.x = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face = "bold"))
+        axis.title=element_text(size=14,face = "bold")) +
+  guides(fill=guide_legend(nrow=2,byrow=TRUE))
 fig1_inset
 
 fig1 <- fig1a + annotation_custom(ggplotGrob(fig1_inset), 
                                   xmin = as.Date("2022-02-01"), xmax = as.Date("2022-04-04"),
                                   ymin = 15000, ymax = 100000)
 fig1
-ggsave(filename = "inst/extdata/results/figures/figure_1_w_inset.jpg", plot = fig1,
+ggsave(filename = paste0(file_path, "figure_1_w_inset.jpg"), plot = fig1,
        units = "in", height = 10, width = 12, dpi = 300)
 
 

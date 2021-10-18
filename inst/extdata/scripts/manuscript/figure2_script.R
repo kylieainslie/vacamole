@@ -12,9 +12,8 @@ library(tidyr)
 source("R/forward_sim_func_wrap.R")
 # read in simulation results --------------------------------
 file_date <- "2021-10-09"
-file_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/code/vacamole/inst/extdata/results/sensitivity_analysis/"
-
-#file_path <- "inst/extdata/results/sensitivity_analysis/"
+#file_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/code/vacamole/inst/extdata/results/sensitivity_analysis/"
+file_path <- "/rivm/s/ainsliek/results/impact_vac/"
 
 # delta, wane
 delta_5plus_wane  <- readRDS(paste0(file_path, "results_5plus_delta_wane_", file_date, ".rds"))
@@ -32,10 +31,10 @@ data_combined_wane <- bind_rows(delta_5plus_wane_wrangled,
                            .id = "Scenario"
 ) %>%
   mutate(Scenario = case_when(
-    Scenario == 1 ~ "5+",
-    Scenario == 2 ~ "12+",
-    Scenario == 3 ~ "18+"), 
-    Scenario = factor(Scenario, levels = c("5+", "12+", "18+"))) %>%
+    Scenario == 1 ~ "Vaccination of 5+",
+    Scenario == 2 ~ "Vaccination of 12+",
+    Scenario == 3 ~ "Vaccination of 18+"), 
+    Scenario = factor(Scenario, levels = c("Vaccination of 5+", "Vaccination of 12+", "Vaccination of 18+"))) %>%
   pivot_wider(names_from = state, values_from = mean:upper) %>%
   group_by(Scenario, time) %>%
   mutate(h = params$h,
@@ -95,7 +94,12 @@ all_res_for_plot_wane <- data_combined_wane %>%
            outcome == "ic" ~ "IC Admissions",
            outcome == "deaths" ~ "Daily Deaths"
          ), levels = c("Daily Cases","Hospital Admissions","IC Admissions","Daily Deaths")),
-         Immunity = "Waning") %>%
+         Immunity = "Waning",
+         age_group2 = case_when(
+           age_group == 1 ~ "0-9 years",
+           age_group == 2 ~ "10-19 years",
+           age_group %in% c(3:9) ~ ">19 years"),
+         age_group2 = factor(age_group2, levels = c("0-9 years", "10-19 years", ">19 years"))) %>%
   select(-time)
 
 all_res_for_plot <- all_res_for_plot %>%
@@ -108,11 +112,6 @@ all_res <- bind_rows(all_res_for_plot, all_res_for_plot_wane)
 dat_fig2 <- all_res %>%
   filter(outcome == "Daily Cases",
          date >= as.Date("2021-11-01")) %>%
-  mutate(age_group2 = case_when(
-    age_group == 1 ~ "0-9",
-    age_group == 2 ~ "10-19",
-    age_group %in% c(3:9) ~ ">19"),
-    age_group2 = factor(age_group2, levels = c("0-9", "10-19", ">19"))) %>%
   group_by(Immunity, Scenario, age_group2, date, outcome) %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
 
@@ -120,13 +119,13 @@ fig2a <- ggplot(data = dat_fig2 %>%
                   filter(Immunity == "No Waning"), 
                 aes(x = date, y = mle, fill = age_group2,linetype = Scenario)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = age_group2), alpha = 0.3) +
-  geom_line(aes(color = age_group2), size = 1) +
+  geom_line(aes(color = age_group2), size = 1, alpha = 0.1) +
   geom_line(data = dat_fig2 %>%
               filter(Immunity == "Waning") %>%
               mutate(age_group3 = age_group2),
             aes(x = date, y = mle, linetype = Scenario, color = age_group2), size = 1) +
   scale_linetype_manual(values = c("dotted", "dashed", "solid")) +
-  labs(y = "Value", x = "Date") +
+  labs(y = "Cases per day", x = "Date of infection") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
   theme(legend.position = "bottom",
@@ -136,11 +135,14 @@ fig2a <- ggplot(data = dat_fig2 %>%
         strip.text.x = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) #+
+        legend.box="vertical",
+        axis.title=element_text(size=14,face="bold")) +
+  guides(fill=guide_legend("Age Group"), colour = guide_legend("Age Group"),
+         linetype = guide_legend("Strategy")) #+
 #facet_wrap(~age_group2, scales = "free_y", nrow = 1)
 fig2a
 
-ggsave(filename = "inst/extdata/results/figure 2.jpg", plot = fig2a,
+ggsave(filename = paste0(file_path, "figure 2.jpg"), plot = fig2a,
        units = "in", height = 10, width = 12, dpi = 300)
 
 # data wrangling --------------------------------------------
@@ -168,8 +170,8 @@ table2a <- table2 %>%
   mutate_if(is.numeric, round, 1) %>%
   as.data.frame()
 
-save_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/results/main_analysis/"
-write.csv(table2a, file = paste0(save_path, "table2.csv"))
+#save_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/results/main_analysis/"
+write.csv(table2a, file = paste0(file_path, "table2.csv"))
 
 # all age groups together
 table2 %>%
@@ -212,8 +214,8 @@ figS_waning <- ggplot(data = dat_figS_waning %>%
   facet_grid(Scenario~., scales = "free_y")
 figS_waning
 
-save_path_fig <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/results/figures/"
-ggsave(filename = paste0(save_path_fig, "figure_waning_by_age_group.jpg"), plot = figS_waning,
+#save_path_fig <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/results/figures/"
+ggsave(filename = paste0(file_path, "figure_waning_by_age_group.jpg"), plot = figS_waning,
        units = "in", height = 10, width = 12, dpi = 300)
 
 

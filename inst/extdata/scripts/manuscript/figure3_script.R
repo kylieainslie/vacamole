@@ -5,6 +5,8 @@
 source("inst/extdata/scripts/manuscript/figure1_script.R")
 source("inst/extdata/scripts/manuscript/figure2_script.R")
 # -------------------------------------------------------------
+save_path <- "/rivm/s/ainsliek/results/impact_vac/"
+
 # a) no waning
 dat_fig3 <- all_res %>%
   filter(outcome == "Daily Cases",
@@ -31,7 +33,7 @@ fig3 <- ggplot(data = dat_fig3,
   facet_grid(Scenario~., scales = "free_y")
 fig3
 
-ggsave(filename = "inst/extdata/results/figure3.jpg", plot = fig3,
+ggsave(filename = paste0(save_path, "figure3.jpg"), plot = fig3,
        units = "in", height = 8, width = 12, dpi = 300)
 
 # -------------------------------------------------------------
@@ -61,7 +63,7 @@ figS4 <- ggplot(data = dat_figS4,
   facet_grid(outcome~Scenario, scales = "free_y")
 figS4
 
-ggsave(filename = "inst/extdata/results/figureS4.jpg", plot = figS4,
+ggsave(filename = paste0(save_path, "figureS4.jpg"), plot = figS4,
        units = "in", height = 8, width = 12, dpi = 300)
 
 # -------------------------------------------------------------
