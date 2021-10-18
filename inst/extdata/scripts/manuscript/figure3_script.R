@@ -1,6 +1,9 @@
 # -------------------------------------
 # plot of outcomes by age group
 # -------------------------------------
+library(ggsci)
+library(gridExtra)
+
 # need to run figure1_script.R and figure2_script.R first
 source("inst/extdata/scripts/manuscript/figure1_script.R")
 source("inst/extdata/scripts/manuscript/figure2_script.R")
@@ -19,6 +22,8 @@ fig3 <- ggplot(data = dat_fig3,
                  aes(x = date, y = mle, fill = age_group)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = age_group), alpha = 0.3) +
   geom_line(aes(color = age_group)) +
+  scale_fill_nejm() +
+  scale_color_nejm() +
   labs(y = "Daily Cases", x = "Date") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
