@@ -15,7 +15,7 @@ source("R/forward_sim_func_wrap.R")
 
 # read in simulation results --------------------------------
 file_date <- "2021-10-01"
-file_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/code/vacamole/inst/extdata/results/sensitivity_analysis/"
+file_path <- "/rivm/s/ainsliek/results/impact_vac/"
 # no waning
 alpha_12plus <- readRDS(paste0(file_path, "results_12plus_alpha_", file_date, ".rds"))
 alpha_18plus <- readRDS(paste0(file_path, "results_18plus_alpha_", file_date, ".rds"))
@@ -99,9 +99,19 @@ dat_for_plot <- dat_combined_s4 %>%
             outcome == "deaths" ~ "Daily Deaths"
          ), levels = c("Daily Cases","Hospital Admissions","IC Admissions","Daily Deaths")),
          age_group2 = case_when(
-           age_group == 2 ~ "10-19",
-           age_group %in% c(1,3:9) ~ "0-9 & >19"
-         )) %>%
+           age_group == 2 ~ "10-19 year olds",
+           age_group %in% c(1,3:9) ~ "0-9 & >19 year olds"
+         ),
+         Scenario = case_when(
+           Scenario == "12+" ~ "Vaccination of 12+", 
+           Scenario == "18+" ~ "Vaccination of 18+"
+         ),
+         Scenario = factor(Scenario, levels = c("Vaccination of 12+", "Vaccination of 18+")),
+         Immunity = case_when(
+           Immunity == "No Waning" ~ "No waning immunity",
+           Immunity == "Waning" ~ "Waning immunity"
+         )
+         ) %>%
   select(-time)
 
 dat_figS4 <- dat_for_plot %>%
@@ -109,8 +119,10 @@ dat_figS4 <- dat_for_plot %>%
   summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum") %>%
   ungroup()
 
-# figure 1a - 12+ vs. 18+, 10-19 age group, no waning ---------
-figS4a <- ggplot(data = dat_figS4 %>%
+# figure S4 --------------------------------------------------
+# 12+ vs. 18+, 10-19 age group, no waning --------------------
+
+figS4 <- ggplot(data = dat_figS4 %>%
                    filter(outcome == "Daily Cases"),
                 aes(x = date, y = mle, fill = Immunity, linetype = Scenario)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = Immunity), alpha = 0.3) +
@@ -118,19 +130,25 @@ figS4a <- ggplot(data = dat_figS4 %>%
   labs(y = "Daily Cases", x = "Date") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
+  guides(fill = guide_legend(""), color = guide_legend(""),
+         linetype = guide_legend("Strategy")) +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
         axis.text.y = element_text(size = 14),
-        strip.text.x = element_text(size = 14),
+        strip.text.y = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
         axis.title=element_text(size=14,face="bold")) +
   facet_grid(age_group2~., scales = "free_y")
-figS4a
+figS4
 
-# figure 1b - 12+ vs. 18+, !10-19 age group, no waning --------
-figS4b <- ggplot(data = dat_figS4 %>%
+ggsave(filename = paste0(file_path,"figure S4.jpg"), plot = figS4,
+       units = "in", height = 10, width = 12, dpi = 300)
+
+# figure S5 --------------------------------------------------
+# 12+ vs. 18+, 10-19 age group, no waning --------------------
+figS5 <- ggplot(data = dat_figS4 %>%
                    filter(outcome %in% c("Hospital Admissions", "IC Admissions")), 
                 aes(x = date, y = mle, fill = Immunity,linetype = Scenario)) +
   geom_line(aes(color = Immunity)) +
@@ -138,31 +156,21 @@ figS4b <- ggplot(data = dat_figS4 %>%
   labs(y = "Value", x = "Date") +
   ylim(0,NA) +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
+  guides(fill = guide_legend(""), color = guide_legend(""),
+         linetype = guide_legend("Strategy")) +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
         axis.text.y = element_text(size = 14),
         strip.text.x = element_text(size = 14),
+        strip.text.y = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
         axis.title=element_text(size=14,face="bold")) +
   facet_grid(age_group2~outcome, scales = "free_y")
-figS4b
+figS5
 
-# figS4_no_legend <- plot_grid(figS4a + theme(legend.position = "none"), 
-#                   figS4b + theme(legend.position = "none"), 
-#                   labels = "AUTO", nrow = 1)
-# 
-# legend <- get_legend(
-#   figS4a + theme(legend.box.margin = margin(0, 0, 0, 12))
-# )
-# 
-# figS4 <- plot_grid(figS4_no_legend, legend, rel_heights = c(3, .4), nrow = 2)
-# figS4
-save_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/vaccination_modelling/vacamole_files/results/figures/"
-ggsave(filename = paste0(save_path,"figure S4a.jpg"), plot = figS4a,
-       units = "in", height = 10, width = 12, dpi = 300)
-ggsave(filename = paste0(save_path,"figure S4b.jpg"), plot = figS4b,
+ggsave(filename = paste0(file_path,"figure S5.jpg"), plot = figS5,
        units = "in", height = 10, width = 12, dpi = 300)
 
 # table S4 ----------------------------------------------------

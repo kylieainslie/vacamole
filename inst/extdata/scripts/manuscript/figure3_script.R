@@ -75,7 +75,7 @@ figS_waning <- ggplot(data = dat_figS_waning %>%
         panel.background = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
         axis.text.y = element_text(size = 14),
-        strip.text.x = element_text(size = 14),
+        strip.text.y = element_text(size = 14),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 14),
         axis.title=element_text(size=14,face="bold")) +
