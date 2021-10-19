@@ -1,10 +1,28 @@
 #' convert cumulative vaccination schedule to non-cumulative ----------------------------------
-#' @param vac_schedule 
-#' @param ve 
-#' @param hosp_multiplier
-#' @param delay
-#' @param ve_trans
-#' @param add_child_vac
+#' @param vac_schedule a data frame that the proportion of the population who receives vaccines
+#' at each time point. Rows are time points, columns are vaccine type, age group, and dose. For example,
+#' the first column is the proportion of individuals in age group 1 who receive dose 1 of the first vaccine
+#' type. The function assumes 9 age groups and four vaccine types, each with a 2-dose regimen.
+#' @param ve a named list of vaccine effectiveness against infection for each dose of each vaccine type.
+#' @param hosp_multiplier a named list of the values for the vaccine effectiveness against hospitalization
+#' for each dose of each vaccine type. Vaccine effectiveness against hospitalization is incorporated as a 
+#' multiplier on the probability of being hospitalized after infection as (1 – VEhospitalization)/(1-VEinfection)
+#' to account for the the inclusion of people who are never infected (and thus never hospitalized) included 
+#' in the estimation of VE against hospitalization.
+#' @param delay a named list of the time to protection for each dose of each vaccine type.
+#' @param ve_trans a named list of vaccine effectiveness against transmission for each dose of each vaccine type.
+#' @param add_child_vac logical, if TRUE 5-11 year olds are vaccinated
+#' @param child_vac_coverage total vaccine coverage in 5-11 to achieve (between 0 and 1) if add_child_vac = TRUE
+#' @param child_doses_per_day the number of doses to be administered to 5-11 year olds if add_child_vac = TRUE
+#' @param child_vac_start_date character string of the date (YYYY-MM-DD format) to start vaccinating 5-11 year
+#' olds, if add_child_vac = TRUE
+#' @param wane logical, if TRUE vaccine effectiveness wanes by a logistic function parameterized by arguments
+#' k and t0.
+#' @param k logistic growth rate
+#' @param t0 the time point at which 50% waning occurs
+#' @param add_extra_dates logical, if TRUE add extra rows to the vaccination schedule until extra_end_date
+#' @param extra_end_date character string of the date (YYYY-MM-DD format) to end the vaccination schedule (which will
+#' also be the last date of the simulation)
 #' @return 
 #' @keywords vacamole
 #' @export
@@ -13,7 +31,6 @@ convert_vac_schedule <- function(vac_schedule,
                                  hosp_multiplier, 
                                  delay, 
                                  ve_trans,
-                                 #before_feb = FALSE,
                                  add_child_vac = FALSE,
                                  child_vac_coverage = 0.75,
                                  child_doses_per_day = 50000,

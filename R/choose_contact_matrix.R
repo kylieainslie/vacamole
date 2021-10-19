@@ -1,9 +1,13 @@
 #' Determine contact matrix based on thresholds of cases or IC admissions
 #' @param params list of parameter values
-#' @param criteria criteria by which to change contact matrix
-#' @param flag_relaxed 
-#' @param flag_very_relaxed
-#' @param flag_normal
+#' @param criteria criteria by which to change contact matrix. User can choose between a number of
+#' cases per day or a number of IC admissions.
+#' @param flag_relaxed an integer value that becomes non-zero (positive) when the contact matrix consistent with
+#' "relaxed" non-pharmaceutical interventions is being used.  
+#' @param flag_very_relaxed an integer value that becomes non-zero (positive) when the contact matrix consistent with
+#' "very relaxed" non-pharmaceutical interventions is being used. 
+#' @param flag_normal an integer value that becomes non-zero (positive) when the contact matrix consistent with
+#' normal (pre-pandemic) contact patterns is being used. 
 #' @param keep_fixed logical. if TRUE the contact matrix stays fixed over the
 #' entire simulation period
 #' @return List of summary results
