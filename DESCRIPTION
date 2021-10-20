@@ -24,6 +24,7 @@ Suggests:
     reshape2,
     ggplot2,
     lubridate,
-    tidyverse
+    tidyverse,
+    rmarkdown
 SystemRequirements: C++11
 VignetteBuilder: knitr
