@@ -10,6 +10,8 @@
 #' @param stochastic logical, if TRUE, a stochastic model is fit to the data
 #' otherwise a deterministic model is used.
 #' @keywords vacamole
+#' @importFrom stats dnbinom
+#' @importFrom rARPACK eigs
 #' @export
 likelihood_func <- function(x,
                             t,
@@ -43,6 +45,6 @@ likelihood_func <- function(x,
   # lik <- sum(dpois(x = inc_obs,lambda = incidence,log=TRUE))
   alpha <- x[2]
   size <- daily_cases * (alpha/(1-alpha))
-  lik <- -sum(dnbinom(x = inc_obs, mu = daily_cases, size = size, log = TRUE))
+  lik <- -sum(stats::dnbinom(x = inc_obs, mu = daily_cases, size = size, log = TRUE))
   lik
 }

@@ -3,6 +3,7 @@
 #' @param params list of parameter values
 #' @param start_date calendar date of start of simulation
 #' @param times vector of time points
+#' @param vac_inputs vaccination inputs (from the output of convert_vac_schedule())
 #' @return List of summary results
 #' @keywords vacamole
 #' @export
@@ -34,11 +35,7 @@ vac_inputs_new = list(alpha_dose1 = alpha_dose1,
 lambda_est <- get_foi(dat = seir_output, params = params, vac_inputs = vac_inputs_new)
 
 lambda_est1 <- lambda_est$lambda %>%
-  pivot_wider(names_from = age_group, names_prefix = "age_group_", values_from = foi)
-
-# vaccinations
-# first_doses_administered <- alpha_dose1[,-1] * seir_out$S 
-# second_doses_administered <- alpha_dose2[,-1] * seir_out$Sv_1d 
+  pivot_wider(names_from = .data$age_group, names_prefix = "age_group_", values_from = .data$foi)
 
 # infections
 new_infections <- (seir_output$S + seir_output$Shold_1d + 
@@ -53,16 +50,16 @@ infectious <- (seir_output$I + seir_output$Iv_1d + seir_output$Iv_2d)
 cases <- sweep(infectious, 2, params$p_report, "*")
 
 # hospitalisations/ic admissions
-hosp_admissions <- sweep(infectious, 2, h, "*")
+hosp_admissions <- sweep(infectious, 2, params$h, "*")
 hosp_occ <- (seir_output$H + seir_output$Hv_1d + seir_output$Hv_2d)
-ic <- sweep(hosp_occ, 2, i1, "*")
+ic <- sweep(hosp_occ, 2, params$i1, "*")
 ic_occ <- (seir_output$IC + seir_output$ICv_1d + seir_output$ICv_2d)
-hosp_after_ic <- sweep(ic, 2, i2, "*")
+hosp_after_ic <- sweep(ic, 2, params$i2, "*")
 hosp_after_ic_occ <- (seir_output$H_IC + seir_output$H_ICv_1d + seir_output$H_ICv_2d)
 total_hosp_occ <- (seir_output$H + seir_output$Hv_1d + seir_output$Hv_2d) + (seir_output$H_IC + seir_output$H_ICv_1d + seir_output$H_ICv_2d)
 
 # deaths
-daily_deaths <- sweep(ic_occ, 2, d_ic, "*") + sweep(hosp_occ, 2, d, "*") + sweep(hosp_after_ic_occ, 2, d_hic, "*")
+daily_deaths <- sweep(ic_occ, 2, params$d_ic, "*") + sweep(hosp_occ, 2, params$d, "*") + sweep(hosp_after_ic_occ, 2, params$d_hic, "*")
 
 # Create object for plotting ---------------------------------------
 # convert from wide to long format
@@ -125,23 +122,23 @@ deaths_long <- daily_deaths %>%
 
 
 df <- left_join(inf_long, new_inf_long, by = c("time", "age_group")) %>%
-  left_join(.,cases_long, by = c("time", "age_group")) %>%
-  left_join(., new_cases_long, by = c("time", "age_group")) %>%
-  left_join(.,hosp_long, by = c("time", "age_group")) %>%
-  left_join(., hosp_admin_long, by = c("time", "age_group")) %>%
-  left_join(.,ic_long, by = c("time", "age_group")) %>%
-  left_join(.,deaths_long, by = c("time", "age_group")) %>%
+  left_join(.data,cases_long, by = c("time", "age_group")) %>%
+  left_join(.data, new_cases_long, by = c("time", "age_group")) %>%
+  left_join(.data,hosp_long, by = c("time", "age_group")) %>%
+  left_join(.data, hosp_admin_long, by = c("time", "age_group")) %>%
+  left_join(.data,ic_long, by = c("time", "age_group")) %>%
+  left_join(.data,deaths_long, by = c("time", "age_group")) %>%
   pivot_longer(cols = c("infections", "new_infections", "cases", "new_cases",
                         "hospitalisations", "hospital_admissions", "ic_admissions",
                         "new_deaths"),
                names_to = "outcome",
                values_to = "value") %>%
-  mutate(date = time + as.Date(start_date)) %>%
-  select(time, date, age_group, outcome, value)
+  mutate(date = .data$time + as.Date(start_date)) %>%
+  select(.data$time, .data$date, .data$age_group, .data$outcome, .data$value)
 
 
 df_summary <- df %>%
-  group_by(time, date, outcome) %>%
+  group_by(.data$time, .data$date, .data$outcome) %>%
   summarise_at(.vars = "value", .funs = sum)
 
   rtn <- list(lambda = lambda_est,

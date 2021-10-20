@@ -4,6 +4,9 @@
 #' @param params list of parameter values
 #' @return List of summary results
 #' @keywords vacamole
+#' @importFrom stats rbinom
+#' @importFrom stats rpois
+#' @importFrom stats rmultinom
 #' @export
 # Define model -----------------------------------------------------
 stochastic_age_struct_seir_ode <- function(times,init,params){

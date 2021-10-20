@@ -15,6 +15,8 @@ choose_contact_matrix(
 )
 }
 \arguments{
+\item{times}{vector of time points}
+
 \item{params}{list of parameter values}
 
 \item{criteria}{criteria by which to change contact matrix. User can choose between a number of

@@ -1,3 +1,10 @@
+#' Postprocess output from age-structured SEIR ODE model of vaccination 
+#' with 2 doses and delay to protection
+#' @param x vector of probabilities
+#' @return List of summary results
+#' @keywords vacamole
+#' @importFrom stats rmultinom
+#' @export
 my_rmultinom <- function(x){
   
   size <- x[1]

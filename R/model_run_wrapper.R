@@ -1,5 +1,14 @@
-# function wrapper to run model for multiple time windows with set of transmission rates
-
+#' Function wrapper to run model for multiple time windows with set of 
+#' transmission rates
+#' @param breakpoints list of breakpoints
+#' @param beta_values vector of beta values
+#' @param init_conditions vector of initial conditions
+#' @param params vector of model input parameters
+#' @param mle logical, if TRUE the current run is the maximum likelihood estimate
+#' @keywords vacamole
+#' @importFrom lubridate yday
+#' @importFrom utils tail
+#' @export
 model_run_wrapper <- function(breakpoints, 
                               beta_values, 
                               init_conditions, 
@@ -64,7 +73,7 @@ model_run_wrapper <- function(breakpoints,
         init_update <- init_conditions
         } else {
         # update initial conditions --------------------------
-        init_update <- c(t = times[1], unlist(lapply(unname(out_store[[j-1]][[i]]), tail,1)))
+        init_update <- c(t = times[1], unlist(lapply(unname(out_store[[j-1]][[i]]), utils::tail,1)))
       }
     # --------------------------------------------------
     # run model 

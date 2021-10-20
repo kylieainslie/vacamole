@@ -6,7 +6,7 @@
 #' @param ve a named list of vaccine effectiveness against infection for each dose of each vaccine type.
 #' @param hosp_multiplier a named list of the values for the vaccine effectiveness against hospitalization
 #' for each dose of each vaccine type. Vaccine effectiveness against hospitalization is incorporated as a 
-#' multiplier on the probability of being hospitalized after infection as (1 – VEhospitalization)/(1-VEinfection)
+#' multiplier on the probability of being hospitalized after infection as (1 – VE_hospitalization) divided by (1-VE_infection)
 #' to account for the the inclusion of people who are never infected (and thus never hospitalized) included 
 #' in the estimation of VE against hospitalization.
 #' @param delay a named list of the time to protection for each dose of each vaccine type.
@@ -19,12 +19,14 @@
 #' @param wane logical, if TRUE vaccine effectiveness wanes by a logistic function parameterized by arguments
 #' k and t0.
 #' @param k logistic growth rate
-#' @param t0 the time point at which 50% waning occurs
+#' @param t0 the time point at the midpoint of the logistic curve (where 50\% waning occurs)
 #' @param add_extra_dates logical, if TRUE add extra rows to the vaccination schedule until extra_end_date
 #' @param extra_end_date character string of the date (YYYY-MM-DD format) to end the vaccination schedule (which will
 #' also be the last date of the simulation)
-#' @return 
+#' @return list of vaccination rate by day and dose and weighted VE and delay to protection by day and dose
 #' @keywords vacamole
+#' @import tidyr
+#' @import dplyr
 #' @export
 convert_vac_schedule <- function(vac_schedule, 
                                  ve, 
@@ -52,17 +54,17 @@ date_vec <- as.Date(vac_schedule$date, format = "%m/%d/%Y")
 vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[,-1]))) %>%
   add_row(vac_schedule[1,-1],.before = 1) %>%
   mutate(date = date_vec,
-         pf_d1_9 = (pf_d1_9 * n_vec_10[9] + pf_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
-         pf_d2_9 = (pf_d2_9 * n_vec_10[9] + pf_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
-         mo_d1_9 = (mo_d1_9 * n_vec_10[9] + mo_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
-         mo_d2_9 = (mo_d2_9 * n_vec_10[9] + mo_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
-         az_d1_9 = (az_d1_9 * n_vec_10[9] + az_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
-         az_d2_9 = (az_d2_9 * n_vec_10[9] + az_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
-         ja_d1_9 = (ja_d1_9 * n_vec_10[9] + ja_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
-         ja_d2_9 = (ja_d2_9 * n_vec_10[9] + ja_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10])
+         pf_d1_9 = (.data$pf_d1_9 * n_vec_10[9] + .data$pf_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
+         pf_d2_9 = (.data$pf_d2_9 * n_vec_10[9] + .data$pf_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
+         mo_d1_9 = (.data$mo_d1_9 * n_vec_10[9] + .data$mo_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
+         mo_d2_9 = (.data$mo_d2_9 * n_vec_10[9] + .data$mo_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
+         az_d1_9 = (.data$az_d1_9 * n_vec_10[9] + .data$az_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
+         az_d2_9 = (.data$az_d2_9 * n_vec_10[9] + .data$az_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
+         ja_d1_9 = (.data$ja_d1_9 * n_vec_10[9] + .data$ja_d1_10 * n_vec_10[10])/sum(n_vec_10[9:10]),
+         ja_d2_9 = (.data$ja_d2_9 * n_vec_10[9] + .data$ja_d2_10 * n_vec_10[10])/sum(n_vec_10[9:10])
          ) %>%
-  select(date, pf_d1_1:ja_d2_9, -pf_d1_10, -pf_d2_10, -mo_d1_10, -mo_d2_10, -az_d1_10, 
-         -az_d2_10, -ja_d1_10, -ja_d2_10) 
+  select(.data$date, .data$pf_d1_1:.data$ja_d2_9, -.data$pf_d1_10, -.data$pf_d2_10, -.data$mo_d1_10, 
+         -.data$mo_d2_10, -.data$az_d1_10, -.data$az_d2_10, -.data$ja_d1_10, -.data$ja_d2_10) 
 
 vac_schedule_orig_new <- vac_schedule_orig
 
@@ -72,7 +74,7 @@ if(add_extra_dates){
   na_to_zero <- function(x){ ifelse(is.na(x), 0, x) }
   extra_dat <- data.frame(date = extra_dates) %>%
     full_join(vac_schedule_orig_new, extra_dates, by = "date") %>%
-    mutate_at(vars(-date), na_to_zero)
+    mutate_at(vars(-.data$date), na_to_zero)
   vac_schedule_orig_new <- extra_dat
 }
 
@@ -100,10 +102,10 @@ if(add_child_vac){
   
   vac_schedule_orig_new <- vac_schedule_orig_new %>%
     # vaccinate 10-11 first, then 5-9
-    mutate(pf_d1_1 = ifelse(date >= start_date_5_9 & date <= end_date_5_9, pf_d1_1 + p_child_5_9_doses_per_day, pf_d1_1),
-           pf_d2_1 = ifelse(date >= start_date_5_9 + 21 & date <= end_date_5_9 + 21, pf_d2_1 + p_child_5_9_doses_per_day, pf_d2_1),
-           pf_d1_2 = ifelse(date >= start_date_10_11 & date <= end_date_10_11, pf_d1_2 + p_child_10_11_doses_per_day, pf_d1_2),
-           pf_d2_2 = ifelse(date >= start_date_10_11 + 21 & date <= end_date_10_11 + 21,pf_d2_2 + p_child_10_11_doses_per_day, pf_d2_2)
+    mutate(pf_d1_1 = ifelse(date >= start_date_5_9 & date <= end_date_5_9, .data$pf_d1_1 + p_child_5_9_doses_per_day, .data$pf_d1_1),
+           pf_d2_1 = ifelse(date >= start_date_5_9 + 21 & date <= end_date_5_9 + 21, .data$pf_d2_1 + p_child_5_9_doses_per_day, .data$pf_d2_1),
+           pf_d1_2 = ifelse(date >= start_date_10_11 & date <= end_date_10_11, .data$pf_d1_2 + p_child_10_11_doses_per_day, .data$pf_d1_2),
+           pf_d2_2 = ifelse(date >= start_date_10_11 + 21 & date <= end_date_10_11 + 21, .data$pf_d2_2 + p_child_10_11_doses_per_day, .data$pf_d2_2)
            )
 
   vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
@@ -116,28 +118,28 @@ if(add_child_vac){
 
 # create separate data frame for each vaccine -------------------------------------------------
 # pfizer
-pf_dose1 <- vac_schedule_orig_new %>% select(date, pf_d1_1:pf_d1_9)
-pf_dose1_cs <- vac_schedule_new_cs %>% select(pf_d1_1:pf_d1_9)
-pf_dose2 <- vac_schedule_orig_new %>% select(date, pf_d2_1:pf_d2_9)
-pf_dose2_cs <- vac_schedule_new_cs %>% select(pf_d2_1:pf_d2_9)
+pf_dose1 <- vac_schedule_orig_new %>% select(date, .data$pf_d1_1:.data$pf_d1_9)
+pf_dose1_cs <- vac_schedule_new_cs %>% select(.data$pf_d1_1:.data$pf_d1_9)
+pf_dose2 <- vac_schedule_orig_new %>% select(date, .data$pf_d2_1:.data$pf_d2_9)
+pf_dose2_cs <- vac_schedule_new_cs %>% select(.data$pf_d2_1:.data$pf_d2_9)
 
 # moderna
-mo_dose1 <- vac_schedule_orig_new %>% select(date, mo_d1_1:mo_d1_9)
-mo_dose1_cs <- vac_schedule_new_cs %>% select(mo_d1_1:mo_d1_9)
-mo_dose2 <- vac_schedule_orig_new %>% select(date, mo_d2_1:mo_d2_9)
-mo_dose2_cs <- vac_schedule_new_cs %>% select(mo_d2_1:mo_d2_9)
+mo_dose1 <- vac_schedule_orig_new %>% select(date, .data$mo_d1_1:.data$mo_d1_9)
+mo_dose1_cs <- vac_schedule_new_cs %>% select(.data$mo_d1_1:.data$mo_d1_9)
+mo_dose2 <- vac_schedule_orig_new %>% select(date, .data$mo_d2_1:.data$mo_d2_9)
+mo_dose2_cs <- vac_schedule_new_cs %>% select(.data$mo_d2_1:.data$mo_d2_9)
 
 # astrazeneca
-az_dose1 <- vac_schedule_orig_new %>% select(date, az_d1_1:az_d1_9)
-az_dose1_cs <- vac_schedule_new_cs %>% select(az_d1_1:az_d1_9)
-az_dose2 <- vac_schedule_orig_new %>% select(date, az_d2_1:az_d2_9)
-az_dose2_cs <- vac_schedule_new_cs %>% select(az_d2_1:az_d2_9)
+az_dose1 <- vac_schedule_orig_new %>% select(date, .data$az_d1_1:.data$az_d1_9)
+az_dose1_cs <- vac_schedule_new_cs %>% select(.data$az_d1_1:.data$az_d1_9)
+az_dose2 <- vac_schedule_orig_new %>% select(date, .data$az_d2_1:.data$az_d2_9)
+az_dose2_cs <- vac_schedule_new_cs %>% select(.data$az_d2_1:.data$az_d2_9)
 
 # jansen
-ja_dose1 <- vac_schedule_orig_new %>% select(date, ja_d1_1:ja_d1_9)
-ja_dose1_cs <- vac_schedule_new_cs %>% select(ja_d1_1:ja_d1_9)
-ja_dose2 <- vac_schedule_orig_new %>% select(date, ja_d2_1:ja_d2_9)
-ja_dose2_cs <- vac_schedule_new_cs %>% select(ja_d2_1:ja_d2_9)
+ja_dose1 <- vac_schedule_orig_new %>% select(date, .data$ja_d1_1:.data$ja_d1_9)
+ja_dose1_cs <- vac_schedule_new_cs %>% select(.data$ja_d1_1:.data$ja_d1_9)
+ja_dose2 <- vac_schedule_orig_new %>% select(date, .data$ja_d2_1:.data$ja_d2_9)
+ja_dose2_cs <- vac_schedule_new_cs %>% select(.data$ja_d2_1:.data$ja_d2_9)
 
 # calculate composite VE ---------------------------------------------------------------------
 name_suffix_d1 <- c(substr(names(pf_dose1[,-1]), 3, 7))

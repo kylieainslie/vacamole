@@ -9,7 +9,7 @@ age_struct_seir_ode(times, init, params)
 \arguments{
 \item{times}{vector of times}
 
-\item{init}{list of inititial states}
+\item{init}{list of initial states}
 
 \item{params}{list of parameter values}
 }

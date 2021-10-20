@@ -11,10 +11,10 @@ source("R/forward_sim_func_wrap.R")
 # ------------------------------------------------------------------
 # read in vac schedules --------------------------------------------
 # ------------------------------------------------------------------
-basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
+basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/vac_schedule_18plus.csv") %>%
   select(-starts_with("X"))
 
-basis_12plus_jun <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
+basis_12plus_jun <- read_csv("inst/extdata/data/vaccination_scenarios/vac_schedule_12plus.csv") %>%
   select(-starts_with("X"))
 
 # model wrapper function inputs ------------------------------------

@@ -11,7 +11,7 @@ get_foi(dat, params, vac_inputs)
 
 \item{params}{list of parameter values}
 
-\item{contact_matrix}{contact matrix}
+\item{vac_inputs}{vaccination inputs (output from convert_vac_schedule())}
 }
 \value{
 matrix of force of infection in each age group (columns) at each

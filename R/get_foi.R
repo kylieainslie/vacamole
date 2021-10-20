@@ -1,7 +1,7 @@
 #' Calculate force of infection 
 #' @param dat data frame of states
 #' @param params list of parameter values
-#' @param contact_matrix contact matrix
+#' @param vac_inputs vaccination inputs (output from convert_vac_schedule())
 #' @return matrix of force of infection in each age group (columns) at each
 #' time point (rows)
 #' @keywords vacamole

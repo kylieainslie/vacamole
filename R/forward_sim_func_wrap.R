@@ -1,40 +1,27 @@
 # ------------------------------------------------------------------
-# Helper data wrangling functions ----------------------------------
-# ------------------------------------------------------------------
-
-wide_to_long <- function(x, times) {
-  
-  x %>% 
-    mutate(time = times) %>%
-    pivot_longer(cols = !time,
-                 names_to = c("state", "age_group"),
-                 names_sep = -1,
-                 values_to = "value")
-}
-
-wrangle_results <- function(x){
-  
-  rtn_mle <- x %>%
-    filter(sim == 0)
-  
-  rtn_bounds <- x %>%
-    filter(sim != 0) %>%
-    group_by(time, state, age_group) %>%
-    summarise(lower = quantile(value, probs = 0.025),
-              upper = quantile(value, probs = 0.975)) 
-  
-  rtn <- left_join(rtn_mle, rtn_bounds, by = c("time", "state", "age_group")) %>%
-    rename(mean = value) %>%
-    select(-sim)
-  
-  return(rtn)
-}
-
-# ------------------------------------------------------------------
 # Forward simulation function wrapper ------------------------------
 # ------------------------------------------------------------------
-
-forward_sim_func_wrap <- function(start_date,
+#' Wrapper function to perform forward simulations
+#' @param params List of model input parameters.
+#' @param start_date Start date of simulations (character string in YYYY-MM-DD format)
+#' @param end_date End date of simulations (character string in YYYY-MM-DD format)
+#' @param init_cond Named vector of initial conditions for model compartments
+#' @param beta_m Transmission rate mean.
+#' @param vac_inputs Vaccination inputs for model. This should be the output of convert_vac_schedule().
+#' @param beta_c Transmission rate when contact matrix changes to pre-pandemic (time > t_normal)
+#' @param beta_d Transmission rate draws for determining uncertainty around the mean transmission rate
+#' @param t_normal Time point to force model to switch to pre-pandemic contact matrix
+#' @param contact_matrices List of contact matrices
+#' @param tag Character string of name of output file
+#' @return Data frame of model outputs for each simulation
+#' @import tidyr
+#' @import dplyr
+#' @import lubridate
+#' @import deSolve
+#' @keywords vacamole
+#' @export
+forward_sim_func_wrap <- function(params,
+                                  start_date,
                                   end_date,
                                   init_cond,
                                   beta_m,
@@ -54,40 +41,16 @@ forward_sim_func_wrap <- function(start_date,
 
   initial_conditions <- c(t=times[1], init_cond)
 
-  # Create list of parameter values for input into model solver ------
-  params <- list(beta = beta_m,             # transmission rate
-                 beta1 = 0.14,              # amplitude of seasonal forcing
-                 gamma = g,                 # 1/gamma = infectious period
-                 sigma = s,                 # 1/sigma = latent period
-                 epsilon = 0.01,            # import case
-                 N = n_vec,                 # Population (no need to change)
-                 h = h,                     # Rate from infection to hospital admission/ time from infection to hosp admission
-                 i1 = i1,
-                 i2 = i2,
-                 d = d, 
-                 d_ic = d_ic,
-                 d_hic = d_hic,
-                 r = r,
-                 r_ic = r_ic,
-                 p_report = 1/3, #p_reported_by_age,
-                 c_start = contact_matrices$june_2021$mean,
-                 c_lockdown = contact_matrices$february_2021$mean,
-                 c_relaxed = contact_matrices$june_2020$mean,
-                 c_very_relaxed = contact_matrices$june_2021$mean,
-                 c_normal = contact_matrices$baseline_2017$mean,
-                 keep_cm_fixed = FALSE,
-                 vac_inputs = vac_inputs,
-                 use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
-                 thresh_n = 0.5/100000 * sum(n_vec),         # somewhat arbitrary cut-off ***need to check if realistic
-                 thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
-                 thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
-                 thresh_u = 100000/100000 * sum(n_vec),        #35.7  # 20 for IC admissions
-                 no_vac = FALSE,
-                 t_calendar_start = yday(as.Date("2020-01-01")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
-                 beta_change =  beta_c[1],
-                 t_normal = t_normal
-  )
-
+  # Update parameter values for input into model solver ------
+  params$beta <- beta_m
+  params$c_start <- contact_matrices$june_2021$mean
+  params$c_lockdown = contact_matrices$february_2021$mean
+  params$c_relaxed = contact_matrices$june_2020$mean
+  params$c_very_relaxed = contact_matrices$june_2021$mean
+  params$c_normal = contact_matrices$baseline_2017$mean
+  params$vac_inputs = vac_inputs
+  params$beta_change =  beta_c[1]
+  params$t_normal = t_normal
 
   # if time doesn't start at 0 we need to initialise the contact 
   # matrices flags ---------------------------------------------------
@@ -147,12 +110,5 @@ forward_sim_func_wrap <- function(start_date,
   return(rtn)
 
 } # end of function
-
-# test plot
-# ggplot(data = test %>%
-#          filter(state == "E",
-#                 time < 600), aes(x = time, y = value, color = as.factor(sim))) +
-#   geom_line() +
-#   facet_wrap(~age_group)
 
 

@@ -31,7 +31,7 @@ type. The function assumes 9 age groups and four vaccine types, each with a 2-do
 
 \item{hosp_multiplier}{a named list of the values for the vaccine effectiveness against hospitalization
 for each dose of each vaccine type. Vaccine effectiveness against hospitalization is incorporated as a 
-multiplier on the probability of being hospitalized after infection as (1 – VEhospitalization)/(1-VEinfection)
+multiplier on the probability of being hospitalized after infection as (1 – VE_hospitalization) divided by (1-VE_infection)
 to account for the the inclusion of people who are never infected (and thus never hospitalized) included 
 in the estimation of VE against hospitalization.}
 
@@ -53,7 +53,7 @@ k and t0.}
 
 \item{k}{logistic growth rate}
 
-\item{t0}{the time point at which 50% waning occurs}
+\item{t0}{the time point at the midpoint of the logistic curve (where 50\% waning occurs)}
 
 \item{add_extra_dates}{logical, if TRUE add extra rows to the vaccination schedule until extra_end_date}
 
@@ -61,7 +61,7 @@ k and t0.}
 also be the last date of the simulation)}
 }
 \value{
-
+list of vaccination rate by day and dose and weighted VE and delay to protection by day and dose
 }
 \description{
 convert cumulative vaccination schedule to non-cumulative ----------------------------------

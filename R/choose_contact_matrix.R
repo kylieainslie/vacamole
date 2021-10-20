@@ -1,4 +1,5 @@
 #' Determine contact matrix based on thresholds of cases or IC admissions
+#' @param times vector of time points
 #' @param params list of parameter values
 #' @param criteria criteria by which to change contact matrix. User can choose between a number of
 #' cases per day or a number of IC admissions.

@@ -14,6 +14,8 @@ summarise_results(seir_output, params, start_date, times, vac_inputs)
 \item{start_date}{calendar date of start of simulation}
 
 \item{times}{vector of time points}
+
+\item{vac_inputs}{vaccination inputs (from the output of convert_vac_schedule())}
 }
 \value{
 List of summary results

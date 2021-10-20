@@ -3,6 +3,7 @@
 #' @param dat output from seir model as a data frame
 #' @return List of summary results
 #' @keywords vacamole
+#' @importFrom stringr str_detect
 #' @export
 postprocess_age_struct_model_output <- function(dat){
 
