@@ -64,23 +64,8 @@ vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[,-1]))) %>%
   select(date, pf_d1_1:ja_d2_9, -pf_d1_10, -pf_d2_10, -mo_d1_10, -mo_d2_10, -az_d1_10, 
          -az_d2_10, -ja_d1_10, -ja_d2_10) 
 
-# filter for dates before 1 February 2021 -----------------------------------------------------
-# if (before_feb){
-# before_feb <- vac_schedule_orig %>%
-#   filter(date < as.Date("2021-02-01")) %>%
-#   select(-date) %>%
-#   summarise_all(sum) %>%
-#   mutate(date = as.Date("2021-01-31")) %>%
-#   select(date, pf_d1_1:ja_d2_9)
+vac_schedule_orig_new <- vac_schedule_orig
 
-# filter so start date is 1 Feb 2021 with row for Jan 31 to reflect 
-# people who have already been vaccinated -----------------------------------------------------
-# vac_schedule_orig_new <- vac_schedule_orig %>%
-#   filter(date > as.Date("2021-01-31")) %>%
-#   add_row(before_feb, .before = 1)
-# } else {
-  vac_schedule_orig_new <- vac_schedule_orig
-# }
 # add extra rows for dates further in the future (so there's no error when running the model)
 if(add_extra_dates){
   extra_dates <- seq.Date(from = date_vec[1], to = as.Date(extra_end_date), by = 1)
@@ -122,6 +107,8 @@ if(add_child_vac){
            )
 
   vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])
+  # vac_out <- data.frame(date = vac_schedule_orig_new$date, vac_schedule_new_cs)
+  # write.csv(vac_out, file = "inst/extdata/data/vaccination_scenarios/Cum_upt20210701 Basis 75% in 5+ KA.csv")
 } else {
   vac_schedule_new <- vac_schedule_orig_new
   vac_schedule_new_cs <- cumsum(vac_schedule_orig_new[,-1])

@@ -1,6 +1,6 @@
 #' Age-structured SEIR ODE model of vaccination with 2 doses and delay to protection
 #' @param times vector of times
-#' @param init list of inititial states
+#' @param init list of initial states
 #' @param params list of parameter values
 #' @return List of summary results
 #' @keywords vacamole

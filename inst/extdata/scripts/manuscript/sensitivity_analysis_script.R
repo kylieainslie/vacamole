@@ -17,12 +17,6 @@ basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt2021070
 basis_12plus_jun <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
   select(-starts_with("X"))
 
-# basis_12plus_oct <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA October.csv") %>%
-#   select(-starts_with("X"))
-# 
-# basis_12plus_nov <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA November.csv") %>%
-#   select(-starts_with("X"))
-
 # model wrapper function inputs ------------------------------------
 date_of_fit <- "2021-10-01"
 
@@ -63,12 +57,12 @@ todays_date <- Sys.Date()
 # with vaccination of 5-11 year olds
 basis_5plus1_delta <- convert_vac_schedule(vac_schedule = basis_12plus_jun,
   ve = ve_delta, hosp_multiplier = h_multiplier_delta, ve_trans = ve_trans_delta, delay = delays,
-  wane = FALSE, before_feb = FALSE, add_child_vac = TRUE, child_vac_start_date = "2021-10-01",
+  wane = FALSE, add_child_vac = TRUE, child_vac_start_date = "2021-10-01",
   add_extra_dates = TRUE, extra_end_date = "2022-03-31")
 
 basis_5plus1_delta_wane <- convert_vac_schedule(vac_schedule = basis_12plus_jun,
   ve = ve_delta, hosp_multiplier = h_multiplier_delta, ve_trans = ve_trans_delta, delay = delays,
-  wane = TRUE, before_feb = FALSE, add_child_vac = TRUE, child_vac_start_date = "2021-10-01",
+  wane = TRUE, add_child_vac = TRUE, child_vac_start_date = "2021-10-01",
   add_extra_dates = TRUE, extra_end_date = "2022-03-31")
 
 # delta ---------------------------------------------------------------
