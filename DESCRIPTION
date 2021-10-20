@@ -22,6 +22,8 @@ Suggests:
     readxl,
     deSolve,
     reshape2,
-    ggplot2
+    ggplot2,
+    lubridate,
+    tidyverse
 SystemRequirements: C++11
 VignetteBuilder: knitr

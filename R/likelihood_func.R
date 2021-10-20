@@ -1,17 +1,17 @@
 # --------------------------------------------------
 # likelihood function for model fit to case data
 # --------------------------------------------------
-#' @param x
-#' @param contact_matrix
-#' @param t
-#' @param data
-#' @param params
-#' @param init
-#' @param stochastic
+#' Likelihood function for fitting SEIR model to daily case data
+#' @param x vector of parameters to fit
+#' @param t vector of time points 
+#' @param data real data to fit model to
+#' @param params list of parameters values for input into SEIR model
+#' @param init named vector of initial conditions for each model compartment
+#' @param stochastic logical, if TRUE, a stochastic model is fit to the data
+#' otherwise a deterministic model is used.
 #' @keywords vacamole
 #' @export
 likelihood_func <- function(x,
-                            contact_matrix,
                             t,
                             data,
                             params,

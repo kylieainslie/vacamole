@@ -1,54 +1,28 @@
-# find mle of beta from SEIR model fit to real data
-
 # --------------------------------------------------
+# find mle of beta from SEIR model fit to case data
+# --------------------------------------------------
+
 # load packages
-#library(segmented)
-library(ggplot2)
-library(tidyverse)
-library(lubridate)
+# library(ggplot2)
+# library(tidyverse)
+# library(lubridate)
+
+source("inst/extdata/scripts/helpers/model_run_helper.R")
+# source("R/model_run_wrapper.R")
+# source("R/likelihood_func.R")
 
 # Read in OSIRIS data ------------------------------
-source("inst/extdata/scripts/helpers/model_run_helper.R")
-source("R/model_run_wrapper.R")
-source("R/likelihood_func.R")
+case_data <- readRDS("inst/extdata/data/case_data_upto_20210622.rds")
 
-# read in OSIRIS data
-path <- "/rivm/r/COVID-19/Surveillance/Data/OSIRIS/Geschoond/"
-file <- list.files(path, pattern = ".rds") 
-if (identical(file, character(0))) {
-  path <- paste0(path,"Previous/")
-  file <- list.files(path, pattern = ".rds") %>%
-    max()
-}
-osiris <- readRDS(paste0(path,file)) 
-
-osiris_tally <- osiris %>%
-  select(OSIRISNR, INFECTIEZIEKTE, ZIE1eZiekteDt, Land) %>%
-  filter(Land == "Nederland",
-         INFECTIEZIEKTE %in% c("NCOV", "Weak Positive", "Antitgen Pos. + Symptoms", "PCR Positief", "Antigen Positief")) %>%
-  select(-Land) %>%
-  rename(date = ZIE1eZiekteDt) %>%
-  group_by(date) %>%
-  summarise(inc = n()) %>%
-  filter(!is.na(date)) %>%
-  complete(date = seq.Date(min(date), max(date), by="day"), fill = list(inc = 0))
-
-#osiris_tally <- readRDS("inst/extdata/data/real_data/Osiris_Data_20210730_1043.rds")
-
-osiris1 <- osiris_tally %>%
-  mutate(roll_avg = zoo::rollmean(inc, k = 7, fill = 0)) %>%
-  filter(date < max(date)-2) # remove last 3 days due to reporting delay
-
-last_date_in_osiris <- tail(osiris1$date,1)
+last_date_in_osiris <- tail(case_data$date,1)
 
 # plot data
-p <- ggplot(osiris1, aes(x = date, y = inc)) +
+p <- ggplot(case_data, aes(x = date, y = inc)) +
   geom_line() +
   geom_line(aes(x = date, y = roll_avg, color = "red")) +
   theme(panel.background = element_blank())
 p
 
-#time_vec <- seq(0, 76, by = 1)
 # --------------------------------------------------
 # initial values
 empty_state <- c(rep(0, 9))
@@ -148,12 +122,12 @@ breakpoints <- list(
     as.Date("2021-04-28"),  # 24) curfew canceled
     as.Date("2021-05-19"),  # 25) <27 can play outdoor sports, groups <= 30, non-essential travel allowed within NL 
     as.Date("2021-06-05"),  # 26) 4 visitors per day, museums reopen, group <= 50, restaurants reopen
-    as.Date("2021-06-22"),  # 27) vaccination of 12-17 year olds starts, Delta becomes dominant strain
-    as.Date("2021-06-26"),  # 28) all restrictions relaxed, except masks on public transport, nightclubs reopen
-    as.Date("2021-07-10"),  # 29) catering industry reopens, test for entry with large events, nightclubs close
-    as.Date("2021-07-19"),  # 30) work from home advisory re-instated
-    as.Date("2021-08-01"),  # 31)
-    as.Date(last_date_in_osiris)   # 32) last date in osiris
+    as.Date("2021-06-22") #,  # 27) vaccination of 12-17 year olds starts, Delta becomes dominant strain
+    # as.Date("2021-06-26"),  # 28) all restrictions relaxed, except masks on public transport, nightclubs reopen
+    # as.Date("2021-07-10"),  # 29) catering industry reopens, test for entry with large events, nightclubs close
+    # as.Date("2021-07-19"),  # 30) work from home advisory re-instated
+    # as.Date("2021-08-01"),  # 31)
+    # as.Date(last_date_in_osiris)   # 32) last date in osiris
   ),  
   contact_matrix = list( baseline_2017, 
                          baseline_2017, 
@@ -188,8 +162,7 @@ breakpoints <- list(
                          june_2021,
                          june_2021
                          ),
-  indicator_2021 = c(rep(0,16), rep(1,17)) #,
-  #p_report = c(rep(0.1, 6), rep(0.33, 24)) # case ascertainment lower in first wave
+  indicator_2021 = c(rep(0,16), rep(1,17))
 )
 
 n_bp <- length(breakpoints$date)
@@ -241,7 +214,7 @@ for (j in 1:n_bp) {
   }
   
   # subset data for time window
-  osiris_sub <- osiris1[times + 1, ]
+  case_data_sub <- case_data[times + 1, ]
   
   # optimize
   res <- optim(par = pars, 
@@ -250,7 +223,7 @@ for (j in 1:n_bp) {
                lower = c(0,0.005),
                upper = c(10,1),
                t = times,
-               data = osiris_sub,
+               data = case_data_sub,
                params = params,
                init = init_update,
                stochastic = FALSE,
@@ -276,7 +249,7 @@ for (j in 1:n_bp) {
   
   # plot for quick check of fit
   plot(cases~times, type = "l")
-  points(times, osiris_sub$inc, pch = 16, col = "red")
+  points(times, case_data_sub$inc, pch = 16, col = "red")
 
 } # end of for loop over breakpoints
 
@@ -319,6 +292,6 @@ cases_lower <- unique(bounds[1,])
 cases_upper <- unique(bounds[2,])
 times_all <- 1:length(cases_mle)
 
-model_fit <- data.frame(time = times_all, date = osiris1$date, real = osiris1$inc, mle = cases_mle, lower = cases_lower, upper = cases_upper)
+model_fit <- data.frame(time = times_all, date = case_data$date, real = case_data$inc, mle = cases_mle, lower = cases_lower, upper = cases_upper)
 saveRDS(model_fit, file = paste0(path_out, "model_fit_df_", todays_date, ".rds"))
 # --------------------------------------------------
