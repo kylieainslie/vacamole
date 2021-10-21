@@ -23,20 +23,22 @@ choose_contact_matrix <- function(times,
                                   flag_normal, 
                                   keep_fixed){
   # define variables from params
-  thresh_n <- params$thresh_n
-  thresh_l <- params$thresh_l
-  thresh_m <- params$thresh_m
-  thresh_u <- params$thresh_u
   c_start <- params$c_start
-  c_lockdown <- params$c_lockdown
-  c_relaxed <- params$c_relaxed
-  c_very_relaxed <- params$c_very_relaxed
-  c_normal <- params$c_normal
-  t_normal <- params$t_normal
+  if (!is.null(c_start) & keep_fixed){
+    contact_matrix <- c_start
+  } else {
   
-  if(keep_fixed){
-     contact_matrix <- c_start
-  } else{
+    thresh_n <- params$thresh_n
+    thresh_l <- params$thresh_l
+    thresh_m <- params$thresh_m
+    thresh_u <- params$thresh_u
+    
+    c_lockdown <- params$c_lockdown
+    c_relaxed <- params$c_relaxed
+    c_very_relaxed <- params$c_very_relaxed
+    c_normal <- params$c_normal
+    t_normal <- params$t_normal
+  
     # use simpler conditions where measures are only relaxed and not re-tightened
     # for flags
       if(criteria >= thresh_u){ 
