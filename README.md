@@ -16,5 +16,5 @@ library(serosolver)
 # Quick start and vignettes
 -------------------------
 
-Read the [quick start vignette](https://seroanalytics.github.io/serosolver/articles/serosolver-quick_start_guide.html) to set up and run a simple implementation of the model.
+Read the quick start vignette to set up and run a simple implementation of the model.
 
