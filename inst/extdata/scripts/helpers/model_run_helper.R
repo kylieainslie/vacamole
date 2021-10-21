@@ -25,7 +25,7 @@ library(lubridate)
 
 # load data ---------------------------------------------------------
 # probabilities -----------------------------------------------------
-dons_probs <- read_xlsx("inst/extdata/data/ProbabilitiesDelays_20210107.xlsx")
+dons_probs <- read_xlsx("inst/extdata/inputs/ProbabilitiesDelays_20210107.xlsx")
 p_infection2admission <- dons_probs$P_infection2admission
 p_admission2death <- dons_probs$P_admission2death
 p_admission2IC <- dons_probs$P_admission2IC
@@ -59,12 +59,12 @@ n <- 17407585 # Dutch population size
 n_vec <- n * age_dist
 
 # contact matrices --------------------------------------------------
-baseline_2017  <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_baseline_2017.rds")
-april_2020     <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_april_2020.rds")
-june_2020      <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2020.rds")
-september_2020 <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_september_2020.rds")
-february_2021  <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_february_2021.rds")
-june_2021      <- readRDS("inst/extdata/data/contact_matrices/contact_matrices_june_2021.rds")
+baseline_2017  <- readRDS("inst/extdata/inputs/contact_matrices/contact_matrices_baseline_2017.rds")
+april_2020     <- readRDS("inst/extdata/inputs/contact_matrices/contact_matrices_april_2020.rds")
+june_2020      <- readRDS("inst/extdata/inputs/contact_matrices/contact_matrices_june_2020.rds")
+september_2020 <- readRDS("inst/extdata/inputs/contact_matrices/contact_matrices_september_2020.rds")
+february_2021  <- readRDS("inst/extdata/inputs/contact_matrices/contact_matrices_february_2021.rds")
+june_2021      <- readRDS("inst/extdata/inputs/contact_matrices/contact_matrices_june_2021.rds")
 
 # parameter inputs -------------------------------------------------
 s <- 0.5
@@ -89,6 +89,14 @@ d_hic <- p_hospital2death / time_hospital2death
 r <- (1 - p_admission2death) / time_admission2discharge
 r_ic <- (1 - p_IC2death) / time_hospital2discharge
 
+transition_rates <- list(h = h,
+                         i1 = i1,
+                         i2 = i2,
+                         d = d,
+                         d_ic = d_ic,
+                         r = r,
+                         r_ic = r_ic)
+#saveRDS(transition_rates, "inst/extdata/inputs/transition_rates.rds")
 # vaccinations params ----------------------------------------------
 ve <- list(
   # wildtype = list(
@@ -166,6 +174,15 @@ h_multiplier_delta <- list(
   astrazeneca = (1-ve_hosp_delta$astrazeneca)/(1-ve_delta$astrazeneca),
   jansen = (1-ve_hosp_delta$jansen)/(1-ve_delta$jansen)
 )
+
+ve_list <- list(
+  ve_infection = ve_delta,
+  ve_transmission = ve_trans_delta,
+  ve_delay = delays,
+  ve_hosp = h_multiplier_delta
+)
+#saveRDS(ve_list, "inst/extdata/inputs/ve_params.rds")
+
 # read in vac schedules --------------------------------------------
 basis_12plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
   select(-starts_with("X"))
