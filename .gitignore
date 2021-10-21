@@ -45,3 +45,5 @@ vignettes/*.pdf
 .dll
 .so
 inst/doc
+/doc/
+/Meta/
