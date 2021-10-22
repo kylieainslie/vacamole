@@ -89,11 +89,10 @@ age_struct_seir_ode <- function(times,init,params){
     flag_very_relaxed <- tmp2$flag_very_relaxed
     flag_normal <- tmp2$flag_normal
     
-    if(flag_normal > 0){beta = beta_change}
+    if(flag_normal > 0 & !is.null(beta_change)){beta = beta_change}
     # determine force of infection ----------------------------------
     calendar_day <- ifelse(times > 365, t_calendar_start + times - 365, t_calendar_start + times)
     beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day/365.24)) # incorporate seasonality in transmission rate
-
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
     lambda <- ifelse(lambda < 0, 0, lambda)
     # ---------------------------------------------------------------
@@ -114,7 +113,7 @@ age_struct_seir_ode <- function(times,init,params){
     dH <- h * I - (i1 + d + r) * H 
     dHv_1d <- eta_hosp * h * Iv_1d - (i1 + d + r) * Hv_1d
     dHv_2d <- eta_hosp2 * h * Iv_2d - (i1 + d + r) * Hv_2d
-    dH_IC <- i2 * IC - (r_ic + d_hic) * H_IC               # back to hospital after IC
+    dH_IC <- i2 * IC - (r_ic + d_hic) * H_IC               
     dH_ICv_1d <- i2 * ICv_1d - (r_ic + d_hic) * H_ICv_1d
     dH_ICv_2d <- i2 * ICv_2d - (r_ic + d_hic) * H_ICv_2d
     dIC <- i1 * H - (i2 + d_ic) * IC
