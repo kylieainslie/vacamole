@@ -40,21 +40,14 @@ This quick start guide is designed to provide the basic instructions to use `vac
 The easiest way to install the development version of `vacamole` is to use the `devtools` package:
 
 ```{r, install_package, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE}
-#devtools::install_github("kylieainslie/vacamole", force = TRUE)
-devtools::load_all()
+devtools::install_github("kylieainslie/vacamole", force = TRUE)
 library(vacamole)
 
 # Load other packages
-library(reshape2)
-library(ggplot2)
 library(dplyr)
-library(stringr)
 library(tidyr)
 library(readxl)
-library(readr)
 library(kableExtra)
-library(lubridate)
-library(deSolve)
 ```
 
 # 2. Data sources
@@ -80,7 +73,7 @@ vac_schedule %>%
 ```
 
 The vaccination schedule needs to be converted before input into the model. The vaccination schedule data frame is converted into a list with weighted averages of the following quantities: vaccination rate, vaccine effectiveness, and delay to protection based on the number of people in the population who receive each dose and type of vaccine at each time point.
-```{r convert_vac_sched, echo=TRUE, eval=TRUE, message = FALSE, warning=FALSE}
+```{r convert_vac_sched, echo=TRUE, eval=FALSE, message = FALSE, warning=FALSE}
 # read in vaccination schedule
 vac_schedule <- read_xlsx("../inst/extdata/inputs/vac_schedule_18plus_synth.xlsx", col_types = c("date", rep("numeric", 80))) %>%
   select(-starts_with("X"))
@@ -101,7 +94,7 @@ vac_schedule1 <- convert_vac_schedule(
 ```
 
 ## Parameter values
-```{r params, echo=TRUE, eval=TRUE}
+```{r params, echo=TRUE, eval=FALSE}
 # read in transition rates
 transition_rates <- readRDS("../inst/extdata/inputs/transition_rates.rds")
 
@@ -132,7 +125,7 @@ params <- list(beta = 0.0004,
                c_start = april_2017,
                keep_cm_fixed = TRUE,
                vac_inputs = vac_schedule1,
-               use_cases = TRUE,                           
+               use_cases = TRUE,  
                no_vac = FALSE,
                t_calendar_start = yday(as.Date("2020-01-01")), 
                beta_change = NULL 
@@ -141,7 +134,7 @@ params <- list(beta = 0.0004,
 ```
 ## Initial conditions
 The model is partitioned into nine age groups, so users need to supply the initial number of individuals in each age group for each compartment. The initial conditions should be a named list. Below we start with a fully susceptible population and one infectious person. 
-```{r initial_conditions, echo=TRUE, eval=TRUE, message=FALSE}
+```{r initial_conditions, echo=TRUE, eval=FALSE, message=FALSE}
 # Specify initial conditions ---------------------------------
 empty_state <- c(rep(0, 9)) # vector of zeros
 

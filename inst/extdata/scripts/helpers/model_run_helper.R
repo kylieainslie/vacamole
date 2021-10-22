@@ -94,6 +94,7 @@ transition_rates <- list(h = h,
                          i2 = i2,
                          d = d,
                          d_ic = d_ic,
+                         d_hic = d_hic,
                          r = r,
                          r_ic = r_ic)
 #saveRDS(transition_rates, "inst/extdata/inputs/transition_rates.rds")
