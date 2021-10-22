@@ -52,6 +52,8 @@ library(tidyr)
 library(readxl)
 library(readr)
 library(kableExtra)
+library(lubridate)
+library(deSolve)
 ```
 
 # 2. Data sources
@@ -77,17 +79,17 @@ vac_schedule %>%
 ```
 
 The vaccination schedule needs to be converted before input into the model. The vaccination schedule data frame is converted into a list with weighted averages of the following quantities: vaccination rate, vaccine effectiveness, and delay to protection based on the number of people in the population who receive each dose and type of vaccine at each time point.
-```{r convert_vac_sched, echo=TRUE, eval=FALSE}
+```{r convert_vac_sched, echo=TRUE, eval=TRUE, message = FALSE, warning=FALSE}
 # read in vaccination schedule
-vac_schedule <- read_xlsx("../inst/extdata/inputs/vac_schedule_18plus_synth.xlsx") %>%
-  select(-starts_with("X")) %>%
-  mutate(date = seq.Date(as.Date("2020-01-01"), as.Date("2020-12-31"), by = 1))
+vac_schedule <- read_xlsx("../inst/extdata/inputs/vac_schedule_18plus_synth.xlsx", col_types = c("date", rep("numeric", 80))) %>%
+  select(-starts_with("X"))
 
 # read in vaccine effectiveness parameters
 # these will be used when converting the vaccine schedule into weighted vaccine effectiveness, delay to protection, and vaccination rate
 ve_info <- readRDS("../inst/extdata/inputs/ve_params.rds")
 
 # convert vaccination schedule
+# the vaccination schedule is assumed to be cumulative over time
 vac_schedule1 <- convert_vac_schedule(
   vac_schedule = vac_schedule,
   ve = ve_info[[1]],
@@ -96,13 +98,14 @@ vac_schedule1 <- convert_vac_schedule(
   ve_trans = ve_info[[4]]
 )
 ```
+
 ## Parameter values
-```{r params, echo=TRUE, eval=FALSE}
+```{r params, echo=TRUE, eval=TRUE}
 # read in transition rates
-transition_rates <- readRDS("inst/extdata/inputs/transition_rates.rds")
+transition_rates <- readRDS("../inst/extdata/inputs/transition_rates.rds")
 
 # read in transmission matrix
-april_2017  <- readRDS("inst/extdata/inputs/contact_matrices/transmission_matrix_april_2017.rds")
+april_2017  <- readRDS("../inst/extdata/inputs/contact_matrices/converted/transmission_matrix_april_2017.rds")
 
 # define population size (by age group)
 age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707,     0.13083463,0.14514332, 0.12092904, 0.08807406, 0.04622194)
@@ -137,7 +140,7 @@ params <- list(beta = 0.0004,
 ```
 ## Initial conditions
 The model is partitioned into nine age groups, so users need to supply the initial number of individuals in each age group for each compartment. The initial conditions should be a named list. Below we start with a fully susceptible population and one infectious person. 
-```{r initial_conditions, echo=TRUE, eval=FALSE, message=FALSE}
+```{r initial_conditions, echo=TRUE, eval=TRUE, message=FALSE}
 # Specify initial conditions ---------------------------------
 empty_state <- c(rep(0, 9)) # vector of zeros
 
@@ -169,13 +172,15 @@ init <- c(
   Rv_2d = empty_state
 )
 
+# create vector of time points
+times <- seq(0,nrow(vac_schedule)-1, by = 1)
 ```
 
 # 3. Run model
 The model is coded as a system of ordinary differential equations that are numerically solved using the `lsoda` function in the `deSolve` package. 
-```{r run_model, echo=TRUE, eval=FALSE}
+```{r run_model, echo=TRUE, eval=TRUE}
 # Solve model ------------------------------------------------------
-seir_out <- lsoda(initial_conditions,   # initial conditions
+seir_out <- lsoda(init,                 # initial conditions
                   times,                # time vector
                   age_struct_seir_ode,  # model function
                   params)               # parameters
@@ -184,3 +189,5 @@ seir_out <- lsoda(initial_conditions,   # initial conditions
 seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output(seir_out)
 ```
+
+
