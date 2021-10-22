@@ -59,12 +59,12 @@ n <- 17407585 # Dutch population size
 n_vec <- n * age_dist
 
 # contact matrices --------------------------------------------------
-baseline_2017  <- readRDS("inst/extdata/inputs/contact_matrices/contact_matrices_baseline_2017.rds")
-april_2020     <- readRDS("inst/extdata/inputs/contact_matrices/contact_matrices_april_2020.rds")
-june_2020      <- readRDS("inst/extdata/inputs/contact_matrices/contact_matrices_june_2020.rds")
-september_2020 <- readRDS("inst/extdata/inputs/contact_matrices/contact_matrices_september_2020.rds")
-february_2021  <- readRDS("inst/extdata/inputs/contact_matrices/contact_matrices_february_2021.rds")
-june_2021      <- readRDS("inst/extdata/inputs/contact_matrices/contact_matrices_june_2021.rds")
+april_2017     <- readRDS("inst/extdata/inputs/contact_matrices/converted/transmission_matrix_april_2017.rds")
+april_2020     <- readRDS("inst/extdata/inputs/contact_matrices/converted/transmission_matrix_april_2020.rds")
+june_2020      <- readRDS("inst/extdata/inputs/contact_matrices/converted/transmission_matrix_june_2020.rds")
+september_2020 <- readRDS("inst/extdata/inputs/contact_matrices/converted/transmission_matrix_september_2020.rds")
+february_2021  <- readRDS("inst/extdata/inputs/contact_matrices/converted/transmission_matrix_february_2021.rds")
+june_2021      <- readRDS("inst/extdata/inputs/contact_matrices/converted/transmission_matrix_june_2021.rds")
 
 # parameter inputs -------------------------------------------------
 s <- 0.5
@@ -73,10 +73,10 @@ r0 <- 5.75
 
 # determine transmission rate (beta) for r0 ------------------------
 S <- diag(n_vec - 1)
-rho <- as.numeric(eigs(S %*% baseline_2017$mean, 1)$values)
+rho <- as.numeric(eigs(S %*% april_2017, 1)$values)
 beta <- (r0 / rho) * g
 # check
-K <- (1 / g) * beta * S %*% baseline_2017$mean
+K <- (1 / g) * beta * S %*% april_2017
 as.numeric(eigs(K, 1)$values) # this should be r0
 
 # define state transition rates ------------------------------------
@@ -175,20 +175,16 @@ h_multiplier_delta <- list(
   jansen = (1-ve_hosp_delta$jansen)/(1-ve_delta$jansen)
 )
 
-ve_list <- list(
-  ve_infection = ve_delta,
-  ve_transmission = ve_trans_delta,
-  ve_delay = delays,
-  ve_hosp = h_multiplier_delta
-)
+ve_list <- list(ve_delta,delays,h_multiplier_delta,ve_trans_delta)
 #saveRDS(ve_list, "inst/extdata/inputs/ve_params.rds")
 
 # read in vac schedules --------------------------------------------
-basis_12plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
+vac_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/manuscripts/impact_vac/data/vaccination_scenarios/"
+basis_12plus <- read_csv(paste0(vac_path,"vac_schedule_12plus.csv")) %>%
   select(-starts_with("X"))
 
-basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
-  select(-starts_with("X"))
+# basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
+#   select(-starts_with("X"))
 
 # no childhood vaccination, waning
 vac_sched <- basis_12plus
@@ -221,11 +217,11 @@ params <- list(beta = 0.0003934816 * 2 ,  # transmission rate
                r = r,
                r_ic = r_ic,
                p_report = 1/3, #p_reported_by_age,
-               c_start = june_2021$mean,
-               c_lockdown = february_2021$mean,
-               c_relaxed = june_2020$mean,
-               c_very_relaxed = june_2021$mean,
-               c_normal = baseline_2017$mean,
+               c_start = june_2021,
+               c_lockdown = february_2021,
+               c_relaxed = june_2020,
+               c_very_relaxed = june_2021,
+               c_normal = april_2017,
                keep_cm_fixed = FALSE,
                vac_inputs = basis1,
                use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
@@ -268,3 +264,5 @@ init <- c(
   Rv_2d = empty_state
 )
 
+# times vector
+times <- seq(0, nrow(vac_sched)-1, by = 1)
