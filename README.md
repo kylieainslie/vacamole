@@ -7,11 +7,11 @@
 
 1.  Install [R](http://cran.r-project.org)
 
-2.  Install the development version of serosolver from [GitHub](https://github.com/kylieainslie/vacamole):
+2.  Install the development version of vacamole from [GitHub](https://github.com/kylieainslie/vacamole):
 
 ``` r
 devtools::install_github("kylieainslie/vacamole")
-library(serosolver)
+library(vacamole)
 ```
 
 # Quick start and vignettes
