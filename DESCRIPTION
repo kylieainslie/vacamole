@@ -1,7 +1,7 @@
 Package: vacamole
 Type: Package
 Title: Deterministic Age-Structured SEIR model with Vaccination
-Version: 1.0
+Version: 0.1.0
 Date: 2020-11-30
 Author: Kylie Ainslie
 Maintainer: Kylie Ainslie <kylie.ainslie@rivm.nl>
