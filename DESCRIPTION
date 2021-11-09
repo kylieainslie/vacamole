@@ -27,5 +27,7 @@ Suggests:
     readxl,
     reshape2,
     ggplot2,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr
+Config/testthat/edition: 3
