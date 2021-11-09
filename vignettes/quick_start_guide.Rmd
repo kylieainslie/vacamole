@@ -102,7 +102,7 @@ transition_rates <- readRDS("../inst/extdata/inputs/transition_rates.rds")
 april_2017  <- readRDS("../inst/extdata/inputs/contact_matrices/converted/transmission_matrix_april_2017.rds")
 
 # define population size (by age group)
-age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707,     0.13083463,0.14514332, 0.12092904, 0.08807406, 0.04622194)
+age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,0.14514332, 0.12092904, 0.08807406, 0.04622194)
 n <- 17407585 # Dutch population size
 n_vec <- n * age_dist
 
