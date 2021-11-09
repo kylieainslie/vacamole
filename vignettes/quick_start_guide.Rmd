@@ -44,6 +44,8 @@ devtools::install_github("kylieainslie/vacamole")
 library(vacamole)
 
 # Load other packages
+library(lubridate)
+library(deSolve)
 library(dplyr)
 library(tidyr)
 library(readxl)
