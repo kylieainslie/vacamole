@@ -21,7 +21,7 @@ This vignette demonstrates only how to reproduce the model fits and forward simu
 
 ## Installation and requirements
 `vacamole` may be installed from github using the `devtools` package. There are a number of additional packages that we need for this analysis.
-```{r message=FALSE, warning=FALSE, r,eval=TRUE}
+```{r set_up, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE}
 # Required to run serosolver
 devtools::install_github("kylieainslie/vacamole")
 library(vacamole)
@@ -39,44 +39,65 @@ library(lubridate)
 ```
 
 ## Preparing the data and model inputs
-First we need to load the vaccination schedules for the different vaccination strategies: adults only (18+), extension to adolescents (12+), and extension to adolescents and children (5+). These files are located in the [`inst/extdata/data/vaccination_scenarios`](https://github.com/kylieainslie/vacamole/tree/master/inst/extdata/data/vaccination_scenarios) folder of the package. Each file includes a column for vaccine product and dose for each age group (see [`Quick Start Guide`](https://github.com/kylieainslie/vacamole/tree/master/vignettes)). Rows indicate the proportion of that age group who received that dose and product on that day.
-```{r read_vac_sched, echo=TRUE, eval=FALSE}
-basis_5plus <- read_csv("../inst/extdata/data/vaccination_scenarios/vac_schedule_5plus.csv") %>%
+### Vaccination schedules
+A synthetic vaccination s
+First we need to load the vaccination schedules for the different vaccination strategies: adults only (18+), extension to adolescents (12+), and extension to adolescents and children (5+). These files are located in the [`inst/extdata/inputs`](https://github.com/kylieainslie/vacamole/tree/master/inst/extdata/inputs) folder of the package. Each file includes a column for vaccine product and dose for each age group (see [`Quick Start Guide`](https://github.com/kylieainslie/vacamole/tree/master/vignettes)). Rows indicate the proportion of that age group who received that dose and product on that day.
+```{r read_vac_sched, echo=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
+basis_5plus <- read_csv("../inst/extdata/inputs/vac_schedule_5plus.csv") %>%
   select(-starts_with("X"))
 
-basis_12plus <- read_csv("../inst/extdata/data/vaccination_scenarios/vac_schedule_12plus.csv") %>%
+basis_12plus <- read_csv("../inst/extdata/inputs/vac_schedule_12plus.csv") %>%
   select(-starts_with("X"))
 
-basis_18plus <- read_csv("../inst/extdata/data/vaccination_scenarios/Cvac_schedule_18plus.csv") %>%
+basis_18plus <- read_csv("../inst/extdata/inputs/vac_schedule_18plus.csv") %>%
   select(-starts_with("X"))
 ```
 
-Next, the vaccination schedules needs to be converted before input into the model. The vaccination schedule data frame is converted into a list with weighted averages of the following quantities: vaccination rate, vaccine effectiveness, and delay to protection based on the number of people in the population who receive each dose and type of vaccine at each time point. The model is designed to incorporate a single vaccine product with a 2-dose regimen. However, since there is more than one vaccine product currently licensed for use against COVID-19 in The Netherlands (the vaccines made by Pfizer/BioNTech, Moderna, AstraZeneca, and Janssen), we incorporate different vaccine products by taking the daily weighted average of the number of people with each vaccine product (and dose), the corresponding delay to protection of each vaccine product, and the vaccine effectiveness against each outcome (Table S1). Janssen is incorporated by using zero for the number of second doses at all time points. To convert the vaccine schedules, we use the `convert_vac_schedule()` function which needs arguments
+Next, the vaccination schedules needs to be converted before input into the model. The vaccination schedule data frame is converted into a list with weighted averages of the following quantities: vaccination rate, vaccine effectiveness, and delay to protection based on the number of people in the population who receive each dose and type of vaccine at each time point. The model is designed to incorporate a single vaccine product with a 2-dose regimen that 1) reduces susceptibility to infection, 2) reduces risk of hospitalization if a vaccinated individual is infected, and 3) reduces risk of infecting others (transmission) if a vaccinated person is infected. Therefore we need to provide estimates for vaccine effectiveness against infection, hospitalisation, and transmission (if infected). Since there is more than one vaccine product currently licensed for use against COVID-19 in The Netherlands (the vaccines made by Pfizer/BioNTech, Moderna, AstraZeneca, and Janssen), we incorporate different vaccine products by taking the daily weighted average of the number of people with each vaccine product (and dose), the corresponding delay to protection of each vaccine product, and the vaccine effectiveness against each outcome (Table S1). Janssen is incorporated by using zero for the number of second doses at all time points.
 ```{r convert_vac_sched, echo=TRUE, eval=FALSE}
-converted_5plus <- convert_vac_schedule(vac_schedule = basis_5plus,
-  ve = ve_delta, hosp_multiplier = h_multiplier_delta, ve_trans = ve_trans_delta,
-  delay = delays, add_extra_dates = TRUE, extra_end_date = "2022-03-31"
+# read in vaccine effectiveness parameters
+# these will be used when converting the vaccine schedule into weighted vaccine effectiveness, delay to protection, and vaccination rate
+ve_info <- readRDS("../inst/extdata/inputs/ve_params.rds")
+
+# convert vaccination schedules
+# the vaccination schedule is assumed to be cumulative over time
+
+# 5+
+converted_5plus <- convert_vac_schedule(
+  vac_schedule = basis_5plus,
+  ve = ve_info[[1]],
+  delay = ve_info[[2]],
+  hosp_multiplier = ve_info[[3]],
+  ve_trans = ve_info[[4]]
 )
 
-converted_12plus <- convert_vac_schedule(vac_schedule = basis_12plus,
-  ve = ve_delta, hosp_multiplier = h_multiplier_delta, ve_trans = ve_trans_delta,
-  delay = delays, add_extra_dates = TRUE, extra_end_date = "2022-03-31"
+# 12+
+converted_12plus <- convert_vac_schedule(
+  vac_schedule = basis_12plus,
+  ve = ve_info[[1]],
+  delay = ve_info[[2]],
+  hosp_multiplier = ve_info[[3]],
+  ve_trans = ve_info[[4]]
 )
 
-converted_18plus <- convert_vac_schedule(vac_schedule = basis_18plus,
-  ve = ve_delta, hosp_multiplier = h_multiplier_delta, ve_trans = ve_trans_delta,
-  delay = delays, add_extra_dates = TRUE, extra_end_date = "2022-03-31"
+# 18+
+converted_18plus <- convert_vac_schedule(
+  vac_schedule = basis_18plus,
+  ve = ve_info[[1]],
+  delay = ve_info[[2]],
+  hosp_multiplier = ve_info[[3]],
+  ve_trans = ve_info[[4]]
 )
 ```
 
-Read in model fits to use as initial conditions.
-```{r read_in_model_fits, echo=TRUE, eval=FALSE}
-file_path <- "inst/extdata/results/model_fits/"
-date_of_fit <- "2021-10-01" # this specifies the suffix on the model fit file
+## Parameter values
+The model expects 
+```{r params, echo=TRUE, eval=FALSE}
+# read in transition rates
+transition_rates <- readRDS("../inst/extdata/inputs/transition_rates.rds")
 
-output_from_model_fit <- readRDS(paste0(file_path,"output_from_fits_", date_of_fit, ".rds"))
-# get the number of individuals in each state on the last day of model fit (22 June 2021)
-init_cond_22june2021 <- unlist(lapply(unname(output_from_model_fit$`end_date_2021-06-22`), tail,1))
+# read in transmission matrix
+april_2017  <- readRDS("../inst/extdata/inputs/contact_matrices/converted/transmission_matrix_april_2017.rds")
 
 # read in values of 
 beta_mles <- data.frame(beta = readRDS(paste0(file_path,"mles_from_fits_", date_of_fit,".rds"))) %>%
@@ -94,6 +115,51 @@ cm <- list(baseline_2017 = baseline_2017,
            february_2021 = february_2021,
            june_2021 = june_2021)
 
+
+# define population size (by age group)
+age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,0.14514332, 0.12092904, 0.08807406, 0.04622194)
+n <- 17407585 # Dutch population size
+n_vec <- n * age_dist
+
+# create named list of parameter
+params <- list(beta = 0.0004,
+               beta1 = 0.14,
+               gamma = 0.5,
+               sigma = 0.5,
+               epsilon = 0.01,
+               N = n_vec,
+               h = transition_rates$h,
+               i1 = transition_rates$i1,
+               i2 = transition_rates$i2,
+               d = transition_rates$d, 
+               d_ic = transition_rates$d_ic,
+               d_hic = transition_rates$d_hic,
+               r = transition_rates$r,
+               r_ic = transition_rates$r_ic,
+               p_report = 1/3,
+               c_start = april_2017,
+               keep_cm_fixed = TRUE,
+               vac_inputs = vac_schedule1,
+               use_cases = TRUE,  
+               no_vac = FALSE,
+               t_calendar_start = yday(as.Date("2020-01-01")), 
+               beta_change = NULL 
+)
+
+```
+## Initial conditions
+The model is partitioned into nine age groups, so users need to supply the initial number of individuals in each age group for each compartment. The initial conditions should be a named list. For the forward simulations we use the number of individuals in each compartment on the last day of the model fit as the initial conditions. Here, we read in previously performed model fits. A separate vignette details the model fit procedure.
+```{r initial_conditions, echo=TRUE, eval=FALSE, message=FALSE}
+# specify file path where model fit outputs are stored
+file_path <- "../inst/extdata/results/model_fits/"
+
+date_of_fit <- "2021-10-01" # this specifies the suffix on the model fit file
+
+output_from_model_fit <- readRDS(paste0(file_path,"output_from_fits_", date_of_fit, ".rds"))
+
+# get the number of individuals in each state on the last day of model fit (22 June 2021)
+# these will be used as the initial conditions
+init_cond_22june2021 <- unlist(lapply(unname(output_from_model_fit$`end_date_2021-06-22`), tail,1))
 ```
 
 For the beginning of the forward simulations we use the transmission rate from the last time window of the model fit. However, once non-pharmaceutical interventions (NPIs) are relaxed we need a transmission rate that was not estimated during a time period in which NPIs were in use. Thus, for forward simulations, we use the transmission rate that corresponds to the basic reproduction number of the Delta variant (R_0 = 4.6). To incorporate uncertainty, we draw random samples of the reproduction number from a normal distribution with mean 4.6 and standard deviation equal to the square root of the variance from the model fits of the last time window before the forward simulations.
