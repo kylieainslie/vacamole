@@ -1,0 +1,421 @@
+---
+title: "Fit model to case data"
+author: "Kylie Ainslie"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Fit model to case data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Overview
+This vignette provides detailed code to reproduce fit the model to daily case data. All of the functions used here are documented, so we encourage users to refer to the helps files. The model is fit piecewise to daily case data to account for different interventions. Case data from the Dutch notification database is provided in [`inst/extdata/data`](https://github.com/kylieainslie/vacamole/tree/master/inst/extdata/data).
+
+## Installation and requirements
+`vacamole` may be installed from github using the `devtools` package. There are a number of additional packages that we need for this analysis.
+```{r set_up, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE}
+# Required to run vacamole 
+devtools::install_github("kylieainslie/vacamole")
+library(vacamole)
+## Required for this analysis
+library(deSolve)
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(readxl)
+library(rARPACK)
+library(readr)
+library(lubridate)
+```
+
+## Preparing the data and model inputs
+### Case data
+We will fit the model to daily cases from the Dutch notification database from 1 January 2020 until 22 June 2021. The case data is located in [`inst/extdata/data`](https://github.com/kylieainslie/vacamole/tree/master/inst/extdata/data).
+```{r load_osiris, echo=TRUE, eval=TRUE}
+# Read in OSIRIS data ------------------------------
+case_data <- readRDS("../inst/extdata/data/case_data_upto_20210622.rds")
+
+last_date_in_osiris <- tail(case_data$date,1)
+```
+
+```{r plot_osiris, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+# plot data
+p <- ggplot(case_data, aes(x = date, y = inc)) +
+  geom_line() +
+  geom_line(aes(x = date, y = roll_avg, color = "red")) +
+  theme(panel.background = element_blank())
+p
+```
+
+### Parameter values
+The model expects a named list of parameter values describing the rates of transitioning between compartments, the converted vaccine schedule, and contact patterns. The model allows the user to specify a threshold of either cases (`use_cases = TRUE`) or IC admissions to determine which contact patterns to use. There are four different patterns the user can specify: normal (pre-pandemic), very relaxed, relaxed, and lockdown. These are specified using the `c_normal`, `c_very_relaxed`, `c_relaxed`, and `c_lockdown` arguments. For fitting the model to data, we keep the contact patterns within each time window fixed using `keep_cm_fixed = TRUE` and specifying the contact patterns to use with the `c_start` argument. Many of the parameter values used for this analysis are located in the [`inst/extdata/inputs`](https://github.com/kylieainslie/vacamole/tree/master/inst/extdata/inputs) folder of the package.
+```{r params, echo=TRUE, eval=FALSE}
+# read in transition rates -----------------------------------
+transition_rates <- readRDS("../inst/extdata/inputs/transition_rates.rds")
+
+# read in transmission matrices ------------------------------
+april_2017 <- readRDS("../inst/extdata/inputs/contact_matrices/converted/transmission_matrix_april_2017.rds")
+april_2020 <- readRDS("../inst/extdata/inputs/contact_matrices/converted/transmission_matrix_april_2020.rds")
+june_2020 <- readRDS("../inst/extdata/inputs/contact_matrices/converted/transmission_matrix_june_2020.rds")
+september_2020 <- readRDS("../inst/extdata/inputs/contact_matrices/converted/transmission_matrix_september_2020.rds")
+february_2021 <- readRDS("../inst/extdata/inputs/contact_matrices/converted/transmission_matrix_february_2021.rds")
+june_2021 <- readRDS("../inst/extdata/inputs/contact_matrices/converted/transmission_matrix_june_2021.rds")
+
+# create list of transmission matrices -----------------------
+cm <- list(baseline_2017 = baseline_2017,
+           april_2020 = april_2020,
+           june_2020 = june_2020,
+           september_2020 = september_2020,
+           february_2021 = february_2021,
+           june_2021 = june_2021)
+
+# define population size (by age group) ----------------------
+age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,0.14514332, 0.12092904, 0.08807406, 0.04622194)
+n <- 17407585 # Dutch population size
+n_vec <- n * age_dist
+
+# read in vaccination schedule -------------------------------
+basis_18plus <- read_csv("../inst/extdata/inputs/vac_schedule_18plus.csv") %>%
+  select(-starts_with("X"))
+
+# read in vaccine effectiveness parameters -------------------
+# these will be used when converting the vaccine schedule into 
+# weighted vaccine effectiveness, delay to protection, and 
+# vaccination rate
+ve_info <- readRDS("../inst/extdata/inputs/ve_params.rds")
+
+# convert vaccination schedule -------------------------------
+converted_18plus <- convert_vac_schedule(
+  vac_schedule = basis_18plus,
+  ve = ve_info[[1]],
+  delay = ve_info[[2]],
+  hosp_multiplier = ve_info[[3]],
+  ve_trans = ve_info[[4]]
+)
+
+# create named list of parameter -----------------------------
+params <- list(beta = 0.0004 ,  # transmission rate
+               beta1 = 0.14,    # amplitude of seasonal forcing
+               gamma = 0.5,     # 1/gamma = infectious period
+               sigma = 0.5,     # 1/sigma = latent period
+               epsilon = 0.01,  # case importation rate
+               N = n_vec,       # population size vector (by age group)
+               h = h,           # rate from infection to hospital admission
+               i1 = i1,         # rate from hospital to IC
+               i2 = i2,         # rate from IC back to hospital
+               d = d,           # rate from hospital to death
+               d_ic = d_ic,     # rate from IC to death
+               d_hic = d_hic,   # rate from hospital (after returning from IC) to death
+               r = r,           # rate of recovery from hospital
+               r_ic = r_ic,     # rate of recovery from hospital (after IC)
+               p_report = 1/3,  # case ascertainment rate
+               c_start = june_2021,
+               c_lockdown = february_2021,
+               c_relaxed = june_2020,
+               c_very_relaxed = june_2021,
+               c_normal = april_2017,
+               keep_cm_fixed = TRUE,
+               vac_inputs = converted_18plus,
+               use_cases = TRUE, 
+               thresh_n = 0.5/100000 * sum(n_vec),
+               thresh_l = 5/100000 * sum(n_vec),           
+               thresh_m = 14.3/100000 * sum(n_vec),
+               thresh_u = 100000/100000 * sum(n_vec),
+               no_vac = FALSE,  # if TRUE, no vaccination is assumed
+               t_calendar_start = yday(as.Date("2020-01-01")), # calendar start date
+               beta_change = NULL # value to change beta to after normal contact patterns are initiated
+)
+
+```
+
+### Initial conditions
+We start the model fit at the beginning of the pandemic, therefore we begin with a fully susceptible population and a single infectious person. For each time window, the number of individuals in each compartment at the last time point are used as the initial conditions for the next time step.
+```{r init_conditions, echo=TRUE, eval=FALSE}
+# initial values
+empty_state <- c(rep(0, 9))
+init <- c(
+  t = 0,
+  S = c(n_vec[1:4], n_vec[5]-1, n_vec[6:9]),
+  Shold_1d = empty_state,
+  Sv_1d = empty_state,
+  Shold_2d = empty_state,
+  Sv_2d = empty_state,
+  E = empty_state,
+  Ev_1d = empty_state,
+  Ev_2d = empty_state,
+  I = c(rep(0,4),1,rep(0,4)),
+  Iv_1d = empty_state,
+  Iv_2d = empty_state,
+  H = empty_state,
+  Hv_1d = empty_state,
+  Hv_2d = empty_state,
+  H_IC = empty_state,
+  H_ICv_1d = empty_state,
+  H_ICv_2d = empty_state,
+  IC = empty_state,
+  ICv_1d = empty_state,
+  ICv_2d = empty_state,
+  D = empty_state,
+  R = empty_state,
+  Rv_1d = empty_state,
+  Rv_2d = empty_state
+)
+```
+
+### Define time windows
+The model is fit piecewise at different time points to account for changing non-pharmaceutical interventions over time. The time windows are determined by the non-pharamceutical interventions imposed by the Dutch government over 2020 and 2021. For each time window, we also assign the contact patterns that most closely match in time. We include an indicator variable for year (0 if 2020 and 1 if 2021) for book keeping during the model fit. 
+```{r breakpoints, echo=TRUE, eval=FALSE}
+breakpoints <- list( 
+  date = c( 
+    as.Date("2020-03-16"),  # 1) closure of hospitality, schools, daycares
+    as.Date("2020-03-24"),  # 2) casinos subject to same measures as food/beverage outlets
+    as.Date("2020-04-29"),  # 3) Children and young people can participate in outdoor activities
+    as.Date("2020-05-11"),  # 4) reopening of primary schools and daycare @ 50% capacity
+    as.Date("2020-06-01"),  # 5) cafes/restaurants reopen with max 30 visitor,
+                            # primary schools and daycares open at 100% 
+    as.Date("2020-07-01"),  # 6) secondary schools reopen @ 100% capacity
+    as.Date("2020-08-06"),  # 7) Small groups allowed at universities
+    as.Date("2020-08-18"),  # 8) maximum 6 people in household
+    as.Date("2020-09-20"),  # 9) groups <= 50 people, some hospitality closes at midnight or 1 AM 
+    as.Date("2020-09-29"),  # 10) max 3 visitors at home, max group size 30, face masks in public areas
+    as.Date("2020-10-14"),  # 11) cafes/restaurants close, no team sports, 3 visitors at home per day
+    as.Date("2020-10-23"),  # 12) hotels can't sell alcohol after 20:00
+    as.Date("2020-11-04"),  # 13) 2 visitors per day, groups <= 20
+    as.Date("2020-11-19"),  # 14) 3 visitors per day, groups <= 30
+    as.Date("2020-12-01"),  # 15) masks mandatory in all public and indoor areas
+    as.Date("2020-12-15"),  # 16) non-essential shops close
+    as.Date("2021-01-01"),  # 17) end of year
+    as.Date("2021-01-20"),  # 18) 1 visitor per day/curfew (23/01/2021)
+    as.Date("2021-02-08"),  # 19) Primary schools, child care, special ed reopen
+    as.Date("2021-03-01"),  # 20) secondary schools partially reopen, contact professions reopen (3/3/2021)
+    as.Date("2021-03-16"),  # 21) some retail reopens
+    as.Date("2021-03-31"),  # 22) curfew to start at 22:00 instead of 21:00
+    as.Date("2021-04-19"),  # 23) out of school care fully reopens
+    as.Date("2021-04-28"),  # 24) curfew canceled
+    as.Date("2021-05-19"),  # 25) <27 can play outdoor sports, groups <= 30, non-essential travel allowed within NL 
+    as.Date("2021-06-05"),  # 26) 4 visitors per day, museums reopen, group <= 50, restaurants reopen
+    as.Date("2021-06-22") #,  # 27) vaccination of 12-17 year olds starts, Delta becomes dominant strain
+    # as.Date("2021-06-26"),  # 28) all restrictions relaxed, except masks on public transport, nightclubs reopen
+    # as.Date("2021-07-10"),  # 29) catering industry reopens, test for entry with large events, nightclubs close
+    # as.Date("2021-07-19"),  # 30) work from home advisory re-instated
+    # as.Date("2021-08-01"),  # 31)
+    # as.Date(last_date_in_osiris)   # 32) last date in osiris
+  ),  
+  contact_matrix = list( baseline_2017, 
+                         baseline_2017, 
+                         april_2020,
+                         april_2020, 
+                         april_2020, 
+                         june_2020, 
+                         june_2020,
+                         june_2020,
+                         september_2020,
+                         september_2020,
+                         september_2020, 
+                         september_2020,
+                         september_2020,
+                         september_2020,
+                         september_2020,
+                         september_2020,
+                         september_2020,
+                         september_2020,
+                         february_2021,
+                         february_2021,
+                         february_2021,
+                         february_2021,
+                         february_2021,
+                         february_2021,
+                         february_2021,
+                         june_2021,
+                         june_2021,
+                         june_2021,
+                         june_2021,
+                         june_2021,
+                         june_2021,
+                         june_2021
+                         ),
+  indicator_2021 = c(rep(0,16), rep(1,17))
+)
+```
+
+## Fit model to data
+### Loop over time points
+```{r fit_to_data, echo=TRUE, eval=FALSE}
+n_bp <- length(breakpoints$date)
+mles <- matrix(rep(NA, 2*n_bp), nrow = n_bp)
+colnames(mles) <- c("beta", "alpha")
+out_mle <- list()
+parameter_draws <- list()
+beta_draws <- list()
+daily_cases_mle <- list()
+
+for (j in 1:n_bp) {
+  print(j)
+  # set contact matrix for time window
+  if (j == n_bp){
+    params$c_start <- breakpoints$contact_matrix[[j-1]]$mean
+  } else {
+    params$c_start <- breakpoints$contact_matrix[[j]]$mean
+  }
+  
+  if (j == 1) {
+    # if first time window, start time at 0
+    end_day <- yday(breakpoints$date[j]) - 1
+    
+    times <- seq(0, end_day, by = 1)
+    # set initial conditions to those specified earlier in script
+    init_update <- init
+    pars <- c(2.3, 0.01)
+    S_diag <- diag(init_update[c(2:10)])
+    rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
+  } else {
+    if (breakpoints$indicator_2021[j] == 1){
+      if(breakpoints$indicator_2021[j-1] == 1){ # wait for two consecutive dates in 2021
+        start_day <- yday(breakpoints$date[j-1]) - 1 + 366 # shift days by 1 because we start time at 0 (not 1)
+      } else {
+        start_day <- yday(breakpoints$date[j-1]) - 1
+      }
+      end_day <- yday(breakpoints$date[j]) - 1 + 366
+    } else {
+      start_day <- yday(breakpoints$date[j-1]) - 1 
+      end_day <- yday(breakpoints$date[j]) - 1
+    }
+    times <- seq(start_day, end_day, by = 1)
+    # update initial conditions based on last time window
+    init_update <- c(t = times[1], unlist(lapply(unname(out_mle[[j-1]]), tail,1)))
+    
+    pars <- c((mles[j-1,1]/params$gamma)*rho, mles[j-1,2])
+    S_diag <- diag(init_update[c(2:10)])
+    rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
+  }
+  
+  # subset data for time window
+  case_data_sub <- case_data[times + 1, ]
+  
+  # optimize
+  res <- optim(par = pars, 
+               fn = likelihood_func,
+               method = "L-BFGS-B",
+               lower = c(0,0.005),
+               upper = c(10,1),
+               t = times,
+               data = case_data_sub,
+               params = params,
+               init = init_update,
+               stochastic = FALSE,
+               hessian = TRUE
+  )
+  
+  # store MLE
+  mles[j,1] <- (res$par[1] / rho) * params$gamma
+  mles[j,2] <- res$par[2]
+  
+  # draw 200 parameter values
+  parameter_draws[[j]] <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
+  print(solve(res$hessian))
+  beta_draws[[j]] <- data.frame(beta = (parameter_draws[[j]][,1] / rho) * params$gamma) %>%
+     mutate(index = 1:200)
+  # --------------------------------------------------
+  # run for mle to get initial conditions for next timepoint
+  params$beta <- mles[j,1]
+  seir_out <- lsoda(init_update, times, age_struct_seir_ode, params)
+  seir_out <- as.data.frame(seir_out)
+  out_mle[[j]] <- postprocess_age_struct_model_output(seir_out)
+
+} # end of for loop over breakpoints
+
+# save outputs ---------------------------------------
+todays_date <- Sys.Date()
+path_out <- "/rivm/s/ainsliek/code/vacamole/inst/extdata/results/model_fits/"
+
+saveRDS(mles, file = paste0(path_out, "mles_from_fits_", todays_date, ".rds"))
+saveRDS(beta_draws, file = paste0(path_out, "beta_draws_from_fits_", todays_date, ".rds"))
+names(out_mle) <- paste0("end_date_", breakpoints$date) # name list elements for easier indexing
+saveRDS(out_mle, file = paste0(path_out, "output_from_fits_", todays_date, ".rds"))
+```
+
+### Get confidence bounds
+```{r conf_bounds, echo=TRUE, eval=FALSE}
+# ----------------------------------------------------
+# run simulations for mle, lower, and upper bounds 
+# of beta
+# ----------------------------------------------------
+fit_date <- "2021-10-01"
+beta_mles <- readRDS(paste0(path_out,"mles_from_fits_",fit_date,".rds"))
+beta_mles_list <- split(beta_mles, seq(nrow(beta_mles)))
+beta_draws <- readRDS(paste0(path_out,"beta_draws_from_fits_",fit_date,".rds"))
+
+# run for 200 contact matrices
+mle_run <- model_run_wrapper(breakpoints = breakpoints, 
+                             beta_values = beta_mles_list, 
+                             init_conditions = init, 
+                             params = params)
+ci_run  <- model_run_wrapper(breakpoints = breakpoints, 
+                             beta_values = beta_draws, 
+                             init_conditions = init, 
+                             params = params, 
+                             mle = FALSE)
+
+# a little wrangling to combine the results from each model run
+ci_out <- list()
+for (i in 1:n_bp){
+  ci_out[[i]] <- do.call("rbind", ci_run[[i]])
+}
+ci_out_wide <- do.call("cbind", ci_out)
+#matplot(t(ci_out_wide), type = "l")
+
+# try getting quantiles
+bounds <- apply(ci_out_wide, 2, quantile, probs = c(0.025, 0.975))
+#matplot(t(bounds), type = "l")
+```
+
+### Save outputs
+```{r save_outputs, echo=TRUE, eval=FALSE}
+# save outputs -------------------------------------
+#  combine all piecewise results to plot together
+cases_mle <- unique(unlist(mle_run))
+cases_lower <- unique(bounds[1,])
+cases_upper <- unique(bounds[2,])
+times_all <- 1:length(cases_mle)
+
+model_fit <- data.frame(time = times_all, date = case_data$date, real = case_data$inc, mle = cases_mle, lower = cases_lower, upper = cases_upper)
+saveRDS(model_fit, file = paste0(path_out, "model_fit_df_", todays_date, ".rds"))
+```
+
+## Plot model fits
+```{r plot_fits, echo=TRUE, eval=FALSE}
+# read in model fit data set ---------------------------------
+file_date <- "2021-09-08"
+model_fit <- readRDS(paste0("inst/extdata/results/model_fits/model_fit_df_", file_date, ".rds"))
+
+# plot fits --------------------------------------------------
+p <- ggplot(data = model_fit, aes(x = date, y = mle, linetype="solid")) +
+  geom_point(data = model_fit, aes(x = date, y = real, color = "Osiris notifications")) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = "95% Confidence bounds"), alpha = 0.3) +
+  scale_color_manual(values = c("red"),
+                     labels = c("Osiris notifications")) +
+  scale_fill_manual(values = c("grey70")) +
+  scale_linetype_manual(values=c(1), labels = c("Model Fit")) +
+  #scale_shape_manual(values=c(NA,20)) +
+  labs(y = "Daily Cases", x = "Date") +
+  ylim(0,NA) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%d %b %Y") +
+  theme(legend.position = "bottom",
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+        axis.text.y = element_text(size = 14),
+        strip.text.x = element_text(size = 14),
+        legend.text = element_text(size = 14),
+        legend.title = element_blank(),
+        axis.title=element_text(size=14))
+p
+
+```

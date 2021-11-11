@@ -57,8 +57,7 @@ init <- c(
 
 
 # specify model parameters
-params <- list(dt = 1,
-               beta = 0.0003934816,       # transmission rate
+params <- list(beta = 0.0003934816,       # transmission rate
                beta1 = 0.14,              # amplitude of seasonal forcing
                gamma = g,                 # 1/gamma = infectious period
                sigma = s,                 # 1/sigma = latent period
