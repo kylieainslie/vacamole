@@ -1,8 +1,9 @@
 #' convert cumulative vaccination schedule to non-cumulative ----------------------------------
 #' @param vac_schedule a data frame that the proportion of the population who receives vaccines
-#' at each time point. Rows are time points, columns are vaccine type, age group, and dose. For example,
+#' at each time point. Rows are time points, columns are <vaccine type>_<dose>_<age group>. For example,
 #' the first column is the proportion of individuals in age group 1 who receive dose 1 of the first vaccine
-#' type. The function assumes 9 age groups and four vaccine types, each with a 2-dose regimen.
+#' type. The function assumes 10 age groups (1, .., 10) and four vaccine types (pf, mo, az, ja), each with 
+#' a 2-dose regimen (d1, d2).
 #' @param ve a named list of vaccine effectiveness against infection for each dose of each vaccine type.
 #' @param hosp_multiplier a named list of the values for the vaccine effectiveness against hospitalization
 #' for each dose of each vaccine type. Vaccine effectiveness against hospitalization is incorporated as a
