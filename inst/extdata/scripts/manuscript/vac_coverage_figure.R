@@ -3,16 +3,16 @@
 # ----------------------------------------------------------------
 
 # read in vac schedules --------------------------------------------
-basis_5plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 5+ KA.csv") %>%
+basis_5plus <- read_csv("inst/extdata/inputs/vac_schedule_5plus.csv") %>%
   select(-starts_with("X")) %>%
   mutate(Scenario = "Vaccination of 5+")
 
-basis_12plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 12+ KA.csv") %>%
+basis_12plus <- read_csv("inst/extdata/inputs/vac_schedule_12plus.csv") %>%
   select(-starts_with("X")) %>%
   mutate(Scenario = "Vaccination of 12+",
          date = as.Date(date, format = "%m/%d/%Y"))
 
-basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
+basis_18plus <- read_csv("inst/extdata/inputs/vac_schedule_18plus.csv") %>%
   select(-starts_with("X")) %>%
   mutate(Scenario = "Vaccination of 18+",
          date = as.Date(date, format = "%m/%d/%Y"))
@@ -72,7 +72,8 @@ vac_sched_long <- vac_sched_comb %>%
 fig_18plus <- ggplot(data = vac_sched_long %>%
                        filter(Scenario == "Vaccination of 18+",
                               age_group %in% c("20-29", "30-39", "40-49", "50-59",
-                                               "60-69", "70-79", "80+")), 
+                                               "60-69", "70-79", "80+")
+                              ), 
                      aes(x = date, y = coverage, fill = Vaccine, color = Vaccine)) +
   geom_bar(stat = "identity") +
   labs(y = "Vaccine Coverage", x = "Date") +
@@ -85,8 +86,9 @@ fig_18plus <- ggplot(data = vac_sched_long %>%
     #axis.title.x = element_blank(),
     axis.text.y = element_text(size = 14),
     strip.text.x = element_text(size = 14),
-    #legend.text = element_text(size = 14),
-    #legend.title = element_text(size = 14),
+    strip.text.y = element_text(size = 14),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
     axis.title=element_text(size=14,face="bold"))
 fig_18plus
 

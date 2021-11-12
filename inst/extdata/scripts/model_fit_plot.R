@@ -34,5 +34,5 @@ p <- ggplot(data = model_fit, aes(x = date, y = mle, linetype="solid")) +
         axis.title=element_text(size=14))
 p
 
-ggsave(filename = paste0("inst/extdata/results/model_fit_plot_",file_date,".jpg"),
-       plot = p, units = "in", height = 8, width = 10, dpi = 300)
+ggsave(filename = "/rivm/s/ainsliek/results/impact_vac/model_fit_plot.pdf", plot = p,
+       units = "in", height = 8, width = 10, dpi = 300)

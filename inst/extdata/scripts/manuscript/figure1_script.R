@@ -62,5 +62,5 @@ fig1 <- fig1a + annotation_custom(ggplotGrob(fig1_inset),
 fig1
 
 # save output -------------------------------------------------
-# ggsave(filename = paste0(file_path, "figure_1_w_inset.jpg"), plot = fig1,
+# ggsave(filename = "/rivm/s/ainsliek/results/impact_vac/figure_1_w_inset.pdf", plot = fig1,
 #        units = "in", height = 10, width = 12, dpi = 300)
