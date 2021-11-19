@@ -43,16 +43,26 @@ forward_sim_func_wrap <- function(params,
 
   # Update parameter values for input into model solver ------
   params$beta <- beta_m
+  
   #TODO if there's only one contact matrix then don't take the mean
-  params$c_start <- contact_matrices$june_2021$mean
-  params$c_lockdown <- contact_matrices$february_2021$mean
-  params$c_relaxed <- contact_matrices$june_2020$mean
-  params$c_very_relaxed <- contact_matrices$june_2021$mean
-  params$c_normal <- contact_matrices$baseline_2017$mean
+  if(length(contact_matrices[1]) == 1){
+    params$c_start <- contact_matrices$june_2021
+    params$c_lockdown <- contact_matrices$february_2021
+    params$c_relaxed <- contact_matrices$june_2020
+    params$c_very_relaxed <- contact_matrices$june_2021
+    params$c_normal <- contact_matrices$april_2017
+  } else {
+    params$c_start <- contact_matrices$june_2021$mean
+    params$c_lockdown <- contact_matrices$february_2021$mean
+    params$c_relaxed <- contact_matrices$june_2020$mean
+    params$c_very_relaxed <- contact_matrices$june_2021$mean
+    params$c_normal <- contact_matrices$april_2017$mean
+  }
+  
   params$vac_inputs <- vac_inputs
   params$beta_change <- beta_c[1]
   params$t_normal <- t_normal
-
+  
   # if time doesn't start at 0 we need to initialise the contact
   # matrices flags ---------------------------------------------------
   assign("flag_relaxed", 0, envir = .GlobalEnv)
@@ -61,7 +71,6 @@ forward_sim_func_wrap <- function(params,
 
   #  Solve model ------------------------------------------------------
   # mle
-  print("mle")
   seir_out <- lsoda(initial_conditions, times, age_struct_seir_ode, params)
   seir_out <- as.data.frame(seir_out)
   out_mle <- postprocess_age_struct_model_output(seir_out)
@@ -85,9 +94,13 @@ forward_sim_func_wrap <- function(params,
     # change parameters
     params$beta <- beta_d[i]
     params$beta_c <- beta_c[i + 1]
-    params$c_start <- contact_matrices$june_2021[[i]]
-    params$normal <- contact_matrices$baseline_2017[[i]]
-
+    if(length(contact_matrices[1]) == 1){
+      params$c_start <- contact_matrices$june_2021
+      params$normal <- contact_matrices$baseline_2017
+    } else{
+      params$c_start <- contact_matrices$june_2021[[i]]
+      params$normal <- contact_matrices$baseline_2017[[i]]
+    }
     # run model
     seir_out <- lsoda(initial_conditions, times, age_struct_seir_ode, params)
     seir_out <- as.data.frame(seir_out)

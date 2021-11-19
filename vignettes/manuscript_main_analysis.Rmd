@@ -44,13 +44,13 @@ A synthetic vaccination s
 First we need to load the vaccination schedules for the different vaccination strategies: adults only (18+), extension to adolescents (12+), and extension to adolescents and children (5+). These files are located in the [`inst/extdata/inputs`](https://github.com/kylieainslie/vacamole/tree/master/inst/extdata/inputs) folder of the package. Each file includes a column for vaccine product and dose for each age group (see [`Quick Start Guide`](https://github.com/kylieainslie/vacamole/tree/master/vignettes)). Rows indicate the proportion of that age group who received that dose and product on that day.
 ```{r read_vac_sched, echo=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
 basis_5plus <- read_csv("../inst/extdata/inputs/vac_schedule_5plus.csv") %>%
-  select(-starts_with("X"))
+  select(-starts_with("...1"))
 
 basis_12plus <- read_csv("../inst/extdata/inputs/vac_schedule_12plus.csv") %>%
-  select(-starts_with("X"))
+  select(-starts_with("...1"))
 
 basis_18plus <- read_csv("../inst/extdata/inputs/vac_schedule_18plus.csv") %>%
-  select(-starts_with("X"))
+  select(-starts_with("...1"))
 ```
 
 Next, the vaccination schedules needs to be converted before input into the model. The vaccination schedule data frame is converted into a list with weighted averages of the following quantities: vaccination rate, vaccine effectiveness, and delay to protection based on the number of people in the population who receive each dose and type of vaccine at each time point. The model is designed to incorporate a single vaccine product with a 2-dose regimen that 1) reduces susceptibility to infection, 2) reduces risk of hospitalization if a vaccinated individual is infected, and 3) reduces risk of infecting others (transmission) if a vaccinated person is infected. Therefore we need to provide estimates for vaccine effectiveness against infection, hospitalisation, and transmission (if infected). Since there is more than one vaccine product currently licensed for use against COVID-19 in The Netherlands (the vaccines made by Pfizer/BioNTech, Moderna, AstraZeneca, and Janssen), we incorporate different vaccine products by taking the daily weighted average of the number of people with each vaccine product (and dose), the corresponding delay to protection of each vaccine product, and the vaccine effectiveness against each outcome (Table S1). Janssen is incorporated by using zero for the number of second doses at all time points.
@@ -64,16 +64,6 @@ ve_info <- readRDS("../inst/extdata/inputs/ve_params.rds")
 # convert vaccination schedules ------------------------------
 # the vaccination schedule is assumed to be cumulative over 
 # time
-# column names are hardcoded in `convert_vac_schedule`
-basis_5plus <- basis_5plus %>%
-  mutate(pf_d1_10 = 0, 
-         pf_d2_10 = 0, 
-         mo_d1_10 = 0, 
-         mo_d2_10 = 0, 
-         az_d1_10 = 0, 
-         az_d2_10 = 0, 
-         ja_d1_10 = 0, 
-         ja_d2_10 = 0)
 
 # 5+ --------------------------------------------------------
 converted_5plus <- convert_vac_schedule(
@@ -212,9 +202,6 @@ Now that we have prepared all of the model inputs, we can now run the model for 
 todays_date <- Sys.Date()
 
 # 5+ ----------------------------------------------------------
-#FIXME `forward_sim_func_wrap` throws error for contact matrices:
-# Error in contact_matrices$june_2021$mean : $ operator is invalid for atomic vectors
-
 forward_sim_func_wrap(params = params,
                       start_date = "2021-06-22",
                       end_date = "2021-03-31",
