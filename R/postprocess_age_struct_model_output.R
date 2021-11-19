@@ -1,3 +1,4 @@
+#TODO refer to manuscript or somewhere else for explanation of each compartment symbol
 #' Postprocess output from age-structured SEIR ODE model of vaccination
 #' with 2 doses and delay to protection
 #' @param dat output from seir model as a data frame
