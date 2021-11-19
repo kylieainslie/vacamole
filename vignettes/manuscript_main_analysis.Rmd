@@ -64,6 +64,16 @@ ve_info <- readRDS("../inst/extdata/inputs/ve_params.rds")
 # convert vaccination schedules ------------------------------
 # the vaccination schedule is assumed to be cumulative over 
 # time
+# column names are hardcoded in `convert_vac_schedule`
+basis_5plus <- basis_5plus %>%
+  mutate(pf_d1_10 = 0, 
+         pf_d2_10 = 0, 
+         mo_d1_10 = 0, 
+         mo_d2_10 = 0, 
+         az_d1_10 = 0, 
+         az_d2_10 = 0, 
+         ja_d1_10 = 0, 
+         ja_d2_10 = 0)
 
 # 5+ --------------------------------------------------------
 converted_5plus <- convert_vac_schedule(
@@ -71,7 +81,8 @@ converted_5plus <- convert_vac_schedule(
   ve = ve_info[[1]],
   delay = ve_info[[2]],
   hosp_multiplier = ve_info[[3]],
-  ve_trans = ve_info[[4]]
+  ve_trans = ve_info[[4]], 
+  add_child_vac = TRUE
 )
 
 # 12+ -------------------------------------------------------
@@ -108,7 +119,7 @@ february_2021 <- readRDS("../inst/extdata/inputs/contact_matrices/converted/tran
 june_2021 <- readRDS("../inst/extdata/inputs/contact_matrices/converted/transmission_matrix_june_2021.rds")
 
 # create list of transmission matrices -----------------------
-cm <- list(baseline_2017 = baseline_2017,
+cm <- list(april_2017 = april_2017,
            april_2020 = april_2020,
            june_2020 = june_2020,
            september_2020 = september_2020,
@@ -116,38 +127,39 @@ cm <- list(baseline_2017 = baseline_2017,
            june_2021 = june_2021)
 
 # define population size (by age group) ----------------------
-age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,0.14514332, 0.12092904, 0.08807406, 0.04622194)
+age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,0.14514332, 0.12092904, 0.08807406, 0.04622194) # source: CBS
 n <- 17407585 # Dutch population size
 n_vec <- n * age_dist
 
 # create named list of parameter -----------------------------
+#TODO docs of rest of parameters
 params <- list(beta = 0.0004 ,  # transmission rate
                beta1 = 0.14,    # amplitude of seasonal forcing
                gamma = 0.5,     # 1/gamma = infectious period
                sigma = 0.5,     # 1/sigma = latent period
                epsilon = 0.01,  # case importation rate
                N = n_vec,       # population size vector (by age group)
-               h = h,           # rate from infection to hospital admission
-               i1 = i1,         # rate from hospital to IC
-               i2 = i2,         # rate from IC back to hospital
-               d = d,           # rate from hospital to death
-               d_ic = d_ic,     # rate from IC to death
-               d_hic = d_hic,   # rate from hospital (after returning from IC) to death
-               r = r,           # rate of recovery from hospital
-               r_ic = r_ic,     # rate of recovery from hospital (after IC)
+               h = transition_rates$h,           # rate from infection to hospital admission
+               i1 = transition_rates$i1,         # rate from hospital to IC
+               i2 = transition_rates$i2,         # rate from IC back to hospital
+               d = transition_rates$d,           # rate from hospital to death
+               d_ic = transition_rates$d_ic,     # rate from IC to death
+               d_hic = transition_rates$d_hic,   # rate from hospital (after returning from IC) to death
+               r = transition_rates$r,           # rate of recovery from hospital
+               r_ic = transition_rates$r_ic,     # rate of recovery from hospital (after IC)
                p_report = 1/3,  # case ascertainment rate
                c_start = june_2021,
                c_lockdown = february_2021,
                c_relaxed = june_2020,
                c_very_relaxed = june_2021,
                c_normal = april_2017,
-               keep_cm_fixed = FALSE,
-               vac_inputs = basis1,
-               use_cases = TRUE, 
-               thresh_n = 0.5/100000 * sum(n_vec),
-               thresh_l = 5/100000 * sum(n_vec),           
-               thresh_m = 14.3/100000 * sum(n_vec),
-               thresh_u = 100000/100000 * sum(n_vec),
+               keep_cm_fixed = FALSE, # if true c_start is used for entire simulation, else not
+               vac_inputs = basis_18plus, # converted vaccine schedule - rates per day for doses 1,2 and VE for each day (infection, transmission, hospitalization), delay to protection
+               use_cases = TRUE, # if true threshold is for cases, if false threshold is for ic 
+               thresh_n = 0.5/100000 * sum(n_vec), # number of cases per 100000: threshold for normal contact matrix 
+               thresh_l = 5/100000 * sum(n_vec), # government threshold           
+               thresh_m = 14.3/100000 * sum(n_vec), # government threshold
+               thresh_u = 100000/100000 * sum(n_vec), # no lockdown unless everyone infected
                no_vac = FALSE,  # if TRUE, no vaccination is assumed
                t_calendar_start = yday(as.Date("2020-01-01")), # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
                beta_change = NULL # value to change beta to after normal contact patterns are initiated
@@ -167,25 +179,25 @@ output_from_model_fit <- readRDS(paste0(file_path,"output_from_fits_", date_of_f
 # get the number of individuals in each state on the last day
 # of model fit (22 June 2021) ---------------------------------
 # these will be used as the initial conditions
-init_cond_22june2021 <- unlist(lapply(unname(output_from_model_fit$`end_date_2021-06-22`), tail,1))
+init_cond_22june2021 <- unlist(lapply(unname(output_from_model_fit$`end_date_2021-06-22`), tail, 1))
 ```
 
-For the beginning of the forward simulations we use the transmission rate from the last time window of the model fit. However, once non-pharmaceutical interventions (NPIs) are relaxed we need a transmission rate that was not estimated during a time period in which NPIs were in use. Thus, for forward simulations, we use the transmission rate that corresponds to the basic reproduction number of the Delta variant (R_0 = 4.6). To incorporate uncertainty, we draw random samples of the reproduction number from a normal distribution with mean 4.6 and standard deviation equal to the square root of the variance from the model fits of the last time window before the forward simulations.
+For the beginning of the forward simulations we use the transmission rate from the last time window of the model fit. However, once non-pharmaceutical interventions (NPIs) are relaxed we need a transmission rate that was not estimated during a time period in which NPIs were in use. Thus, for forward simulations, we use the transmission rate that corresponds to the basic reproduction number of the Delta variant ($R_0 = 4.6$). To incorporate uncertainty, we draw random samples of the reproduction number from a normal distribution with mean 4.6 and standard deviation equal to the square root of the variance from the model fits of the last time window before the forward simulations.
 ```{r betas, echo=TRUE, eval=FALSE}
 # read in MLE of transmission rate from model fit -------------
-beta_mles <- data.frame(beta = readRDS(paste0(file_path,"mles_from_fits_", date_of_fit,".rds"))) %>%
+beta_mles <- data.frame(beta = readRDS(paste0(file_path, "mles_from_fits_", date_of_fit, ".rds"))) %>%
   mutate(end_date = names(output_from_model_fit))
-beta_draws <- readRDS(paste0(file_path,"beta_draws_from_fits_", date_of_fit, ".rds"))
+beta_draws <- readRDS(paste0(file_path, "beta_draws_from_fits_", date_of_fit, ".rds"))
 
 index <- which(beta_mles$end_date == "end_date_2021-06-22")
 
 # determine Rt and beta for forward simulations ---------------
 my_sd <- sqrt(0.0000945)  # sqrt(var) of Rt from fits to last time window
-S_diag <- diag(init[c(2:10)]) # diagonal matrix of susceptibles
+S_diag <- diag(init_cond_22june2021[c(2:10)]) # diagonal matrix of susceptibles
 rho <- as.numeric(eigs(S_diag %*% params$c_normal, 1)$values) # parameter to convert Rt to beta
 
 # R draws -----------------------------------------------------
-rt <- rnorm(n = 200, mean = 4.6, sd = my_sd)  # beta = 0.0003934816 * 2 = 0.0007869632
+rt_for_delta_period <- rnorm(n = 200, mean = 4.6, sd = my_sd)  # R_0=2.3 => beta = 0.0003934816 * 2 = 0.0007869632 (follows from different analysis)
 
 # convert to beta ---------------------------------------------
 betas <- c(0.0007869632, (rt_for_delta_period / rho) * params$gamma)
@@ -200,31 +212,37 @@ Now that we have prepared all of the model inputs, we can now run the model for 
 todays_date <- Sys.Date()
 
 # 5+ ----------------------------------------------------------
-forward_sim_func_wrap(start_date = "2021-06-22",
+#FIXME `forward_sim_func_wrap` throws error for contact matrices:
+# Error in contact_matrices$june_2021$mean : $ operator is invalid for atomic vectors
+
+forward_sim_func_wrap(params = params,
+                      start_date = "2021-06-22",
                       end_date = "2021-03-31",
                       init_cond = init_cond_22june2021,
-                      beta_m = beta_mles[index,1],
-                      vac_inputs = converted_5plus1,
+                      beta_m = beta_mles[index, 1],
+                      vac_inputs = converted_5plus,
                       beta_c = betas,
-                      beta_d = beta_draws[[index]][,1],
-                      t_normal = yday(as.Date("2021-11-01")) + 365,
+                      beta_d = beta_draws[[index]][, 1],
+                      t_normal = yday(as.Date("2021-11-01")) + 365, # simulation is in days since start
                       contact_matrices = cm,
-                      tag = paste0("results_5plus_",todays_date))
+                      tag = paste0("results_5plus_", todays_date))
 
 # 12+ --------------------------------------------------------
-forward_sim_func_wrap(start_date = "2021-06-22",
+forward_sim_func_wrap(params = params,
+                      start_date = "2021-06-22",
                       end_date = "2021-03-31",
                       init_cond = init_cond_22june2021,
-                      beta_m = beta_mles[index,1],
+                      beta_m = beta_mles[index, 1],
                       vac_inputs = converted_12plus,
                       beta_c = betas,
-                      beta_d = beta_draws[[index]][,1],
+                      beta_d = beta_draws[[index]][, 1],
                       t_normal = yday(as.Date("2021-11-01")) + 365,
                       contact_matrices = cm,
-                      tag = paste0("results_12plus_",todays_date))
+                      tag = paste0("results_12plus_", todays_date))
 
 # 18+ -------------------------------------------------------
-forward_sim_func_wrap(start_date = "2021-06-22",
+forward_sim_func_wrap(params = params,
+                      start_date = "2021-06-22",
                       end_date = "2021-03-31",
                       init_cond = init_cond_22june2021,
                       beta_m = beta_mles[index,1],
@@ -239,7 +257,7 @@ forward_sim_func_wrap(start_date = "2021-06-22",
 The output from the model runs needs quite a bit of data wrangling to get it into a form that's easy to plot. For simplicity, the code to perform the data wrangling is located in [`inst/extdata/scripts/manuscript`](https://github.com/kylieainslie/vacamole/tree/master/inst/extdata/scripts/manuscript). Here, we will just load the already wrangled results and show the code to make figure 1 from the paper. The scripts to make the other figures are located in [`inst/extdata/scripts/manuscript`](https://github.com/kylieainslie/vacamole/tree/master/inst/extdata/scripts/manuscript).
 ```{r fig1, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE, fig.dim = c(8, 11)}
 # load wrangled results -------------------------------------
-all_res_for_plot <- readRDS("../inst/extdata/results/all_res_for_plot.rds")
+all_res_for_plot <- readRDS("inst/extdata/results/all_res_for_plot.rds")
 
 # Figure 1 (main) -------------------------------------------
 fig1a <- ggplot(data = all_res_for_plot %>%
