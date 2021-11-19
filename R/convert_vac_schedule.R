@@ -43,7 +43,12 @@ convert_vac_schedule <- function(vac_schedule,
                                  t0 = 180,
                                  add_extra_dates = FALSE,
                                  extra_end_date = "2022-03-31") {
-  # to combine age groups 9 and 10 --------------------------------------------------------------
+  # check if there are 9 age groups or 10 age groups --------------------------------------------
+  names_check  <- length(names(vac_schedule)[-1])
+  names_rem_9  <- names_check %% 9  # if remainder is 0 then 9 age groups
+  names_rem_10 <- names_check %% 10 # if remainder is 0 then 10 age groups
+  
+  # some demographic info -----------------------------------------------------------------------
   age_dist_10 <- c(
     0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,
     0.14514332, 0.12092904, 0.08807406, 0.03976755, 0.007398671
@@ -52,7 +57,10 @@ convert_vac_schedule <- function(vac_schedule,
   n_vec_10 <- n * age_dist_10
 
   date_vec <- as.Date(vac_schedule$date, format = "%m/%d/%Y")
-
+  
+  # if 10 age groups then: ----------------------------------------------------------------------
+  if(names_rem_10 == 0){
+    
   # take the difference for each row ------------------------------------------------------------
   vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[, -1]))) %>%
     add_row(vac_schedule[1, -1], .before = 1) %>%
@@ -71,7 +79,16 @@ convert_vac_schedule <- function(vac_schedule,
       .data$date, .data$pf_d1_1:.data$ja_d2_9, -.data$pf_d1_10, -.data$pf_d2_10, -.data$mo_d1_10,
       -.data$mo_d2_10, -.data$az_d1_10, -.data$az_d2_10, -.data$ja_d1_10, -.data$ja_d2_10
     )
-
+  }
+  
+  # if 9 age groups
+  if(names_rem_9 == 0){
+    vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[, -1]))) %>%
+      add_row(vac_schedule[1, -1], .before = 1) %>%
+      mutate(date = date_vec) %>%
+      select(.data$date, .data$pf_d1_1:.data$ja_d2_9)
+  }
+  
   vac_schedule_orig_new <- vac_schedule_orig
 
   # add extra rows for dates further in the future (so there's no error when running the model)
