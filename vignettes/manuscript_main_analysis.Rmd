@@ -36,6 +36,7 @@ library(readxl)
 library(rARPACK)
 library(readr)
 library(lubridate)
+library(kableExtra)
 ```
 
 ## Preparing the data and model inputs
@@ -95,7 +96,16 @@ converted_18plus <- convert_vac_schedule(
 ```
 
 ## Parameter values
-The model expects a named list of parameter values describing the rates of transitioning between compartments, the converted vaccine schedule, and contact patterns. The model allows the user to specify a threshold of either cases (`use_cases = TRUE`) or IC admissions to determine which contact patterns to use. There are four different patterns the user can specify: normal (pre-pandemic), very relaxed, relaxed, and lockdown. These are specified using the `c_normal`, `c_very_relaxed`, `c_relaxed`, and `c_lockdown` arguments. The thresholds for changing the contact patterns are specified using `thresh_n`, `thresh_l`, `thresh_m`, and `thresh_u` arguments. If the user does not want the contact patterns to change, they can specify `keep_cm_fixed = TRUE` and specify the contact patterns to use with the `c_start` argument. Many of the parameter values used for this analysis are located in the [`inst/extdata/inputs`](https://github.com/kylieainslie/vacamole/tree/master/inst/extdata/inputs) folder of the package.
+The model expects a named list of parameter values (Table 1) describing the rates of transitioning between compartments, the converted vaccine schedule, and contact patterns. The model allows the user to specify a threshold of either cases (`use_cases = TRUE`) or IC admissions to determine which contact patterns to use. There are four different patterns the user can specify: normal (pre-pandemic), very relaxed, relaxed, and lockdown. These are specified using the `c_normal`, `c_very_relaxed`, `c_relaxed`, and `c_lockdown` arguments. The thresholds for changing the contact patterns are specified using `thresh_n`, `thresh_l`, `thresh_m`, and `thresh_u` arguments. If the user does not want the contact patterns to change, they can specify `keep_cm_fixed = TRUE` and specify the contact patterns to use with the `c_start` argument. Many of the parameter values used for this analysis are located in the [`inst/extdata/inputs`](https://github.com/kylieainslie/vacamole/tree/master/inst/extdata/inputs) folder of the package.
+```{r params_table, echo=FALSE, eval=TRUE}
+params_table <- read_xlsx("parameter_description_table.xlsx") %>%
+  rename(Parameter = parameter, Type = type, Description = description) 
+
+params_table %>%
+  kbl() %>%
+  kable_styling()
+```
+
 ```{r params, echo=TRUE, eval=FALSE}
 # read in transition rates -----------------------------------
 transition_rates <- readRDS("../inst/extdata/inputs/transition_rates.rds")
@@ -122,7 +132,6 @@ n <- 17407585 # Dutch population size
 n_vec <- n * age_dist
 
 # create named list of parameter -----------------------------
-#TODO docs of rest of parameters
 params <- list(beta = 0.0004 ,  # transmission rate
                beta1 = 0.14,    # amplitude of seasonal forcing
                gamma = 0.5,     # 1/gamma = infectious period
@@ -204,7 +213,7 @@ todays_date <- Sys.Date()
 # 5+ ----------------------------------------------------------
 forward_sim_func_wrap(params = params,
                       start_date = "2021-06-22",
-                      end_date = "2021-03-31",
+                      end_date = "2022-03-31",
                       init_cond = init_cond_22june2021,
                       beta_m = beta_mles[index, 1],
                       vac_inputs = converted_5plus,
@@ -217,7 +226,7 @@ forward_sim_func_wrap(params = params,
 # 12+ --------------------------------------------------------
 forward_sim_func_wrap(params = params,
                       start_date = "2021-06-22",
-                      end_date = "2021-03-31",
+                      end_date = "2022-03-31",
                       init_cond = init_cond_22june2021,
                       beta_m = beta_mles[index, 1],
                       vac_inputs = converted_12plus,
@@ -230,7 +239,7 @@ forward_sim_func_wrap(params = params,
 # 18+ -------------------------------------------------------
 forward_sim_func_wrap(params = params,
                       start_date = "2021-06-22",
-                      end_date = "2021-03-31",
+                      end_date = "2022-03-31",
                       init_cond = init_cond_22june2021,
                       beta_m = beta_mles[index,1],
                       vac_inputs = converted_18plus,
@@ -244,7 +253,7 @@ forward_sim_func_wrap(params = params,
 The output from the model runs needs quite a bit of data wrangling to get it into a form that's easy to plot. For simplicity, the code to perform the data wrangling is located in [`inst/extdata/scripts/manuscript`](https://github.com/kylieainslie/vacamole/tree/master/inst/extdata/scripts/manuscript). Here, we will just load the already wrangled results and show the code to make figure 1 from the paper. The scripts to make the other figures are located in [`inst/extdata/scripts/manuscript`](https://github.com/kylieainslie/vacamole/tree/master/inst/extdata/scripts/manuscript).
 ```{r fig1, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE, fig.dim = c(8, 11)}
 # load wrangled results -------------------------------------
-all_res_for_plot <- readRDS("inst/extdata/results/all_res_for_plot.rds")
+all_res_for_plot <- readRDS("../inst/extdata/results/all_res_for_plot.rds")
 
 # Figure 1 (main) -------------------------------------------
 fig1a <- ggplot(data = all_res_for_plot %>%
