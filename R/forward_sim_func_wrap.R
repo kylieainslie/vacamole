@@ -44,7 +44,7 @@ forward_sim_func_wrap <- function(params,
   # Update parameter values for input into model solver ------
   params$beta <- beta_m
   
-  #TODO if there's only one contact matrix then don't take the mean
+  # if there's only one contact matrix then don't take the mean
   if(length(contact_matrices[1]) == 1){
     params$c_start <- contact_matrices$june_2021
     params$c_lockdown <- contact_matrices$february_2021
