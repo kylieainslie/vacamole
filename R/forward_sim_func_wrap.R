@@ -35,9 +35,20 @@ forward_sim_func_wrap <- function(params,
   # empty list for output
   out <- list()
   # specify time points ----------------------------------------------
-  start_date <- lubridate::yday(as.Date(start_date) + 365) + 365
-  end_date <- lubridate::yday(as.Date(end_date)) + (365 * 2)
-  times <- seq(start_date, end_date, by = 1)
+  if(as.Date(start_date) >= as.Date(end_date)) {
+    stop(paste("Chosen start date", start_date, "is not before end date", end_date))}
+  
+  start_date <- lubridate::ymd(start_date) 
+  end_date <- lubridate::ymd(end_date)
+  
+  # first day in the simulations
+  day_one <- lubridate::ymd("2020-01-01")
+  
+  # convert to number of days since first day in simulations
+  day_start <- as.numeric(start_date - day_one, units = "days")
+  day_end <- as.numeric(end_date - day_one, units = "days")
+
+  times <- seq(day_start, day_end, by = 1)
 
   initial_conditions <- c(t = times[1], init_cond)
 

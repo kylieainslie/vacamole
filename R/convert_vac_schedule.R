@@ -2,7 +2,7 @@
 #' @param vac_schedule a data frame that the proportion of the population who receives vaccines
 #' at each time point. Rows are time points, columns are <vaccine type>_<dose>_<age group>. For example,
 #' the first column is the proportion of individuals in age group 1 who receive dose 1 of the first vaccine
-#' type. The function assumes 10 age groups (1, .., 10) and four vaccine types (pf, mo, az, ja), each with 
+#' type. The function assumes 9 or 10 age groups (1, .., 10) and four vaccine types (pf, mo, az, ja), each with
 #' a 2-dose regimen (d1, d2).
 #' @param ve a named list of vaccine effectiveness against infection for each dose of each vaccine type.
 #' @param hosp_multiplier a named list of the values for the vaccine effectiveness against hospitalization
@@ -44,9 +44,16 @@ convert_vac_schedule <- function(vac_schedule,
                                  add_extra_dates = FALSE,
                                  extra_end_date = "2022-03-31") {
   # check if there are 9 age groups or 10 age groups --------------------------------------------
-  names_check  <- length(names(vac_schedule)[-1])
-  names_rem_9  <- names_check %% 9  # if remainder is 0 then 9 age groups
-  names_rem_10 <- names_check %% 10 # if remainder is 0 then 10 age groups
+  # extract age group part of each relevant column name of vac_schedule
+  names_check <- str_extract(names(vac_schedule), pattern = "(?<=[a-z]{2}_d[0-9]_)[0-9]+")
+  # find the largest age group
+  num_age_groups <- names_check %>%
+    as.numeric() %>%
+    max(na.rm = TRUE) %>%
+    as.integer()
+  
+  # remove any redundant columns 
+  vac_schedule <- vac_schedule %>% select(date | matches("[a-z]{2}_d[0-9]_[0-9]+"))
   
   # some demographic info -----------------------------------------------------------------------
   age_dist_10 <- c(
@@ -57,38 +64,38 @@ convert_vac_schedule <- function(vac_schedule,
   n_vec_10 <- n * age_dist_10
 
   date_vec <- as.Date(vac_schedule$date, format = "%m/%d/%Y")
-  
+
   # if 10 age groups then: ----------------------------------------------------------------------
-  if(names_rem_10 == 0){
-    
-  # take the difference for each row ------------------------------------------------------------
-  vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[, -1]))) %>%
-    add_row(vac_schedule[1, -1], .before = 1) %>%
-    mutate(
-      date = date_vec,
-      pf_d1_9 = (.data$pf_d1_9 * n_vec_10[9] + .data$pf_d1_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
-      pf_d2_9 = (.data$pf_d2_9 * n_vec_10[9] + .data$pf_d2_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
-      mo_d1_9 = (.data$mo_d1_9 * n_vec_10[9] + .data$mo_d1_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
-      mo_d2_9 = (.data$mo_d2_9 * n_vec_10[9] + .data$mo_d2_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
-      az_d1_9 = (.data$az_d1_9 * n_vec_10[9] + .data$az_d1_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
-      az_d2_9 = (.data$az_d2_9 * n_vec_10[9] + .data$az_d2_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
-      ja_d1_9 = (.data$ja_d1_9 * n_vec_10[9] + .data$ja_d1_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
-      ja_d2_9 = (.data$ja_d2_9 * n_vec_10[9] + .data$ja_d2_10 * n_vec_10[10]) / sum(n_vec_10[9:10])
-    ) %>%
-    select(
-      .data$date, .data$pf_d1_1:.data$ja_d2_9, -.data$pf_d1_10, -.data$pf_d2_10, -.data$mo_d1_10,
-      -.data$mo_d2_10, -.data$az_d1_10, -.data$az_d2_10, -.data$ja_d1_10, -.data$ja_d2_10
-    )
-  }
-  
-  # if 9 age groups
-  if(names_rem_9 == 0){
-    vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[, -1]))) %>%
-      add_row(vac_schedule[1, -1], .before = 1) %>%
+  if (num_age_groups == 10) {
+
+    # take the difference for each row ------------------------------------------------------------
+    vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule %>% select(-date)))) %>%
+      add_row(vac_schedule %>% select(-date) %>% slice(1), .before = 1) %>%
+      mutate(
+        date = date_vec,
+        pf_d1_9 = (.data$pf_d1_9 * n_vec_10[9] + .data$pf_d1_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
+        pf_d2_9 = (.data$pf_d2_9 * n_vec_10[9] + .data$pf_d2_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
+        mo_d1_9 = (.data$mo_d1_9 * n_vec_10[9] + .data$mo_d1_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
+        mo_d2_9 = (.data$mo_d2_9 * n_vec_10[9] + .data$mo_d2_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
+        az_d1_9 = (.data$az_d1_9 * n_vec_10[9] + .data$az_d1_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
+        az_d2_9 = (.data$az_d2_9 * n_vec_10[9] + .data$az_d2_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
+        ja_d1_9 = (.data$ja_d1_9 * n_vec_10[9] + .data$ja_d1_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
+        ja_d2_9 = (.data$ja_d2_9 * n_vec_10[9] + .data$ja_d2_10 * n_vec_10[10]) / sum(n_vec_10[9:10])
+      ) %>%
+      select(
+        .data$date, .data$pf_d1_1:.data$ja_d2_9, -.data$pf_d1_10, -.data$pf_d2_10, -.data$mo_d1_10,
+        -.data$mo_d2_10, -.data$az_d1_10, -.data$az_d2_10, -.data$ja_d1_10, -.data$ja_d2_10
+      )
+  } else if (num_age_groups == 9) { # if 9 age groups
+    # keep only columns that are of the form <vaccine type>_<dose>_<age group> or the date column
+    vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule %>% select(-date)))) %>%
+      add_row(vac_schedule %>% select(-date) %>% slice(1), .before = 1) %>%
       mutate(date = date_vec) %>%
-      select(.data$date, .data$pf_d1_1:.data$ja_d2_9)
+      select(date, everything()) # move date column to first position
+  } else { # if not 9 or 10 age groups, can't convert vac_schedule
+    stop("number of age groups in vac_schedule is not 9 or 10, can't convert")
   }
-  
+
   vac_schedule_orig_new <- vac_schedule_orig
 
   # add extra rows for dates further in the future (so there's no error when running the model)
