@@ -35,6 +35,9 @@ forward_sim_func_wrap <- function(params,
   # empty list for output
   out <- list()
   # specify time points ----------------------------------------------
+  if(as.Date(start_date) >= as.Date(end_date)) {
+    stop(paste("Chosen start date", start_date, "is not before end date", end_date))}
+  
   start_date <- lubridate::yday(as.Date(start_date) + 365) + 365
   end_date <- lubridate::yday(as.Date(end_date)) + (365 * 2)
   times <- seq(start_date, end_date, by = 1)
