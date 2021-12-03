@@ -41,6 +41,7 @@ convert_vac_schedule <- function(vac_schedule,
                                  k = 0.03,
                                  t0 = 180,
                                  add_extra_dates = FALSE,
+                                 extra_start_date = "2022-01-01",
                                  extra_end_date = "2022-03-31"){
 # to combine age groups 9 and 10 --------------------------------------------------------------
 age_dist_10 <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463, 
@@ -68,9 +69,9 @@ vac_schedule_orig <- data.frame(diff(as.matrix(vac_schedule[,-1]))) %>%
 
 vac_schedule_orig_new <- vac_schedule_orig
 
-# add extra rows for dates further in the future (so there's no error when running the model)
+# add extra rows for dates earlier or further in the future (so there's no error when running the model)
 if(add_extra_dates){
-  extra_dates <- seq.Date(from = date_vec[1], to = as.Date(extra_end_date), by = 1)
+  extra_dates <- seq.Date(from = as.Date(extra_start_date), to = as.Date(extra_end_date), by = 1)
   na_to_zero <- function(x){ ifelse(is.na(x), 0, x) }
   extra_dat <- data.frame(date = extra_dates) %>%
     full_join(vac_schedule_orig_new, extra_dates, by = "date") %>%
