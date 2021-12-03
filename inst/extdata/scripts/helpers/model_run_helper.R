@@ -141,10 +141,10 @@ ve_trans <- list(
 )
 
 ve_trans_delta = list(
-  pfizer = c(0.46, 0.52),   # de Gier et al (updated)
-  moderna = c(0.66, 0.24),  # de Gier et al. (updated)
-  astrazeneca = c(0, 0.25), # de Gier et al. (updated)
-  jansen = c(0.42)          # de Gier et al. (updated)
+  pfizer = c(0.46, 0.52),      # de Gier et al (updated)
+  moderna = c(0.66, 0.24),     # de Gier et al. (updated)
+  astrazeneca = c(0, 0.25),    # de Gier et al. (updated)
+  jansen = c(0.42)             # de Gier et al. (updated)
 )
 
 ve_hosp <- list(

@@ -1,12 +1,12 @@
-#' Postprocess output from age-structured SEIR ODE model of vaccination 
+#TODO refer to manuscript or somewhere else for explanation of each compartment symbol
+#' Postprocess output from age-structured SEIR ODE model of vaccination
 #' with 2 doses and delay to protection
 #' @param dat output from seir model as a data frame
 #' @return List of summary results
 #' @keywords vacamole
 #' @importFrom stringr str_detect
 #' @export
-postprocess_age_struct_model_output <- function(dat){
-
+postprocess_age_struct_model_output <- function(dat) {
   S <- dat %>%
     select(names(dat)[str_detect(names(dat), pattern = "S[:digit:]")])
   Shold_1d <- dat %>%
@@ -55,31 +55,33 @@ postprocess_age_struct_model_output <- function(dat){
     select(names(dat)[str_detect(names(dat), pattern = "Rv_1d[:digit:]")])
   Rv_2d <- dat %>%
     select(names(dat)[str_detect(names(dat), pattern = "Rv_2d[:digit:]")])
-  
-  rtn <- list(S = S,
-              Shold_1d = Shold_1d,
-              Sv_1d = Sv_1d,
-              Shold_2d = Shold_2d,
-              Sv_2d = Sv_2d,
-              E = E,
-              Ev_1d = Ev_1d,
-              Ev_2d = Ev_2d,
-              I = I,
-              Iv_1d = Iv_1d,
-              Iv_2d = Iv_2d,
-              H = H,
-              Hv_1d = Hv_1d,
-              Hv_2d = Hv_2d,
-              H_IC = H_IC,
-              H_ICv_1d = H_ICv_1d,
-              H_ICv_2d = H_ICv_2d,
-              IC = IC[,-c(1:9)],
-              ICv_1d = ICv_1d[,-c(1:9)],
-              ICv_2d = ICv_2d[,-c(1:9)],
-              D = D,
-              R = R,
-              Rv_1d = Rv_1d,
-              Rv_2d = Rv_2d)
-  
+
+  rtn <- list(
+    S = S,
+    Shold_1d = Shold_1d,
+    Sv_1d = Sv_1d,
+    Shold_2d = Shold_2d,
+    Sv_2d = Sv_2d,
+    E = E,
+    Ev_1d = Ev_1d,
+    Ev_2d = Ev_2d,
+    I = I,
+    Iv_1d = Iv_1d,
+    Iv_2d = Iv_2d,
+    H = H,
+    Hv_1d = Hv_1d,
+    Hv_2d = Hv_2d,
+    H_IC = H_IC,
+    H_ICv_1d = H_ICv_1d,
+    H_ICv_2d = H_ICv_2d,
+    IC = IC[, -c(1:9)],
+    ICv_1d = ICv_1d[, -c(1:9)],
+    ICv_2d = ICv_2d[, -c(1:9)],
+    D = D,
+    R = R,
+    Rv_1d = Rv_1d,
+    Rv_2d = Rv_2d
+  )
+
   return(rtn)
 }

@@ -8,7 +8,7 @@ get_transmission_matrix <- function(x, contact_mat) {
   # multiply by relative susc/inf
   tmp <- sweep(contact_mat, 1, x, "*") # rows
   rtn <- sweep(tmp, 2, x, "*") # columns
-  
+
   # output
   return(rtn)
 }
