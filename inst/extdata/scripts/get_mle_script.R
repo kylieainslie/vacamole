@@ -3,20 +3,18 @@
 # --------------------------------------------------
 
 # load packages
-# library(mtvnorm)
-# library(ggplot2)
-# library(tidyverse)
-# library(lubridate)
+devtools::load_all()
+library(vacamole)
 
 source("inst/extdata/scripts/helpers/model_run_helper.R")
+source("inst/extdata/scripts/helpers/read_case_data_from_server.R")
 # source("R/model_run_wrapper.R")
 # source("R/likelihood_func.R")
 
 # Read in OSIRIS data ------------------------------
-case_data <- readRDS("inst/extdata/data/case_data_upto_20210622.rds")
-
-last_date_in_osiris <- tail(case_data$date,1)
-
+last_date_in_osiris <- "2021-11-28"
+case_data <- readRDS(paste0("inst/extdata/data/case_data_upto_", last_date_in_osiris,".rds"))
+ 
 # plot data
 p <- ggplot(case_data, aes(x = date, y = inc)) +
   geom_line() +
@@ -55,6 +53,37 @@ init <- c(
   Rv_2d = empty_state
 )
 
+# read in vac schedule
+vac_schedule <- read_csv("/rivm/EPI/MOD/Projects/NovelCoronaWuhan/vaccineallocation/Cum_upt20211201.csv") %>%
+  select(-starts_with("X"))
+
+# convert vac schedule
+basis_alpha <- convert_vac_schedule(
+  vac_schedule = vac_schedule,
+  ve = ve,
+  hosp_multiplier = h_multiplier,
+  delay = delays,
+  ve_trans = ve_trans,
+  wane = FALSE,
+  add_child_vac = FALSE,
+  add_extra_dates = TRUE,
+  extra_start_date = "2020-01-01",
+  extra_end_date = "2021-01-03"
+)
+
+basis_delta <- convert_vac_schedule(
+  vac_schedule = vac_schedule,
+  ve = ve_delta,
+  hosp_multiplier = h_multiplier_delta,
+  delay = delays,
+  ve_trans = ve_trans_delta,
+  wane = FALSE,
+  add_child_vac = FALSE,
+  add_extra_dates = TRUE,
+  extra_start_date = "2020-01-01",
+  extra_end_date = "2021-01-03"
+)
+
 
 # specify model parameters
 params <- list(beta = 0.0003934816,       # transmission rate
@@ -72,21 +101,22 @@ params <- list(beta = 0.0003934816,       # transmission rate
                r = r,
                r_ic = r_ic,
                p_report = 1/3,
-               c_start = baseline_2017$mean,
+               c_start = april_2017$mean,
                c_lockdown = april_2020$mean,
                c_relaxed = september_2020$mean,
                c_very_relaxed = june_2020$mean,
-               c_normal = baseline_2017$mean,
+               c_normal = april_2017$mean,
                keep_cm_fixed = TRUE,
-               vac_inputs = basis1,
+               vac_inputs = basis_alpha,
                use_cases = TRUE,                           # use cases as criteria to change contact matrices. If FALSE, IC admissions used.
                thresh_n = 0.5/100000 * sum(n_vec),
                thresh_l = 5/100000 * sum(n_vec),           # 3 for IC admissions
                thresh_m = 14.3/100000 * sum(n_vec),        # 10 for IC admissions
                thresh_u = 35.7/100000 * sum(n_vec),        # 35.7  # 20 for IC admissions
                no_vac = FALSE,
-               t_calendar_start = yday(as.Date("2020-01-01"))   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
-)
+               t_calendar_start = yday(as.Date("2020-01-01")),   # calendar start date (ex: if model starts on 31 Jan, then t_calendar_start = 31)
+               beta_change = NULL
+               )
 
 
 # --------------------------------------------------
@@ -122,15 +152,20 @@ breakpoints <- list(
     as.Date("2021-04-28"),  # 24) curfew canceled
     as.Date("2021-05-19"),  # 25) <27 can play outdoor sports, groups <= 30, non-essential travel allowed within NL 
     as.Date("2021-06-05"),  # 26) 4 visitors per day, museums reopen, group <= 50, restaurants reopen
-    as.Date("2021-06-22") #,  # 27) vaccination of 12-17 year olds starts, Delta becomes dominant strain
-    # as.Date("2021-06-26"),  # 28) all restrictions relaxed, except masks on public transport, nightclubs reopen
-    # as.Date("2021-07-10"),  # 29) catering industry reopens, test for entry with large events, nightclubs close
-    # as.Date("2021-07-19"),  # 30) work from home advisory re-instated
-    # as.Date("2021-08-01"),  # 31)
-    # as.Date(last_date_in_osiris)   # 32) last date in osiris
+    as.Date("2021-06-22"),  # 27) vaccination of 12-17 year olds starts, Delta becomes dominant strain
+    as.Date("2021-06-26"),  # 28) all restrictions relaxed, except masks on public transport, nightclubs reopen
+    as.Date("2021-07-10"),  # 29) catering industry reopens, test for entry with large events, nightclubs close
+    as.Date("2021-07-19"),  # 30) work from home advisory re-instated
+    as.Date("2021-08-30"),  # 31) Physical classes resume at MBO schools, colleges and universities. 
+                            #     The 1.5 meters no longer applies. Maximum group size = 75, face masks 
+                            #     must be worn outside the classrooms or lecture halls.
+    as.Date("2021-09-25"),  # 32) 1.5 m distance no longer required, coronapass needed in horeca and events
+    as.Date("2021-11-03"),  # 33) coronapass use expanded, work from home half the time, masks in public spaces
+    as.Date("2021-11-13"),  # 34) non-essential shops close at 5pm, essential shops close at 8pm
+    as.Date(last_date_in_osiris)
   ),  
-  contact_matrix = list( baseline_2017, 
-                         baseline_2017, 
+  contact_matrix = list( april_2017, 
+                         april_2017, 
                          april_2020,
                          april_2020, 
                          april_2020, 
@@ -160,9 +195,11 @@ breakpoints <- list(
                          june_2021,
                          june_2021,
                          june_2021,
+                         june_2021,
+                         june_2021,
+                         june_2021,
                          june_2021
-                         ),
-  indicator_2021 = c(rep(0,16), rep(1,17))
+                         )
 )
 
 n_bp <- length(breakpoints$date)
@@ -182,6 +219,11 @@ for (j in 1:n_bp) {
     params$c_start <- breakpoints$contact_matrix[[j]]$mean
   }
   
+  # set VE for time window
+  if (breakpoints$date[j] > as.Date("2021-06-21")){
+    params$vac_inputs <- basis_delta
+  } else {params$vac_inputs <- basis_alpha}
+  
   if (j == 1) {
     # if first time window, start time at 0
     end_day <- yday(breakpoints$date[j]) - 1
@@ -193,8 +235,8 @@ for (j in 1:n_bp) {
     S_diag <- diag(init_update[c(2:10)])
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   } else {
-    if (breakpoints$indicator_2021[j] == 1){
-      if(breakpoints$indicator_2021[j-1] == 1){ # wait for two consecutive dates in 2021
+    if (breakpoints$date[j] > as.Date("2020-12-31")){
+      if(breakpoints$date[j-1] > as.Date("2020-12-31")){ # wait for two consecutive dates in 2021
         start_day <- yday(breakpoints$date[j-1]) - 1 + 366 # shift days by 1 because we start time at 0 (not 1)
       } else {
         start_day <- yday(breakpoints$date[j-1]) - 1

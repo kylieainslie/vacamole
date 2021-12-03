@@ -59,12 +59,15 @@ n <- 17407585 # Dutch population size
 n_vec <- n * age_dist
 
 # contact matrices --------------------------------------------------
-april_2017     <- readRDS("inst/extdata/inputs/contact_matrices/converted/transmission_matrix_april_2017.rds")
-april_2020     <- readRDS("inst/extdata/inputs/contact_matrices/converted/transmission_matrix_april_2020.rds")
-june_2020      <- readRDS("inst/extdata/inputs/contact_matrices/converted/transmission_matrix_june_2020.rds")
-september_2020 <- readRDS("inst/extdata/inputs/contact_matrices/converted/transmission_matrix_september_2020.rds")
-february_2021  <- readRDS("inst/extdata/inputs/contact_matrices/converted/transmission_matrix_february_2021.rds")
-june_2021      <- readRDS("inst/extdata/inputs/contact_matrices/converted/transmission_matrix_june_2021.rds")
+#path <- "inst/extdata/inputs/contact_matrices/converted/"
+path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
+
+april_2017     <- readRDS(paste0(path,"transmission_matrix_april_2017.rds"))
+april_2020     <- readRDS(paste0(path,"transmission_matrix_april_2020.rds"))
+june_2020      <- readRDS(paste0(path,"transmission_matrix_june_2020.rds"))
+september_2020 <- readRDS(paste0(path,"transmission_matrix_september_2020.rds"))
+february_2021  <- readRDS(paste0(path,"transmission_matrix_february_2021.rds"))
+june_2021      <- readRDS(paste0(path,"transmission_matrix_june_2021.rds"))
 
 # parameter inputs -------------------------------------------------
 s <- 0.5
