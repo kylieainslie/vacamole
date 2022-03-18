@@ -141,7 +141,7 @@ ve_trans <- list(
 )
 
 ve_trans_delta = list(
-  pfizer = c(0.46, 0.52),      # de Gier et al (updated)
+  pfizer = c(0.46, 0.52),      # de Gier et al. (updated)
   moderna = c(0.66, 0.24),     # de Gier et al. (updated)
   astrazeneca = c(0, 0.25),    # de Gier et al. (updated)
   jansen = c(0.42)             # de Gier et al. (updated)
@@ -184,14 +184,15 @@ ve_list <- list(ve_delta,delays,h_multiplier_delta,ve_trans_delta)
 
 # read in vac schedules --------------------------------------------
 vac_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/manuscripts/impact_vac/data/vaccination_scenarios/"
-basis_12plus <- read_csv(paste0(vac_path,"vac_schedule_12plus.csv")) %>%
-  select(-starts_with("X"))
+# basis_12plus <- read_csv(paste0(vac_path,"vac_schedule_12plus.csv")) %>%
+#   select(-starts_with("X"))
 
 # basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
 #   select(-starts_with("X"))
 
-# no childhood vaccination, waning
-vac_sched <- basis_12plus
+vac_sched <- read_csv("inst/extdata/inputs/vac_schedule_real_w_booster.csv") %>%
+  rename_with(~ gsub("B", "d3", .x, fixed = TRUE)) %>%
+  select(-starts_with("X"))
 
 basis1 <- convert_vac_schedule(
   vac_schedule = vac_sched,

@@ -1,4 +1,4 @@
-#' Age-structured SEIR ODE model of vaccination with 2 doses and delay to protection
+#' Age-structured SEIR ODE model of vaccination with 2 dose primary series and a 3rd booster dose
 #' @param times vector of times
 #' @param init list of initial states
 #' @param params list of parameter values
