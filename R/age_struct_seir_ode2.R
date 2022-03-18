@@ -68,31 +68,39 @@ age_struct_seir_ode <- function(times, init, params) {
     Rv_3d <- c(Rv_3d1, Rv_3d2, Rv_3d3, Rv_3d4, Rv_3d5, Rv_3d6, Rv_3d7, Rv_3d8, Rv_3d9)
 
     # determine vaccination rate -----------------------------------
-    # if no vaccination, then fix vac rates to 0 and (1-VE) = 1
     if (!no_vac) {
       index <- floor(times) + 1
-
+      # vaccine rate (per day) by dose
       alpha <- vac_inputs$alpha_dose1[index, ]
       alpha2 <- vac_inputs$alpha_dose2[index, ]
-      eta <- vac_inputs$eta_dose1[index, ]
-      eta2 <- vac_inputs$eta_dose2[index, ]
+      alpha3 <- vac_inputs$alpha_dose3[index, ]
+      
+      # delay to protection by dose
       delay <- vac_inputs$delay_dose1[index, ]
       delay2 <- vac_inputs$delay_dose2[index, ]
+      delay3 <- vac_inputs$delay_dose3[index, ]
+      
+      # 1 - VE_infection (for each dose)
+      eta <- vac_inputs$eta_dose1[index, ]
+      eta2 <- vac_inputs$eta_dose2[index, ]
+      eta3 <- vac_inputs$eta_dose3[index, ]
+      
+      # 1 - VE_hospitalisation (for each dose)
       eta_hosp <- vac_inputs$eta_hosp_dose1[index, ]
       eta_hosp2 <- vac_inputs$eta_hosp_dose2[index, ]
+      eta_hosp3 <- vac_inputs$eta_hosp_dose3[index, ]
+      
+      # 1 - VE_transmission (for each dose)
       eta_trans <- vac_inputs$eta_trans_dose1[index, ]
       eta_trans2 <- vac_inputs$eta_trans_dose2[index, ]
-    } else {
-      alpha <- 0
-      alpha2 <- 0
-      eta <- 1
-      eta2 <- 1
-      delay <- 1
-      delay2 <- 1
-      eta_hosp <- 1
-      eta_hosp2 <- 1
-      eta_trans <- 1
-      eta_trans2 <- 1
+      eta_trans3 <- vac_inputs$eta_trans_dose3[index, ]
+      
+    } else { # if no vaccination, then fix vac rates to 0 and (1-VE) = 1
+      alpha <- 0; alpha2 <- 0; alpha3 <- 0              # vaccination rate
+      delay <- 1; delay2 <- 1; delay3 <- 1              # delay to protection
+      eta <- 1; eta2 <- 1; eta3 <- 1                    # 1 - VE_infection
+      eta_hosp <- 1; eta_hosp2 <- 1; eta_hosp3 <- 1     # 1 - VE_hospitalisation
+      eta_trans <- 1; eta_trans2 <- 1; eta_trans3 <- 1  # 1 - VE_transmission
     }
 
     # determine contact matrix based on criteria --------------------
