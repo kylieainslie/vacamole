@@ -139,7 +139,7 @@ age_struct_seir_ode <- function(times, init, params) {
     # determine force of infection ----------------------------------
     calendar_day <- ifelse(times > 365, t_calendar_start + times - 365, t_calendar_start + times)
     beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) # incorporate seasonality in transmission rate
-    lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d)))
+    lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d) + (eta_trans3 * Iv_3d)))
     lambda <- ifelse(lambda < 0, 0, lambda)
     # ---------------------------------------------------------------
 
