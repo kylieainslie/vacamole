@@ -22,6 +22,8 @@ model_run_wrapper <- function(breakpoints,
     print(j)
     out_store[[j]] <- list()
     daily_cases_store[[j]] <- list()
+    
+    k <- ifelse(length(beta_values) == 1, 1, j)
     # set time vector -------------------------------------
     if (j == 1) {
       # if first time window, start time at 0
@@ -29,7 +31,7 @@ model_run_wrapper <- function(breakpoints,
 
       times <- seq(0, end_day, by = 1)
     } else {
-      if (breakpoints$indicator_2021[j] == 1) {
+      if (breakpoints$date[j] > as.Date("2020-12-31")) {
         if (breakpoints$indicator_2021[j - 1] == 1) { # wait for two consecutive dates in 2021
           start_day <- yday(breakpoints$date[j - 1]) - 1 + 366 # shift days by 1 because we start time at 0 (not 1)
         } else {
@@ -44,28 +46,28 @@ model_run_wrapper <- function(breakpoints,
     }
 
     # loop over beta values (only 1 if mle = TRUE)
-    n_beta <- ifelse(mle, 1, dim(beta_values[[j]][1]))
+    n_beta <- ifelse(mle, 1, dim(beta_values[[k]][1]))
 
     for (i in 1:n_beta) {
 
       # beta ------------------------------------------------
-      params$beta <- ifelse(mle, beta_values[[j]][1], beta_values[[j]][i, 1])
+      params$beta <- ifelse(mle, beta_values[[k]][1], beta_values[[k]][i, 1])
 
       # contact matrices ------------------------------------
       if (mle) {
-        if (j == n_bp) {
+        if (j == n_bp & n_bp > 2) {
           params$c_start <- breakpoints$contact_matrix[[j - 1]]$mean
         } else {
           params$c_start <- breakpoints$contact_matrix[[j]]$mean
         }
       } else {
-        if (j == n_bp) {
+        if (j == n_bp  & n_bp > 2) {
           params$c_start <- matrix(unlist(breakpoints$contact_matrix[[j - 1]][i]), nrow = 9)
         } else {
           params$c_start <- matrix(unlist(breakpoints$contact_matrix[[j]][i]), nrow = 9)
         }
       }
-
+      #print(params$c_start)
       if (j == 1) {
         # set initial conditions ----------------------------
         init_update <- init_conditions

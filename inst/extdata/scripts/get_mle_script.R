@@ -7,7 +7,7 @@ devtools::load_all()
 library(vacamole)
 
 source("inst/extdata/scripts/helpers/model_run_helper.R")
-source("inst/extdata/scripts/helpers/read_case_data_from_server.R")
+#source("inst/extdata/scripts/helpers/read_case_data_from_server.R")
 # source("R/model_run_wrapper.R")
 # source("R/likelihood_func.R")
 
@@ -307,7 +307,7 @@ saveRDS(out_mle, file = paste0(path_out, "output_from_fits_", todays_date, ".rds
 # run simulations for mle, lower, and upper bounds 
 # of beta
 # ----------------------------------------------------
-fit_date <- "2021-10-01"
+fit_date <- "2021-12-02"
 beta_mles <- readRDS(paste0(path_out,"mles_from_fits_",fit_date,".rds"))
 beta_mles_list <- split(beta_mles, seq(nrow(beta_mles)))
 beta_draws <- readRDS(paste0(path_out,"beta_draws_from_fits_",fit_date,".rds"))

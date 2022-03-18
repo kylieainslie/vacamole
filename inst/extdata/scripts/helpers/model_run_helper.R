@@ -75,12 +75,12 @@ g <- 0.5
 r0 <- 5.75
 
 # determine transmission rate (beta) for r0 ------------------------
-S <- diag(n_vec - 1)
-rho <- as.numeric(eigs(S %*% april_2017, 1)$values)
-beta <- (r0 / rho) * g
-# check
-K <- (1 / g) * beta * S %*% april_2017
-as.numeric(eigs(K, 1)$values) # this should be r0
+# S <- diag(n_vec - 1)
+# rho <- as.numeric(eigs(S %*% april_2017, 1)$values)
+# beta <- (r0 / rho) * g
+# # check
+# K <- (1 / g) * beta * S %*% april_2017
+# as.numeric(eigs(K, 1)$values) # this should be r0
 
 # define state transition rates ------------------------------------
 h <- p_infection2admission / time_symptom2admission
@@ -183,7 +183,7 @@ ve_list <- list(ve_delta,delays,h_multiplier_delta,ve_trans_delta)
 #saveRDS(ve_list, "inst/extdata/inputs/ve_params.rds")
 
 # read in vac schedules --------------------------------------------
-vac_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/manuscripts/impact_vac/data/vaccination_scenarios/"
+vac_path <- "inst/extdata/inputs/"
 basis_12plus <- read_csv(paste0(vac_path,"vac_schedule_12plus.csv")) %>%
   select(-starts_with("X"))
 
