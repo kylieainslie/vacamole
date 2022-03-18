@@ -149,26 +149,43 @@ age_struct_seir_ode <- function(times, init, params) {
     dShold_1d <- alpha * S - (1 / delay) * Shold_1d - lambda * Shold_1d
     dSv_1d <- (1 / delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d
     dShold_2d <- alpha2 * Sv_1d - (1 / delay2) * Shold_2d - eta * lambda * Shold_2d
-    dSv_2d <- (1 / delay2) * Shold_2d - eta2 * lambda * Sv_2d
+    dSv_2d <- (1 / delay2) * Shold_2d - eta2 * lambda * Sv_2d - alpha3 * Sv_2d
+    dShold_3d <- alpha3 * Sv_2d - (1 / delay3) * Shold_3d - eta2 * lambda * Shold_3d
+    dSv_3d <- (1 / delay3) * Shold_3d - eta3 * lambda * Sv_3d
+    
     dE <- lambda * (S + Shold_1d) - sigma * E + epsilon
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta2 * lambda * Sv_2d - sigma * Ev_2d
+    dEv_2d <- eta3 * lambda * Sv_3d - sigma * Ev_3d
+    
     dI <- sigma * E - (gamma + h) * I
     dIv_1d <- sigma * Ev_1d - (gamma + eta_hosp * h) * Iv_1d
     dIv_2d <- sigma * Ev_2d - (gamma + eta_hosp2 * h) * Iv_2d
+    dIv_3d <- sigma * Ev_3d - (gamma + eta_hosp3 * h) * Iv_3d
+    
     dH <- h * I - (i1 + d + r) * H
     dHv_1d <- eta_hosp * h * Iv_1d - (i1 + d + r) * Hv_1d
     dHv_2d <- eta_hosp2 * h * Iv_2d - (i1 + d + r) * Hv_2d
-    dH_IC <- i2 * IC - (r_ic + d_hic) * H_IC
-    dH_ICv_1d <- i2 * ICv_1d - (r_ic + d_hic) * H_ICv_1d
-    dH_ICv_2d <- i2 * ICv_2d - (r_ic + d_hic) * H_ICv_2d
+    dHv_3d <- eta_hosp3 * h * Iv_3d - (i1 + d + r) * Hv_3d
+  
     dIC <- i1 * H - (i2 + d_ic) * IC
     dICv_1d <- i1 * Hv_1d - (i2 + d_ic) * ICv_1d
     dICv_2d <- i1 * Hv_2d - (i2 + d_ic) * ICv_2d
-    dD <- d * (H + Hv_1d + Hv_2d) + d_ic * (IC + ICv_1d + ICv_2d) + d_hic * (H_IC + H_ICv_1d + H_ICv_2d)
+    dICv_3d <- i1 * Hv_3d - (i2 + d_ic) * ICv_3d
+    
+    dH_IC <- i2 * IC - (r_ic + d_hic) * H_IC
+    dH_ICv_1d <- i2 * ICv_1d - (r_ic + d_hic) * H_ICv_1d
+    dH_ICv_2d <- i2 * ICv_2d - (r_ic + d_hic) * H_ICv_2d
+    dH_ICv_3d <- i2 * ICv_3d - (r_ic + d_hic) * H_ICv_3d
+    
+    dD <- d * (H + Hv_1d + Hv_2d + Hv_3d) + 
+      d_ic * (IC + ICv_1d + ICv_2d + ICv_3d) + 
+      d_hic * (H_IC + H_ICv_1d + H_ICv_2d + H_ICv_3d)
+  
     dR <- gamma * I + r * H + r_ic * H_IC
     dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d
     dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d
+    dRv_3d <- gamma * Iv_3d + r * Hv_3d + r_ic * H_ICv_3d
 
     # assign variables to global environment, so they can be used for next iteration
     assign("flag_relaxed", flag_relaxed, envir = globalenv())
@@ -177,9 +194,14 @@ age_struct_seir_ode <- function(times, init, params) {
     ################################################################
     dt <- 1
     list(c(
-      dt, dS, dShold_1d, dSv_1d, dShold_2d, dSv_2d, dE, dEv_1d, dEv_2d,
-      dI, dIv_1d, dIv_2d, dH, dHv_1d, dHv_2d, dH_IC, dH_ICv_1d, dH_ICv_2d,
-      dIC, dICv_1d, dICv_2d, dD, dR, dRv_1d, dRv_2d
+      dt, dS, dShold_1d, dSv_1d, dShold_2d, dSv_2d, dShold_3d, dSv_3d,
+      dE, dEv_1d, dEv_2d, dEv_3d,
+      dI, dIv_1d, dIv_2d, dIv_3d,
+      dH, dHv_1d, dHv_2d, dHv_3d,
+      dIC, dICv_1d, dICv_2d, dICv_3d, 
+      dH_IC, dH_ICv_1d, dH_ICv_2d, dH_ICv_3d,
+      dD, 
+      dR, dRv_1d, dRv_2d, dRv_3d
     ))
   })
 }
