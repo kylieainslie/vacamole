@@ -125,8 +125,8 @@ ve_delta <- list(
   )
 
 delays <- list(
-  pfizer = c(14, 7),
-  moderna = c(14, 7), 
+  pfizer = c(14, 7, 7),
+  moderna = c(14, 7, 7), 
   astrazeneca = c(14, 7),
   jansen = c(14)
 )
