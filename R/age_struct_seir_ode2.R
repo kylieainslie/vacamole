@@ -6,7 +6,7 @@
 #' @keywords vacamole
 #' @export
 # Define model -----------------------------------------------------
-age_struct_seir_ode <- function(times, init, params) {
+age_struct_seir_ode2 <- function(times, init, params) {
   with(as.list(c(params, init)), {
     # print(t)
     # define initial state vectors from input ----------------------
