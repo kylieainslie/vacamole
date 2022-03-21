@@ -145,13 +145,13 @@ age_struct_seir_ode <- function(times, init, params) {
 
     ################################################################
     # ODEs:
-    dS <- -lambda * S - alpha * S
+    dS <- -lambda * S - alpha * S + omega * R
     dShold_1d <- alpha * S - (1 / delay) * Shold_1d - lambda * Shold_1d
-    dSv_1d <- (1 / delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d
+    dSv_1d <- (1 / delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d + omega * Rv_1d
     dShold_2d <- alpha2 * Sv_1d - (1 / delay2) * Shold_2d - eta * lambda * Shold_2d
-    dSv_2d <- (1 / delay2) * Shold_2d - eta2 * lambda * Sv_2d - alpha3 * Sv_2d
+    dSv_2d <- (1 / delay2) * Shold_2d - eta2 * lambda * Sv_2d - alpha3 * Sv_2d + omega * Rv_2d
     dShold_3d <- alpha3 * Sv_2d - (1 / delay3) * Shold_3d - eta2 * lambda * Shold_3d
-    dSv_3d <- (1 / delay3) * Shold_3d - eta3 * lambda * Sv_3d
+    dSv_3d <- (1 / delay3) * Shold_3d - eta3 * lambda * Sv_3d + omega * Rv_3d
     
     dE <- lambda * (S + Shold_1d) - sigma * E + epsilon
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
@@ -182,10 +182,10 @@ age_struct_seir_ode <- function(times, init, params) {
       d_ic * (IC + ICv_1d + ICv_2d + ICv_3d) + 
       d_hic * (H_IC + H_ICv_1d + H_ICv_2d + H_ICv_3d)
   
-    dR <- gamma * I + r * H + r_ic * H_IC
-    dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d
-    dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d
-    dRv_3d <- gamma * Iv_3d + r * Hv_3d + r_ic * H_ICv_3d
+    dR <- gamma * I + r * H + r_ic * H_IC - omega * R
+    dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d - omega * Rv_1d
+    dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d - omega * Rv_2d
+    dRv_3d <- gamma * Iv_3d + r * Hv_3d + r_ic * H_ICv_3d - omega * Rv_3d
 
     # assign variables to global environment, so they can be used for next iteration
     assign("flag_relaxed", flag_relaxed, envir = globalenv())
