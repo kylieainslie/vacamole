@@ -6,12 +6,14 @@ library(dplyr)
 library(tidyr)
 
 # read in all contact matrices ------------------------------------
-contact_matrices_pienter3 <- readRDS("inst/extdata/data/contact_matrices/raw/Contactpatterns_Pienter3_10y.rds") # April 2017
-contact_matrices_pico1 <- readRDS("inst/extdata/data/contact_matrices/raw/Contactpatterns_PICO1_10y.rds")       # April 2020
-contact_matrices_pico2 <- readRDS("inst/extdata/data/contact_matrices/raw/Contactpatterns_PICO2_10y.rds")       # June 2020
-contact_matrices_pico3 <- readRDS("inst/extdata/data/contact_matrices/raw/Contactpatterns_PICO3_10y.rds")       # September 2020
-contact_matrices_pico4 <- readRDS("inst/extdata/data/contact_matrices/raw/Contactpatterns_PICO4_10y.rds")       # February 2021
-contact_matrices_pico5 <- readRDS("inst/extdata/data/contact_matrices/raw/Contactpatterns_PICO5_10y.rds")       # June 2021
+path <- "/rivm/s/ainsliek/data/contact_matrices/"
+contact_matrices_pienter3 <- readRDS(paste0(path,"raw/Contactpatterns_Pienter3_10y.rds")) # April 2017
+contact_matrices_pico1 <- readRDS(paste0(path,"raw/Contactpatterns_PICO1_10y.rds"))       # April 2020
+contact_matrices_pico2 <- readRDS(paste0(path,"raw/Contactpatterns_PICO2_10y.rds"))       # June 2020
+contact_matrices_pico3 <- readRDS(paste0(path,"raw/Contactpatterns_PICO3_10y.rds"))       # September 2020
+contact_matrices_pico4 <- readRDS(paste0(path,"raw/Contactpatterns_PICO4_10y.rds"))       # February 2021
+contact_matrices_pico5 <- readRDS(paste0(path,"raw/Contactpatterns_PICO5_10y.rds"))       # June 2021
+contact_matrices_pico6 <- readRDS(paste0(path,"raw/Contactpatterns_PICO6_prelim_10y.rds"))# June 2021
 
 # need to run this before running convert_contact_matrices()------
 age_dist <- c(
@@ -27,19 +29,20 @@ N_diag <- diag(1 / n_vec)
 rel_trans <- c(1.000, 3.051, 5.751, 3.538, 3.705, 4.365, 5.688, 5.324, 7.211)
 
 # convert contact matrices ----------------------------------------
-baseline_2017 <- convert_contact_matrices(contact_matrices_pienter3)
-april_2020 <- convert_contact_matrices(contact_matrices_pico1)
-june_2020 <- convert_contact_matrices(contact_matrices_pico2)
+baseline_2017  <- convert_contact_matrices(contact_matrices_pienter3)
+april_2020     <- convert_contact_matrices(contact_matrices_pico1)
+june_2020      <- convert_contact_matrices(contact_matrices_pico2)
 september_2020 <- convert_contact_matrices(contact_matrices_pico3)
-february_2021 <- convert_contact_matrices(contact_matrices_pico4)
-june_2021 <- convert_contact_matrices(contact_matrices_pico5)
+february_2021  <- convert_contact_matrices(contact_matrices_pico4)
+june_2021      <- convert_contact_matrices(contact_matrices_pico5)
+november_2021  <- convert_contact_matrices(contact_matrices_pico6)
 
 # save output -----------------------------------------------------
-sve_path <- "inst/extdata/data/contact_matrices/converted/"
-saveRDS(baseline_2017, file = paste0(save_path,"contact_matrices_baseline_2017.rds"))
-saveRDS(april_2020, file = paste0(save_path,"contact_matrices_april_2020.rds"))
-saveRDS(june_2020, file = paste0(save_path,"contact_matrices/contact_matrices_june_2020.rds"))
-saveRDS(september_2020, file = paste0(save_path,"contact_matrices_september_2020.rds"))
-saveRDS(february_2021, file = paste0(save_path,"contact_matrices_february_2021.rds"))
-saveRDS(june_2021, file = paste0(save_path,"contact_matrices_june_2021.rds"))
-
+#save_path <- "inst/extdata/data/contact_matrices/converted/"
+saveRDS(baseline_2017, file = paste0(path,"converted/contact_matrices_baseline_2017.rds"))
+saveRDS(april_2020, file = paste0(path,"converted/contact_matrices_april_2020.rds"))
+saveRDS(june_2020, file = paste0(path,"converted/contact_matrices/contact_matrices_june_2020.rds"))
+saveRDS(september_2020, file = paste0(path,"converted/contact_matrices_september_2020.rds"))
+saveRDS(february_2021, file = paste0(path,"converted/contact_matrices_february_2021.rds"))
+saveRDS(june_2021, file = paste0(path,"converted/contact_matrices_june_2021.rds"))
+saveRDS(november_2021, file = paste0(path,"converted/contact_matrices_november_2021.rds"))
