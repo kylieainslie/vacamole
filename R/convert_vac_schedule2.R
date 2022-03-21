@@ -29,7 +29,7 @@
 #' @import tidyr
 #' @import dplyr
 #' @export
-convert_vac_schedule <- function(vac_schedule,
+convert_vac_schedule2 <- function(vac_schedule,
                                  ve,
                                  hosp_multiplier,
                                  delay,
