@@ -314,7 +314,7 @@ convert_vac_schedule2 <- function(vac_schedule,
     frac_ja_dose2 * ve_hosp_j_dose2
   colnames(hosp_mult_dose2) <- paste0("hosp_mult", name_suffix_d2)
   
-  hosp_mult_dose2 <- frac_pf_dose3 * ve_hosp_p_dose3 + frac_mo_dose3 * ve_hosp_m_dose3 
+  hosp_mult_dose3 <- frac_pf_dose3 * ve_hosp_p_dose3 + frac_mo_dose3 * ve_hosp_m_dose3 
   colnames(hosp_mult_dose3) <- paste0("hosp_mult", name_suffix_d3)
 
   eta_hosp_dose1 <- hosp_mult_dose1
