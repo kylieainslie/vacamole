@@ -39,10 +39,10 @@ november_2021  <- convert_contact_matrices(contact_matrices_pico6)
 
 # save output -----------------------------------------------------
 #save_path <- "inst/extdata/data/contact_matrices/converted/"
-saveRDS(baseline_2017, file = paste0(path,"converted/contact_matrices_baseline_2017.rds"))
-saveRDS(april_2020, file = paste0(path,"converted/contact_matrices_april_2020.rds"))
-saveRDS(june_2020, file = paste0(path,"converted/contact_matrices/contact_matrices_june_2020.rds"))
-saveRDS(september_2020, file = paste0(path,"converted/contact_matrices_september_2020.rds"))
-saveRDS(february_2021, file = paste0(path,"converted/contact_matrices_february_2021.rds"))
-saveRDS(june_2021, file = paste0(path,"converted/contact_matrices_june_2021.rds"))
-saveRDS(november_2021, file = paste0(path,"converted/contact_matrices_november_2021.rds"))
+saveRDS(baseline_2017, file = paste0(path,"converted/transmission_matrix_baseline_2017.rds"))
+saveRDS(april_2020, file = paste0(path,"converted/transmission_matrix_april_2020.rds"))
+saveRDS(june_2020, file = paste0(path,"converted/transmission_matrix_june_2020.rds"))
+saveRDS(september_2020, file = paste0(path,"converted/transmission_matrix_september_2020.rds"))
+saveRDS(february_2021, file = paste0(path,"converted/transmission_matrix_february_2021.rds"))
+saveRDS(june_2021, file = paste0(path,"converted/transmission_matrix_june_2021.rds"))
+saveRDS(november_2021, file = paste0(path,"converted/transmission_matrix_november_2021.rds"))
