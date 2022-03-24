@@ -27,6 +27,7 @@ library(vacamole)
 
 # Load data ---------------------------------------------------------
 # osiris case data --------------------------------------------------
+# this must be run on the RIVM R servers
 path <- "/rivm/r/COVID-19/Surveillance/Data/OSIRIS/Geschoond/"
 file <- list.files(path, pattern = ".rds")
 if (identical(file, character(0))) {
@@ -56,6 +57,10 @@ cutoff_date <- as.Date("2022-03-12")
 osiris1 <- osiris_tally %>%
   filter(date <= cutoff_date)
 
+# if off the server, read in from inst/extdata/data
+data_date <- "2021-11-28"
+osiris1 <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rds"))
+
 # read in transition rates -----------------------------------------
 transition_rates <- readRDS("inst/extdata/inputs/transition_rates.rds")
 
@@ -67,8 +72,8 @@ n <- 17407585 # Dutch population size
 n_vec <- n * age_dist
 
 # contact matrices --------------------------------------------------
-path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
-
+#path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
+path <- "inst/extdata/inputs/contact_matrices/converted/"
 april_2017     <- readRDS(paste0(path,"transmission_matrix_april_2017.rds"))
 april_2020     <- readRDS(paste0(path,"transmission_matrix_april_2020.rds"))
 june_2020      <- readRDS(paste0(path,"transmission_matrix_june_2020.rds"))
@@ -160,7 +165,7 @@ params <- list(beta = 0.0004,
                keep_cm_fixed = TRUE,
                vac_inputs = vac_rates_wt,
                use_cases = TRUE,  
-               no_vac = FALSE,
+               no_vac = TRUE,
                t_calendar_start = yday(as.Date("2020-01-01")), 
                beta_change = NULL 
               )
@@ -204,6 +209,7 @@ init <- c(
   Rv_3d = empty_state
 )
 
+times <- seq(0,75, by = 1)
 # Model fit ---------------------------------------------------------
 # read in csv with breakpoints
 breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit.csv") %>%
@@ -214,10 +220,13 @@ breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit.csv") %>
 # run fit procedure
 fits <- fit_to_data_func(breakpoints = breakpoints, params = params, init = init, 
                  case_data = osiris1, contact_matrices = cm_list,
-                 vac_info = vac_rates_list, save_output_to_file = FALSE,
-                 path_out = NULL)
+                 vac_info = vac_rates_list, 
+                 vac_start_date = as.Date(vac_sched$date[1], format = "%m/%d/%Y"),
+                 save_output_to_file = FALSE,  path_out = NULL)
 
 # Run forward simulations --------------------------------------------
 seir_out <- lsoda(init, times, age_struct_seir_ode2, params)
 seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output2(seir_out)
+cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d + out$Ev_3d) * params$p_report
+plot(cases ~ times, type = "l")
