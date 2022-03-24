@@ -156,7 +156,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     dE <- lambda * (S + Shold_1d) - sigma * E + epsilon
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta2 * lambda * Sv_2d - sigma * Ev_2d
-    dEv_2d <- eta3 * lambda * Sv_3d - sigma * Ev_3d
+    dEv_3d <- eta3 * lambda * Sv_3d - sigma * Ev_3d
     
     dI <- sigma * E - (gamma + h) * I
     dIv_1d <- sigma * Ev_1d - (gamma + eta_hosp * h) * Iv_1d
