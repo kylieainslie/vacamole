@@ -8,7 +8,7 @@
 # Define model -----------------------------------------------------
 age_struct_seir_ode2 <- function(times, init, params) {
   with(as.list(c(params, init)), {
-    # print(t)
+    #print(t)
     # define initial state vectors from input ----------------------
     # susceptible
     S <- c(S1, S2, S3, S4, S5, S6, S7, S8, S9)

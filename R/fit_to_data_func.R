@@ -49,7 +49,7 @@ for (j in 1:n_bp) {
   } else {contact_matrix <- contact_matrices$november_2021} 
   
   #if (j == n_bp){
-  params$c_start <- contact_matrix$mean
+  params$c_start <- contact_matrix
   #} else {
   #  params$c_start <- contact_matrix[[j]]$mean
   #}
