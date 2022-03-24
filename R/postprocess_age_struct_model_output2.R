@@ -54,13 +54,17 @@ postprocess_age_struct_model_output2 <- function(dat) {
   H_ICv_3d <- dat %>%
     select(names(dat)[str_detect(names(dat), pattern = "H_ICv_3d[:digit:]")])
   IC <- dat %>%
-    select(names(dat)[str_detect(names(dat), pattern = "IC[:digit:]")])
+    select(names(dat)[str_detect(names(dat), pattern = "IC[:digit:]")]) %>%
+    select(-names(dat)[str_detect(names(dat), pattern = "H_IC[:digit:]")])
   ICv_1d <- dat %>%
-    select(names(dat)[str_detect(names(dat), pattern = "ICv_1d[:digit:]")])
+    select(names(dat)[str_detect(names(dat), pattern = "ICv_1d[:digit:]")]) %>%
+    select(-names(dat)[str_detect(names(dat), pattern = "H_ICv_1d[:digit:]")])
   ICv_2d <- dat %>%
-    select(names(dat)[str_detect(names(dat), pattern = "ICv_2d[:digit:]")])
+    select(names(dat)[str_detect(names(dat), pattern = "ICv_2d[:digit:]")]) %>%
+    select(-names(dat)[str_detect(names(dat), pattern = "H_ICv_2d[:digit:]")])
   ICv_3d <- dat %>%
-    select(names(dat)[str_detect(names(dat), pattern = "ICv_3d[:digit:]")])
+    select(names(dat)[str_detect(names(dat), pattern = "ICv_3d[:digit:]")]) %>%
+    select(-names(dat)[str_detect(names(dat), pattern = "H_ICv_3d[:digit:]")])
   D <- dat %>%
     select(names(dat)[str_detect(names(dat), pattern = "D[:digit:]")])
   R <- dat %>%
@@ -96,10 +100,10 @@ postprocess_age_struct_model_output2 <- function(dat) {
     H_ICv_1d = H_ICv_1d,
     H_ICv_2d = H_ICv_2d,
     H_ICv_3d = H_ICv_3d,
-    IC = IC[, -c(1:9)],
-    ICv_1d = ICv_1d[, -c(1:9)],
-    ICv_2d = ICv_2d[, -c(1:9)],
-    ICv_3d = ICv_3d[, -c(1:9)],
+    IC = IC,
+    ICv_1d = ICv_1d,
+    ICv_2d = ICv_2d,
+    ICv_3d = ICv_3d,
     D = D,
     R = R,
     Rv_1d = Rv_1d,
