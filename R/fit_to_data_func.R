@@ -21,6 +21,7 @@ fit_to_data_func <- function(breakpoints,
                              case_data,
                              contact_matrices,
                              vac_info,
+                             vac_start_date,
                              save_output_to_file = TRUE,
                              path_out = NULL,
                              ...
@@ -53,6 +54,8 @@ for (j in 1:n_bp) {
   #} else {
   #  params$c_start <- contact_matrix[[j]]$mean
   #}
+  if(breakpoints$date[j] < vac_start_date){params$no_vac <- TRUE
+  } else {params$no_vac <- FALSE}
   
   # set VE for time window depending on which variant was dominant
   if (breakpoints$variant[j] == "wildtype"){params$vac_inputs <- vac_info$wildtype
@@ -71,6 +74,7 @@ for (j in 1:n_bp) {
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   } else {
     init_update <- c(t = times[1], unlist(lapply(unname(out_mle[[j-1]]), tail,1)))
+    #print(init_update)
     pars <- c((mles[j-1,1]/params$gamma)*rho, mles[j-1,2])
     S_diag <- diag(init_update[c(2:10)])
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
@@ -97,6 +101,7 @@ for (j in 1:n_bp) {
   mles[j,1] <- (res$par[1] / rho) * params$gamma
   mles[j,2] <- res$par[2]
   
+  print(res$par)
   # draw 200 parameter values
   parameter_draws[[j]] <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
   beta_draws[[j]] <- data.frame(beta = (parameter_draws[[j]][,1] / rho) * params$gamma) %>%
@@ -106,8 +111,8 @@ for (j in 1:n_bp) {
   params$beta <- mles[j,1]
   seir_out <- lsoda(init_update, times, age_struct_seir_ode2, params)
   seir_out <- as.data.frame(seir_out)
-  out_mle[[j]] <- postprocess_age_struct_model_output(seir_out)
-  daily_cases[[j]] <- params$sigma * rowSums(out_mle[[j]]$E + out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d) * params$p_report
+  out_mle[[j]] <- postprocess_age_struct_model_output2(seir_out)
+  daily_cases[[j]] <- params$sigma * rowSums(out_mle[[j]]$E + out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d + out_mle[[j]]$Ev_3d) * params$p_report
   
 } # end of for loop over breakpoints
 
