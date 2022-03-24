@@ -175,25 +175,33 @@ init <- c(
   Sv_1d = empty_state,
   Shold_2d = empty_state,
   Sv_2d = empty_state,
+  Shold_3d = empty_state,
+  Sv_3d = empty_state,
   E = empty_state,
   Ev_1d = empty_state,
   Ev_2d = empty_state,
+  Ev_3d = empty_state,
   I = c(rep(0,4),1,rep(0,4)),
   Iv_1d = empty_state,
   Iv_2d = empty_state,
+  Iv_3d = empty_state,
   H = empty_state,
   Hv_1d = empty_state,
   Hv_2d = empty_state,
-  H_IC = empty_state,
-  H_ICv_1d = empty_state,
-  H_ICv_2d = empty_state,
+  Hv_3d = empty_state,
   IC = empty_state,
   ICv_1d = empty_state,
   ICv_2d = empty_state,
+  ICv_3d = empty_state,
+  H_IC = empty_state,
+  H_ICv_1d = empty_state,
+  H_ICv_2d = empty_state,
+  H_ICv_3d = empty_state,
   D = empty_state,
   R = empty_state,
   Rv_1d = empty_state,
-  Rv_2d = empty_state
+  Rv_2d = empty_state,
+  Rv_3d = empty_state
 )
 
 # Model fit ---------------------------------------------------------
@@ -208,3 +216,8 @@ fits <- fit_to_data_func(breakpoints = breakpoints, params = params, init = init
                  case_data = osiris1, contact_matrices = cm_list,
                  vac_info = vac_rates_list, save_output_to_file = FALSE,
                  path_out = NULL)
+
+# Run forward simulations --------------------------------------------
+seir_out <- lsoda(init, times, age_struct_seir_ode2, params)
+seir_out <- as.data.frame(seir_out)
+out <- postprocess_age_struct_model_output2(seir_out)

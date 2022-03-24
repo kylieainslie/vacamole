@@ -81,7 +81,7 @@ for (j in 1:n_bp) {
   
   # optimize
   res <- optim(par = pars, 
-               fn = likelihood_func,
+               fn = likelihood_func2,
                method = "L-BFGS-B",
                lower = c(0,0.005),
                upper = c(10,1),
