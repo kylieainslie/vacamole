@@ -64,8 +64,9 @@ convert_vac_schedule2 <- function(vac_schedule,
   )
   n <- 17407585 # Dutch population size
   n_vec_10 <- n * age_dist_10
-
-  date_vec <- as.Date(vac_schedule$date, format = "%m/%d/%Y")
+  
+  if (is.Date(vac_schedule$date)){ date_vec <- vac_schedule$date
+  } else { date_vec <- as.Date(vac_schedule$date, format = "%m/%d/%Y")}
 
   # if 10 age groups then: ----------------------------------------------------------------------
   if (num_age_groups == 10) {
