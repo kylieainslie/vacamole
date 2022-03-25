@@ -58,7 +58,7 @@ osiris1 <- osiris_tally %>%
   filter(date <= cutoff_date)
 
 # if off the server, read in from inst/extdata/data
-data_date <- "2021-11-28"
+data_date <- "2022-03-12"
 osiris1 <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rds"))
 
 # read in transition rates -----------------------------------------
@@ -100,9 +100,19 @@ cm_list <- list(
 ve_params <- readRDS("inst/extdata/inputs/ve_params.rds")
 
 # vaccination schedule ----------------------------------------------
-vac_sched <- read_csv("inst/extdata/inputs/vac_schedule_real_w_booster.csv") %>%
+vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_booster.csv") %>%
   rename_with(~ gsub("B", "d3", .x, fixed = TRUE)) %>%
-  select(-starts_with("X"))
+  select(-starts_with("...")) %>%
+  mutate(date = as.Date(date, format = "%m/%d/%Y"))
+
+# create "empty" values from 1/1/2020 until start of vac sched (1/4/2021)
+n_cols <- dim(vac_schedule)[2]-1 #exclude date column
+n_rows <- vac_schedule$date[1] - osiris1$date[1]
+empty_mat <- matrix(rep(0, n_cols * n_rows), nrow = n_rows)
+dates <- seq.Date(osiris1$date[1], vac_schedule$date[1]-1, by = "day")
+my_df <- data.frame(date = dates, empty_mat)
+names(my_df) <- names(vac_schedule)
+vac_sched <- bind_rows(my_df, vac_schedule)
 
 vac_rates_wt <- convert_vac_schedule2(
   vac_schedule = vac_sched,
@@ -212,17 +222,16 @@ init <- c(
 times <- seq(0,75, by = 1)
 # Model fit ---------------------------------------------------------
 # read in csv with breakpoints
-breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit.csv") %>%
-  mutate(date = as.Date(date, format = "%d-%m-%Y"),
+breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v2.csv") %>%
+  mutate(date = as.Date(date, format = "%d/%m/%Y"),
          time = as.numeric(date - date[1])) %>%
   select(date, time, variant, contact_matrix)
 
 # run fit procedure
 fits <- fit_to_data_func(breakpoints = breakpoints, params = params, init = init, 
                  case_data = osiris1, contact_matrices = cm_list,
-                 vac_info = vac_rates_list, 
-                 vac_start_date = as.Date(vac_sched$date[1], format = "%m/%d/%Y"),
-                 save_output_to_file = FALSE,  path_out = NULL)
+                 vac_info = vac_rates_list,
+                 save_output_to_file = FALSE, path_out = NULL)
 
 # Run forward simulations --------------------------------------------
 seir_out <- lsoda(init, times, age_struct_seir_ode2, params)
