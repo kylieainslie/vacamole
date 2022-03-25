@@ -21,7 +21,7 @@ fit_to_data_func <- function(breakpoints,
                              case_data,
                              contact_matrices,
                              vac_info,
-                             vac_start_date,
+                             est_omega = FALSE,
                              save_output_to_file = TRUE,
                              path_out = NULL,
                              ...
@@ -30,8 +30,13 @@ fit_to_data_func <- function(breakpoints,
 
 # create empty lists for storage ----------------------------
 n_bp <- length(breakpoints$date)-1
-mles <- matrix(rep(NA, 2*n_bp), nrow = n_bp)
-colnames(mles) <- c("beta", "alpha")
+if(est_omega){
+  mles <- matrix(rep(NA, 3*n_bp), nrow = n_bp)
+  colnames(mles) <- c("beta", "alpha", "omega")
+} else{
+  mles <- matrix(rep(NA, 2*n_bp), nrow = n_bp)
+  colnames(mles) <- c("beta", "alpha")
+}
 out_mle <- list()
 parameter_draws <- list()
 beta_draws <- list()
@@ -49,13 +54,7 @@ for (j in 1:n_bp) {
   } else if (breakpoints$contact_matrix[j] == "june_2021"){contact_matrix <- contact_matrices$june_2021
   } else {contact_matrix <- contact_matrices$november_2021} 
   
-  #if (j == n_bp){
   params$c_start <- contact_matrix
-  #} else {
-  #  params$c_start <- contact_matrix[[j]]$mean
-  #}
-  if(breakpoints$date[j] < vac_start_date){params$no_vac <- TRUE
-  } else {params$no_vac <- FALSE}
   
   # set VE for time window depending on which variant was dominant
   if (breakpoints$variant[j] == "wildtype"){params$vac_inputs <- vac_info$wildtype
@@ -69,13 +68,14 @@ for (j in 1:n_bp) {
   # update initial conditions based on last time window
   if (j == 1) {
     init_update <- init
-    pars <- c(2.3, 0.01)
+    if(est_omega){pars <- c(2.3, 0.01, 0.004)
+    } else{pars <- c(2.3, 0.01)}
     S_diag <- diag(init_update[c(2:10)])
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   } else {
     init_update <- c(t = times[1], unlist(lapply(unname(out_mle[[j-1]]), tail,1)))
-    #print(init_update)
-    pars <- c((mles[j-1,1]/params$gamma)*rho, mles[j-1,2])
+    beta_est <- (mles[j-1,1]/params$gamma)*rho
+    pars <- c(beta_est, mles[j-1,-1])
     S_diag <- diag(init_update[c(2:10)])
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   }
@@ -84,11 +84,19 @@ for (j in 1:n_bp) {
   case_data_sub <- case_data[times + 1, ]
   
   # optimize
+  if(est_omega){
+    lower_bound <- c(0,0.005,0)
+    upper_bound <-  c(10,1,0.1)
+  } else{
+    lower_bound <- c(0,0.005)
+    upper_bound <-  c(10,1)
+  }
+  
   res <- optim(par = pars, 
                fn = likelihood_func2,
                method = "L-BFGS-B",
-               lower = c(0,0.005),
-               upper = c(10,1),
+               lower = lower_bound,
+               upper = upper_bound,
                t = times,
                data = case_data_sub,
                params = params,
@@ -100,6 +108,7 @@ for (j in 1:n_bp) {
   # store MLE
   mles[j,1] <- (res$par[1] / rho) * params$gamma
   mles[j,2] <- res$par[2]
+  if(est_omega){mles[j,3] <- res$par[3]}
   
   print(res$par)
   # draw 200 parameter values
@@ -109,10 +118,15 @@ for (j in 1:n_bp) {
 # --------------------------------------------------
   # run for mle to get initial conditions for next timepoint
   params$beta <- mles[j,1]
+  if(est_omega){params$omega <- mles[j,3]}
   seir_out <- lsoda(init_update, times, age_struct_seir_ode2, params)
   seir_out <- as.data.frame(seir_out)
   out_mle[[j]] <- postprocess_age_struct_model_output2(seir_out)
   daily_cases[[j]] <- params$sigma * rowSums(out_mle[[j]]$E + out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d + out_mle[[j]]$Ev_3d) * params$p_report
+  
+  # plot for quick check of fit
+  plot(daily_cases[[j]]~times, type = "l")
+  points(times, case_data_sub$inc, pch = 16, col = "red")
   
 } # end of for loop over breakpoints
 
