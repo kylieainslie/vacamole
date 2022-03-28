@@ -43,7 +43,7 @@ beta_draws <- list()
 daily_cases <- list()
 
 # begin loop over breakpoints --------------------------------
-for (j in 1:n_bp) {
+for (j in 1:(n_bp-1)) {
   print(j)
   # set contact matrix for time window
   if (breakpoints$contact_matrix[j] == "april_2017"){contact_matrix <- contact_matrices$april_2017
@@ -68,14 +68,15 @@ for (j in 1:n_bp) {
   # update initial conditions based on last time window
   if (j == 1) {
     init_update <- init
-    if(est_omega){pars <- c(2.3, 0.01, 0.004)
+    if(est_omega){pars <- c(2.3, 0.01, 0.0027)
     } else{pars <- c(2.3, 0.01)}
     S_diag <- diag(init_update[c(2:10)])
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   } else {
     init_update <- c(t = times[1], unlist(lapply(unname(out_mle[[j-1]]), tail,1)))
     beta_est <- (mles[j-1,1]/params$gamma)*rho
-    pars <- c(beta_est, mles[j-1,-1])
+    if(est_omega){pars <- c(beta_est, mles[j-1,2], mles[j-1,3]/100)
+    } else {pars <- c(beta_est, mles[j-1,-1])}
     S_diag <- diag(init_update[c(2:10)])
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   }
@@ -86,7 +87,7 @@ for (j in 1:n_bp) {
   # optimize
   if(est_omega){
     lower_bound <- c(0,0.005,0)
-    upper_bound <-  c(10,1,0.1)
+    upper_bound <-  c(10,1,6)
   } else{
     lower_bound <- c(0,0.005)
     upper_bound <-  c(10,1)
@@ -102,6 +103,7 @@ for (j in 1:n_bp) {
                params = params,
                init = init_update,
                stochastic = FALSE,
+               est_omega = est_omega,
                hessian = TRUE
   )
   
