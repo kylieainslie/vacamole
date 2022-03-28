@@ -160,7 +160,7 @@ params <- list(beta = 0.0004,
                gamma = 0.5,
                sigma = 0.5,
                epsilon = 0.01,
-               omega = 0.004,
+               omega = 0.0016,
                N = n_vec,
                h = transition_rates$h,
                i1 = transition_rates$i1,
@@ -219,10 +219,10 @@ init <- c(
   Rv_3d = empty_state
 )
 
-times <- seq(0,75, by = 1)
+#times <- seq(0,75, by = 1)
 # Model fit ---------------------------------------------------------
 # read in csv with breakpoints
-breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v2.csv") %>%
+breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.csv") %>%
   mutate(date = as.Date(date, format = "%d/%m/%Y"),
          time = as.numeric(date - date[1])) %>%
   select(date, time, variant, contact_matrix)
@@ -230,12 +230,12 @@ breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v2.csv")
 # run fit procedure
 fits <- fit_to_data_func(breakpoints = breakpoints, params = params, init = init, 
                  case_data = osiris1, contact_matrices = cm_list,
-                 vac_info = vac_rates_list,
+                 vac_info = vac_rates_list, est_omega = FALSE,
                  save_output_to_file = FALSE, path_out = NULL)
 
 # Run forward simulations --------------------------------------------
-seir_out <- lsoda(init, times, age_struct_seir_ode2, params)
-seir_out <- as.data.frame(seir_out)
-out <- postprocess_age_struct_model_output2(seir_out)
-cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d + out$Ev_3d) * params$p_report
-plot(cases ~ times, type = "l")
+# seir_out <- lsoda(init, times, age_struct_seir_ode2, params)
+# seir_out <- as.data.frame(seir_out)
+# out <- postprocess_age_struct_model_output2(seir_out)
+# cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d + out$Ev_3d) * params$p_report
+# plot(cases ~ times, type = "l")
