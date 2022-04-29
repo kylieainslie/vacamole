@@ -168,41 +168,41 @@ age_struct_seir_ode2 <- function(times, init, params) {
 
     ################################################################
     # ODEs:
-    dS <- -lambda * S - alpha * S + omega * R
+    dS <- -lambda * S - alpha * S + (omega*2) * R_1w
     dShold_1d <- alpha * S - (1 / delay) * Shold_1d - lambda * Shold_1d
-    dSv_1d <- (1 / delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d + omega * Rv_1d
+    dSv_1d <- (1 / delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d + (omega*2) * Rv_1d_1w
     dShold_2d <- alpha2 * Sv_1d - (1 / delay2) * Shold_2d - eta * lambda * Shold_2d
-    dSv_2d <- (1 / delay2) * Shold_2d - eta2 * lambda * Sv_2d - alpha3 * Sv_2d + omega * Rv_2d
+    dSv_2d <- (1 / delay2) * Shold_2d - eta2 * lambda * Sv_2d - alpha3 * Sv_2d + (omega*2) * Rv_2d_1w
     dShold_3d <- alpha3 * Sv_2d - (1 / delay3) * Shold_3d - eta2 * lambda * Shold_3d
-    dSv_3d <- (1 / delay3) * Shold_3d - eta3 * lambda * Sv_3d - alpha4 * Sv_3d + omega * Rv_3d
+    dSv_3d <- (1 / delay3) * Shold_3d - eta3 * lambda * Sv_3d - alpha4 * Sv_3d + (omega*2) * Rv_3d_1w
     dShold_4d <- alpha4 * Sv_3d - (1 / delay4) * Shold_4d - eta3 * lambda * Shold_4d
-    dSv_4d <- (1 / delay4) * Shold_4d - eta4 * lambda * Sv_4d + omega * Rv_4d
+    dSv_4d <- (1 / delay4) * Shold_4d - eta4 * lambda * Sv_4d + (omega*2) * Rv_4d_1w
     
-    dE <- lambda * (S + Shold_1d) - sigma * E + epsilon
+    dE     <- lambda * (S + Shold_1d) - sigma * E + epsilon
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta2 * lambda * Sv_2d - sigma * Ev_2d
     dEv_3d <- eta3 * lambda * Sv_3d - sigma * Ev_3d
     dEv_4d <- eta4 * lambda * Sv_4d - sigma * Ev_4d
     
-    dI <- sigma * E - (gamma + h) * I
+    dI     <- sigma * E - (gamma + h) * I
     dIv_1d <- sigma * Ev_1d - (gamma + eta_hosp * h) * Iv_1d
     dIv_2d <- sigma * Ev_2d - (gamma + eta_hosp2 * h) * Iv_2d
     dIv_3d <- sigma * Ev_3d - (gamma + eta_hosp3 * h) * Iv_3d
     dIv_4d <- sigma * Ev_4d - (gamma + eta_hosp4 * h) * Iv_4d
     
-    dH <- h * I - (i1 + d + r) * H
+    dH     <- h * I - (i1 + d + r) * H
     dHv_1d <- eta_hosp * h * Iv_1d - (i1 + d + r) * Hv_1d
     dHv_2d <- eta_hosp2 * h * Iv_2d - (i1 + d + r) * Hv_2d
     dHv_3d <- eta_hosp3 * h * Iv_3d - (i1 + d + r) * Hv_3d
     dHv_4d <- eta_hosp4 * h * Iv_4d - (i1 + d + r) * Hv_4d
   
-    dIC <- i1 * H - (i2 + d_ic) * IC
+    dIC     <- i1 * H - (i2 + d_ic) * IC
     dICv_1d <- i1 * Hv_1d - (i2 + d_ic) * ICv_1d
     dICv_2d <- i1 * Hv_2d - (i2 + d_ic) * ICv_2d
     dICv_3d <- i1 * Hv_3d - (i2 + d_ic) * ICv_3d
     dICv_4d <- i1 * Hv_4d - (i2 + d_ic) * ICv_4d
     
-    dH_IC <- i2 * IC - (r_ic + d_hic) * H_IC
+    dH_IC     <- i2 * IC - (r_ic + d_hic) * H_IC
     dH_ICv_1d <- i2 * ICv_1d - (r_ic + d_hic) * H_ICv_1d
     dH_ICv_2d <- i2 * ICv_2d - (r_ic + d_hic) * H_ICv_2d
     dH_ICv_3d <- i2 * ICv_3d - (r_ic + d_hic) * H_ICv_3d
@@ -212,11 +212,17 @@ age_struct_seir_ode2 <- function(times, init, params) {
       d_ic * (IC + ICv_1d + ICv_2d + ICv_3d + ICv_4d) + 
       d_hic * (H_IC + H_ICv_1d + H_ICv_2d + H_ICv_3d + H_ICv_4d)
   
-    dR <- gamma * I + r * H + r_ic * H_IC - omega * R
-    dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d - omega * Rv_1d
-    dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d - omega * Rv_2d
-    dRv_3d <- gamma * Iv_3d + r * Hv_3d + r_ic * H_ICv_3d - omega * Rv_3d
-    dRv_4d <- gamma * Iv_4d + r * Hv_4d + r_ic * H_ICv_4d - omega * Rv_4d
+    dR     <- gamma * I + r * H + r_ic * H_IC - (omega*2) * R
+    dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d - (omega*2) * Rv_1d
+    dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d - (omega*2) * Rv_2d
+    dRv_3d <- gamma * Iv_3d + r * Hv_3d + r_ic * H_ICv_3d - (omega*2) * Rv_3d
+    dRv_4d <- gamma * Iv_4d + r * Hv_4d + r_ic * H_ICv_4d - (omega*2) * Rv_4d
+    
+    dR_1w     <- (omega*2) * R - (omega*2) * R_1w
+    dRv_1d_1w <- (omega*2) * Rv_1d - (omega*2) * Rv_1d_1w
+    dRv_2d_1w <- (omega*2) * Rv_2d - (omega*2) * Rv_2d_1w
+    dRv_3d_1w <- (omega*2) * Rv_3d - (omega*2) * Rv_3d_1w
+    dRv_4d_1w <- (omega*2) * Rv_4d - (omega*2) * Rv_4d_1w
 
     # assign variables to global environment, so they can be used for next iteration
     assign("flag_relaxed", flag_relaxed, envir = globalenv())
