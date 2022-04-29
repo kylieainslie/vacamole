@@ -238,7 +238,8 @@ age_struct_seir_ode2 <- function(times, init, params) {
       dIC, dICv_1d, dICv_2d, dICv_3d, dICv_4d,
       dH_IC, dH_ICv_1d, dH_ICv_2d, dH_ICv_3d, dH_ICv_4d,
       dD, 
-      dR, dRv_1d, dRv_2d, dRv_3d, dRv_4d
+      dR, dRv_1d, dRv_2d, dRv_3d, dRv_4d,
+      dR_1w, dRv_1d_1w, dRv_2d_1w, dRv_3d_1w, dRv_4d_1w
     ))
   })
 }
