@@ -32,6 +32,11 @@ age_struct_seir_ode2 <- function(times, init, params) {
       Shold_4d7, Shold_4d8, Shold_4d9
     )
     Sv_4d <- c(Sv_4d1, Sv_4d2, Sv_4d3, Sv_4d4, Sv_4d5, Sv_4d6, Sv_4d7, Sv_4d8, Sv_4d9)
+    Shold_5d <- c(
+      Shold_5d1, Shold_5d2, Shold_5d3, Shold_5d4, Shold_5d5, Shold_5d6,
+      Shold_5d7, Shold_5d8, Shold_5d9
+    )
+    Sv_5d <- c(Sv_5d1, Sv_5d2, Sv_5d3, Sv_5d4, Sv_5d5, Sv_5d6, Sv_5d7, Sv_5d8, Sv_5d9)
     
     # exposed
     E <- c(E1, E2, E3, E4, E5, E6, E7, E8, E9)
@@ -39,6 +44,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     Ev_2d <- c(Ev_2d1, Ev_2d2, Ev_2d3, Ev_2d4, Ev_2d5, Ev_2d6, Ev_2d7, Ev_2d8, Ev_2d9)
     Ev_3d <- c(Ev_3d1, Ev_3d2, Ev_3d3, Ev_3d4, Ev_3d5, Ev_3d6, Ev_3d7, Ev_3d8, Ev_3d9)
     Ev_4d <- c(Ev_4d1, Ev_4d2, Ev_4d3, Ev_4d4, Ev_4d5, Ev_4d6, Ev_4d7, Ev_4d8, Ev_4d9)
+    Ev_5d <- c(Ev_5d1, Ev_5d2, Ev_5d3, Ev_5d4, Ev_5d5, Ev_5d6, Ev_5d7, Ev_5d8, Ev_5d9)
     
     # infectious
     I <- c(I1, I2, I3, I4, I5, I6, I7, I8, I9)
@@ -46,6 +52,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     Iv_2d <- c(Iv_2d1, Iv_2d2, Iv_2d3, Iv_2d4, Iv_2d5, Iv_2d6, Iv_2d7, Iv_2d8, Iv_2d9)
     Iv_3d <- c(Iv_3d1, Iv_3d2, Iv_3d3, Iv_3d4, Iv_3d5, Iv_3d6, Iv_3d7, Iv_3d8, Iv_3d9)
     Iv_4d <- c(Iv_4d1, Iv_4d2, Iv_4d3, Iv_4d4, Iv_4d5, Iv_4d6, Iv_4d7, Iv_4d8, Iv_4d9)
+    Iv_5d <- c(Iv_5d1, Iv_5d2, Iv_5d3, Iv_5d4, Iv_5d5, Iv_5d6, Iv_5d7, Iv_5d8, Iv_5d9)
     
     # hospitalized
     H <- c(H1, H2, H3, H4, H5, H6, H7, H8, H9)
@@ -53,6 +60,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     Hv_2d <- c(Hv_2d1, Hv_2d2, Hv_2d3, Hv_2d4, Hv_2d5, Hv_2d6, Hv_2d7, Hv_2d8, Hv_2d9)
     Hv_3d <- c(Hv_3d1, Hv_3d2, Hv_3d3, Hv_3d4, Hv_3d5, Hv_3d6, Hv_3d7, Hv_3d8, Hv_3d9)
     Hv_4d <- c(Hv_4d1, Hv_4d2, Hv_4d3, Hv_4d4, Hv_4d5, Hv_4d6, Hv_4d7, Hv_4d8, Hv_4d9)
+    Hv_5d <- c(Hv_5d1, Hv_5d2, Hv_5d3, Hv_5d4, Hv_5d5, Hv_5d6, Hv_5d7, Hv_5d8, Hv_5d9)
     
     # ICU
     IC <- c(IC1, IC2, IC3, IC4, IC5, IC6, IC7, IC8, IC9)
@@ -60,6 +68,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     ICv_2d <- c(ICv_2d1, ICv_2d2, ICv_2d3, ICv_2d4, ICv_2d5, ICv_2d6, ICv_2d7, ICv_2d8, ICv_2d9)
     ICv_3d <- c(ICv_3d1, ICv_3d2, ICv_3d3, ICv_3d4, ICv_3d5, ICv_3d6, ICv_3d7, ICv_3d8, ICv_3d9)
     ICv_4d <- c(ICv_4d1, ICv_4d2, ICv_4d3, ICv_4d4, ICv_4d5, ICv_4d6, ICv_4d7, ICv_4d8, ICv_4d9)
+    ICv_5d <- c(ICv_5d1, ICv_5d2, ICv_5d3, ICv_5d4, ICv_5d5, ICv_5d6, ICv_5d7, ICv_5d8, ICv_5d9)
     
     # return to hospital ward after ICU
     H_IC <- c(H_IC1, H_IC2, H_IC3, H_IC4, H_IC5, H_IC6, H_IC7, H_IC8, H_IC9)
@@ -67,6 +76,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     H_ICv_2d <- c(H_ICv_2d1, H_ICv_2d2, H_ICv_2d3, H_ICv_2d4, H_ICv_2d5, H_ICv_2d6, H_ICv_2d7, H_ICv_2d8, H_ICv_2d9)
     H_ICv_3d <- c(H_ICv_3d1, H_ICv_3d2, H_ICv_3d3, H_ICv_3d4, H_ICv_3d5, H_ICv_3d6, H_ICv_3d7, H_ICv_3d8, H_ICv_3d9)
     H_ICv_4d <- c(H_ICv_4d1, H_ICv_4d2, H_ICv_4d3, H_ICv_4d4, H_ICv_4d5, H_ICv_4d6, H_ICv_4d7, H_ICv_4d8, H_ICv_4d9)
+    H_ICv_5d <- c(H_ICv_5d1, H_ICv_5d2, H_ICv_5d3, H_ICv_5d4, H_ICv_5d5, H_ICv_5d6, H_ICv_5d7, H_ICv_5d8, H_ICv_5d9)
     
     # death
     D <- c(D1, D2, D3, D4, D5, D6, D7, D8, D9)
@@ -77,6 +87,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     Rv_2d <- c(Rv_2d1, Rv_2d2, Rv_2d3, Rv_2d4, Rv_2d5, Rv_2d6, Rv_2d7, Rv_2d8, Rv_2d9)
     Rv_3d <- c(Rv_3d1, Rv_3d2, Rv_3d3, Rv_3d4, Rv_3d5, Rv_3d6, Rv_3d7, Rv_3d8, Rv_3d9)
     Rv_4d <- c(Rv_4d1, Rv_4d2, Rv_4d3, Rv_4d4, Rv_4d5, Rv_4d6, Rv_4d7, Rv_4d8, Rv_4d9)
+    Rv_5d <- c(Rv_5d1, Rv_5d2, Rv_5d3, Rv_5d4, Rv_5d5, Rv_5d6, Rv_5d7, Rv_5d8, Rv_5d9)
     
     # extra recovered compartments so that waning immunity is not exponential
     R_1w <- c(R_1w1, R_1w2, R_1w3, R_1w4, R_1w5, R_1w6, R_1w7, R_1w8, R_1w9)
@@ -84,6 +95,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     Rv_2d_1w <- c(Rv_2d_1w1, Rv_2d_1w2, Rv_2d_1w3, Rv_2d_1w4, Rv_2d_1w5, Rv_2d_1w6, Rv_2d_1w7, Rv_2d_1w8, Rv_2d_1w9)
     Rv_3d_1w <- c(Rv_3d_1w1, Rv_3d_1w2, Rv_3d_1w3, Rv_3d_1w4, Rv_3d_1w5, Rv_3d_1w6, Rv_3d_1w7, Rv_3d_1w8, Rv_3d_1w9)
     Rv_4d_1w <- c(Rv_4d_1w1, Rv_4d_1w2, Rv_4d_1w3, Rv_4d_1w4, Rv_4d_1w5, Rv_4d_1w6, Rv_4d_1w7, Rv_4d_1w8, Rv_4d_1w9)
+    Rv_5d_1w <- c(Rv_5d_1w1, Rv_5d_1w2, Rv_5d_1w3, Rv_5d_1w4, Rv_5d_1w5, Rv_5d_1w6, Rv_5d_1w7, Rv_5d_1w8, Rv_5d_1w9)
     
     # determine vaccination rate -----------------------------------
     if (!no_vac) {
@@ -93,30 +105,35 @@ age_struct_seir_ode2 <- function(times, init, params) {
       alpha2 <- vac_inputs$alpha_dose2[index, ]
       alpha3 <- vac_inputs$alpha_dose3[index, ]
       alpha4 <- vac_inputs$alpha_dose4[index, ]
+      alpha5 <- vac_inputs$alpha_dose5[index, ]
       
       # delay to protection by dose
       delay  <- vac_inputs$delay_dose1[index, ]
       delay2 <- vac_inputs$delay_dose2[index, ]
       delay3 <- vac_inputs$delay_dose3[index, ]
       delay4 <- vac_inputs$delay_dose4[index, ]
+      delay5 <- vac_inputs$delay_dose5[index, ]
       
       # 1 - VE_infection (for each dose)
       eta  <- vac_inputs$eta_dose1[index, ]
       eta2 <- vac_inputs$eta_dose2[index, ]
       eta3 <- vac_inputs$eta_dose3[index, ]
       eta4 <- vac_inputs$eta_dose4[index, ]
+      eta5 <- vac_inputs$eta_dose5[index, ]
       
       # 1 - VE_hospitalisation (for each dose)
       eta_hosp  <- vac_inputs$eta_hosp_dose1[index, ]
       eta_hosp2 <- vac_inputs$eta_hosp_dose2[index, ]
       eta_hosp3 <- vac_inputs$eta_hosp_dose3[index, ]
       eta_hosp4 <- vac_inputs$eta_hosp_dose4[index, ]
+      eta_hosp5 <- vac_inputs$eta_hosp_dose5[index, ]
       
       # 1 - VE_transmission (for each dose)
       eta_trans  <- vac_inputs$eta_trans_dose1[index, ]
       eta_trans2 <- vac_inputs$eta_trans_dose2[index, ]
       eta_trans3 <- vac_inputs$eta_trans_dose3[index, ]
       eta_trans4 <- vac_inputs$eta_trans_dose4[index, ]
+      eta_trans5 <- vac_inputs$eta_trans_dose5[index, ]
       
     } else { # if no vaccination, then fix vac rates to 0 and (1-VE) = 1
       alpha <- 0; alpha2 <- 0; alpha3 <- 0; alpha4 <- 0                  # vaccination rate
