@@ -79,9 +79,13 @@ convert_vac_schedule2 <- function(vac_schedule,
         pf_d1_9 = (.data$pf_d1_9 * n_vec_10[9] + .data$pf_d1_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
         pf_d2_9 = (.data$pf_d2_9 * n_vec_10[9] + .data$pf_d2_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
         pf_d3_9 = (.data$pf_d3_9 * n_vec_10[9] + .data$pf_d3_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
+        pf_d4_9 = (.data$pf_d4_9 * n_vec_10[9] + .data$pf_d4_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
+        pf_d5_9 = (.data$pf_d5_9 * n_vec_10[9] + .data$pf_d5_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
         mo_d1_9 = (.data$mo_d1_9 * n_vec_10[9] + .data$mo_d1_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
         mo_d2_9 = (.data$mo_d2_9 * n_vec_10[9] + .data$mo_d2_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
         mo_d3_9 = (.data$mo_d3_9 * n_vec_10[9] + .data$mo_d3_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
+        mo_d4_9 = (.data$mo_d4_9 * n_vec_10[9] + .data$mo_d4_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
+        mo_d5_9 = (.data$mo_d5_9 * n_vec_10[9] + .data$mo_d5_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
         az_d1_9 = (.data$az_d1_9 * n_vec_10[9] + .data$az_d1_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
         az_d2_9 = (.data$az_d2_9 * n_vec_10[9] + .data$az_d2_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
         ja_d1_9 = (.data$ja_d1_9 * n_vec_10[9] + .data$ja_d1_10 * n_vec_10[10]) / sum(n_vec_10[9:10]),
@@ -163,7 +167,11 @@ convert_vac_schedule2 <- function(vac_schedule,
   pf_dose2_cs <- vac_schedule_new_cs %>% select(.data$pf_d2_1:.data$pf_d2_9)
   pf_dose3 <- vac_schedule_orig_new %>% select(date, .data$pf_d3_1:.data$pf_d3_9)
   pf_dose3_cs <- vac_schedule_new_cs %>% select(.data$pf_d3_1:.data$pf_d3_9)
-
+  pf_dose4 <- vac_schedule_orig_new %>% select(date, .data$pf_d4_1:.data$pf_d4_9)
+  pf_dose4_cs <- vac_schedule_new_cs %>% select(.data$pf_d4_1:.data$pf_d4_9)
+  pf_dose5 <- vac_schedule_orig_new %>% select(date, .data$pf_d5_1:.data$pf_d5_9)
+  pf_dose5_cs <- vac_schedule_new_cs %>% select(.data$pf_d5_1:.data$pf_d5_9)
+  
   # moderna
   mo_dose1 <- vac_schedule_orig_new %>% select(date, .data$mo_d1_1:.data$mo_d1_9)
   mo_dose1_cs <- vac_schedule_new_cs %>% select(.data$mo_d1_1:.data$mo_d1_9)
@@ -171,7 +179,11 @@ convert_vac_schedule2 <- function(vac_schedule,
   mo_dose2_cs <- vac_schedule_new_cs %>% select(.data$mo_d2_1:.data$mo_d2_9)
   mo_dose3 <- vac_schedule_orig_new %>% select(date, .data$mo_d3_1:.data$mo_d3_9)
   mo_dose3_cs <- vac_schedule_new_cs %>% select(.data$mo_d3_1:.data$mo_d3_9)
-
+  mo_dose4 <- vac_schedule_orig_new %>% select(date, .data$mo_d4_1:.data$mo_d4_9)
+  mo_dose4_cs <- vac_schedule_new_cs %>% select(.data$mo_d4_1:.data$mo_d4_9)
+  mo_dose5 <- vac_schedule_orig_new %>% select(date, .data$mo_d5_1:.data$mo_d5_9)
+  mo_dose5_cs <- vac_schedule_new_cs %>% select(.data$mo_d5_1:.data$mo_d5_9)
+  
   # astrazeneca
   az_dose1 <- vac_schedule_orig_new %>% select(date, .data$az_d1_1:.data$az_d1_9)
   az_dose1_cs <- vac_schedule_new_cs %>% select(.data$az_d1_1:.data$az_d1_9)
@@ -188,6 +200,8 @@ convert_vac_schedule2 <- function(vac_schedule,
   name_suffix_d1 <- c(substr(names(pf_dose1[, -1]), 3, 7))
   name_suffix_d2 <- c(substr(names(pf_dose2[, -1]), 3, 7))
   name_suffix_d3 <- c(substr(names(pf_dose3[, -1]), 3, 7))
+  name_suffix_d4 <- c(substr(names(pf_dose4[, -1]), 3, 7))
+  name_suffix_d5 <- c(substr(names(pf_dose5[, -1]), 3, 7))
   
   # daily vaccination rate
   # dose 1
@@ -199,7 +213,13 @@ convert_vac_schedule2 <- function(vac_schedule,
   # dose 3
   alpha_dose3 <- pf_dose3[, -1] + mo_dose3[, -1]
   names(alpha_dose3) <- paste0("alpha", name_suffix_d3)
-
+  # dose 4
+  alpha_dose4 <- pf_dose4[, -1] + mo_dose4[, -1]
+  names(alpha_dose4) <- paste0("alpha", name_suffix_d4)
+  # dose 3
+  alpha_dose5 <- pf_dose5[, -1] + mo_dose5[, -1]
+  names(alpha_dose5) <- paste0("alpha", name_suffix_d5)
+  
   # cumulative vaccination percentage
   # dose 1
   total_dose1 <- pf_dose1_cs + mo_dose1_cs + az_dose1_cs + ja_dose1_cs
@@ -210,7 +230,13 @@ convert_vac_schedule2 <- function(vac_schedule,
   # dose 3
   total_dose3 <- pf_dose3_cs + mo_dose3_cs
   names(total_dose3) <- paste0("tot", name_suffix_d3)
-
+  # dose 4
+  total_dose4 <- pf_dose4_cs + mo_dose4_cs
+  names(total_dose4) <- paste0("tot", name_suffix_d4)
+  # dose 5
+  total_dose5 <- pf_dose5_cs + mo_dose5_cs
+  names(total_dose5) <- paste0("tot", name_suffix_d5)
+  
   # fraction of each vaccine given up to current time point
   frac_pf_dose1 <- data.matrix(pf_dose1_cs / total_dose1)
   frac_pf_dose1 <- ifelse(is.nan(frac_pf_dose1), 0, frac_pf_dose1)
