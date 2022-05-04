@@ -244,14 +244,22 @@ convert_vac_schedule2 <- function(vac_schedule,
   frac_pf_dose2 <- ifelse(is.nan(frac_pf_dose2), 0, frac_pf_dose2)
   frac_pf_dose3 <- data.matrix(pf_dose3_cs / total_dose3)
   frac_pf_dose3 <- ifelse(is.nan(frac_pf_dose3), 0, frac_pf_dose3)
-
+  frac_pf_dose4 <- data.matrix(pf_dose4_cs / total_dose4)
+  frac_pf_dose4 <- ifelse(is.nan(frac_pf_dose4), 0, frac_pf_dose4)
+  frac_pf_dose5 <- data.matrix(pf_dose5_cs / total_dose5)
+  frac_pf_dose5 <- ifelse(is.nan(frac_pf_dose5), 0, frac_pf_dose5)
+  
   frac_mo_dose1 <- data.matrix(mo_dose1_cs / total_dose1)
   frac_mo_dose1 <- ifelse(is.nan(frac_mo_dose1), 0, frac_mo_dose1)
   frac_mo_dose2 <- data.matrix(mo_dose2_cs / total_dose2)
   frac_mo_dose2 <- ifelse(is.nan(frac_mo_dose2), 0, frac_mo_dose2)
   frac_mo_dose3 <- data.matrix(mo_dose3_cs / total_dose3)
   frac_mo_dose3 <- ifelse(is.nan(frac_mo_dose3), 0, frac_mo_dose3)
-
+  frac_mo_dose4 <- data.matrix(mo_dose4_cs / total_dose4)
+  frac_mo_dose4 <- ifelse(is.nan(frac_mo_dose4), 0, frac_mo_dose4)
+  frac_mo_dose5 <- data.matrix(mo_dose5_cs / total_dose5)
+  frac_mo_dose5 <- ifelse(is.nan(frac_mo_dose5), 0, frac_mo_dose5)
+  
   frac_az_dose1 <- data.matrix(az_dose1_cs / total_dose1)
   frac_az_dose1 <- ifelse(is.nan(frac_az_dose1), 0, frac_az_dose1)
   frac_az_dose2 <- data.matrix(az_dose2_cs / total_dose2)
@@ -289,7 +297,15 @@ convert_vac_schedule2 <- function(vac_schedule,
   # dose 3
   ve_p_dose3 <- calc_ve_w_waning(vac_rate = pf_dose3[, -1], ve_val = ve$pfizer[3], waning = waning)
   ve_m_dose3 <- calc_ve_w_waning(vac_rate = mo_dose3[, -1], ve_val = ve$moderna[3], waning = waning)
-
+  
+  # dose 4
+  ve_p_dose4 <- calc_ve_w_waning(vac_rate = pf_dose4[, -1], ve_val = ve$pfizer[4], waning = waning)
+  ve_m_dose4 <- calc_ve_w_waning(vac_rate = mo_dose4[, -1], ve_val = ve$moderna[4], waning = waning)
+  
+  # dose 3
+  ve_p_dose5 <- calc_ve_w_waning(vac_rate = pf_dose5[, -1], ve_val = ve$pfizer[5], waning = waning)
+  ve_m_dose5 <- calc_ve_w_waning(vac_rate = mo_dose5[, -1], ve_val = ve$moderna[5], waning = waning)
+  
   # composite VE (against infection)
   comp_ve_dose1 <- frac_pf_dose1 * ve_p_dose1 +
     frac_mo_dose1 * ve_m_dose1 +
@@ -303,14 +319,22 @@ convert_vac_schedule2 <- function(vac_schedule,
     frac_ja_dose2 * ve_j_dose2
   colnames(comp_ve_dose2) <- paste0("ve", name_suffix_d2)
   
-  comp_ve_dose3 <- frac_pf_dose2 * ve_p_dose3 + frac_mo_dose2 * ve_m_dose3 
+  comp_ve_dose3 <- frac_pf_dose3 * ve_p_dose3 + frac_mo_dose3 * ve_m_dose3 
   colnames(comp_ve_dose3) <- paste0("ve", name_suffix_d3)
-
+  
+  comp_ve_dose4 <- frac_pf_dose4 * ve_p_dose4 + frac_mo_dose4 * ve_m_dose4 
+  colnames(comp_ve_dose4) <- paste0("ve", name_suffix_d4)
+  
+  comp_ve_dose5 <- frac_pf_dose5 * ve_p_dose5 + frac_mo_dose5 * ve_m_dose5 
+  colnames(comp_ve_dose5) <- paste0("ve", name_suffix_d5)
+  
   # eta
   eta_dose1 <- 1 - comp_ve_dose1
   eta_dose2 <- 1 - comp_ve_dose2
   eta_dose3 <- 1 - comp_ve_dose3
-
+  eta_dose4 <- 1 - comp_ve_dose4
+  eta_dose5 <- 1 - comp_ve_dose5
+  
   # VE against hospitalisation
   # dose 1
   ve_hosp_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[, -1], ve_val = hosp_multiplier$pfizer[1], waning = waning)
@@ -322,12 +346,20 @@ convert_vac_schedule2 <- function(vac_schedule,
   ve_hosp_p_dose2 <- calc_ve_w_waning(vac_rate = pf_dose2[, -1], ve_val = hosp_multiplier$pfizer[2], waning = waning)
   ve_hosp_m_dose2 <- calc_ve_w_waning(vac_rate = mo_dose2[, -1], ve_val = hosp_multiplier$moderna[2], waning = waning)
   ve_hosp_a_dose2 <- calc_ve_w_waning(vac_rate = az_dose2[, -1], ve_val = hosp_multiplier$astrazeneca[2], waning = waning)
-  ve_hosp_j_dose2 <- calc_ve_w_waning(vac_rate = ja_dose2[, -1], ve_val = hosp_multiplier$jansen[1], waning = waning)
+  ve_hosp_j_dose2 <- calc_ve_w_waning(vac_rate = ja_dose2[, -1], ve_val = hosp_multiplier$jansen[2], waning = waning)
   
   # dose 3
   ve_hosp_p_dose3 <- calc_ve_w_waning(vac_rate = pf_dose3[, -1], ve_val = hosp_multiplier$pfizer[3], waning = waning)
   ve_hosp_m_dose3 <- calc_ve_w_waning(vac_rate = mo_dose3[, -1], ve_val = hosp_multiplier$moderna[3], waning = waning)
-
+  
+  # dose 4
+  ve_hosp_p_dose4 <- calc_ve_w_waning(vac_rate = pf_dose4[, -1], ve_val = hosp_multiplier$pfizer[4], waning = waning)
+  ve_hosp_m_dose4 <- calc_ve_w_waning(vac_rate = mo_dose4[, -1], ve_val = hosp_multiplier$moderna[4], waning = waning)
+  
+  # dose 5
+  ve_hosp_p_dose5 <- calc_ve_w_waning(vac_rate = pf_dose5[, -1], ve_val = hosp_multiplier$pfizer[5], waning = waning)
+  ve_hosp_m_dose5 <- calc_ve_w_waning(vac_rate = mo_dose5[, -1], ve_val = hosp_multiplier$moderna[5], waning = waning)
+  
   # rate of hospitalisations multiplier
   hosp_mult_dose1 <- frac_pf_dose1 * ve_hosp_p_dose1 +
     frac_mo_dose1 * ve_hosp_m_dose1 +
@@ -343,11 +375,19 @@ convert_vac_schedule2 <- function(vac_schedule,
   
   hosp_mult_dose3 <- frac_pf_dose3 * ve_hosp_p_dose3 + frac_mo_dose3 * ve_hosp_m_dose3 
   colnames(hosp_mult_dose3) <- paste0("hosp_mult", name_suffix_d3)
-
+  
+  hosp_mult_dose4 <- frac_pf_dose4 * ve_hosp_p_dose4 + frac_mo_dose4 * ve_hosp_m_dose4 
+  colnames(hosp_mult_dose4) <- paste0("hosp_mult", name_suffix_d4)
+  
+  hosp_mult_dose5 <- frac_pf_dose5 * ve_hosp_p_dose5 + frac_mo_dose5 * ve_hosp_m_dose5 
+  colnames(hosp_mult_dose5) <- paste0("hosp_mult", name_suffix_d5)
+  
   eta_hosp_dose1 <- hosp_mult_dose1
   eta_hosp_dose2 <- hosp_mult_dose2
   eta_hosp_dose3 <- hosp_mult_dose3
-
+  eta_hosp_dose4 <- hosp_mult_dose4
+  eta_hosp_dose5 <- hosp_mult_dose5
+  
   # VE against hospitalisation
   # dose 1
   ve_trans_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[, -1], ve_val = ve_trans$pfizer[1], waning = waning)
@@ -365,6 +405,14 @@ convert_vac_schedule2 <- function(vac_schedule,
   ve_trans_p_dose3 <- calc_ve_w_waning(vac_rate = pf_dose3[, -1], ve_val = ve_trans$pfizer[3], waning = waning)
   ve_trans_m_dose3 <- calc_ve_w_waning(vac_rate = mo_dose3[, -1], ve_val = ve_trans$moderna[3], waning = waning)
   
+  # dose 4
+  ve_trans_p_dose4 <- calc_ve_w_waning(vac_rate = pf_dose4[, -1], ve_val = ve_trans$pfizer[4], waning = waning)
+  ve_trans_m_dose4 <- calc_ve_w_waning(vac_rate = mo_dose4[, -1], ve_val = ve_trans$moderna[4], waning = waning)
+  
+  # dose 5
+  ve_trans_p_dose5 <- calc_ve_w_waning(vac_rate = pf_dose5[, -1], ve_val = ve_trans$pfizer[5], waning = waning)
+  ve_trans_m_dose5 <- calc_ve_w_waning(vac_rate = mo_dose5[, -1], ve_val = ve_trans$moderna[5], waning = waning)
+  
   # composite VE (against transmission)
   comp_ve_trans_dose1 <- frac_pf_dose1 * ve_trans_p_dose1 +
     frac_mo_dose1 * ve_trans_m_dose1 +
@@ -378,14 +426,22 @@ convert_vac_schedule2 <- function(vac_schedule,
     frac_ja_dose2 * ve_trans_j_dose2
   colnames(comp_ve_trans_dose2) <- paste0("ve_trans", name_suffix_d2)
   
-  comp_ve_trans_dose3 <- frac_pf_dose3 * ve_trans_p_dose3 + frac_mo_dose2 * ve_trans_m_dose3
+  comp_ve_trans_dose3 <- frac_pf_dose3 * ve_trans_p_dose3 + frac_mo_dose3 * ve_trans_m_dose3
   colnames(comp_ve_trans_dose3) <- paste0("ve_trans", name_suffix_d3)
-
+  
+  comp_ve_trans_dose4 <- frac_pf_dose4 * ve_trans_p_dose4 + frac_mo_dose4 * ve_trans_m_dose4
+  colnames(comp_ve_trans_dose4) <- paste0("ve_trans", name_suffix_d4)
+  
+  comp_ve_trans_dose5 <- frac_pf_dose5 * ve_trans_p_dose5 + frac_mo_dose5 * ve_trans_m_dose5
+  colnames(comp_ve_trans_dose5) <- paste0("ve_trans", name_suffix_d5)
+  
   # eta_trans
   eta_trans_dose1 <- 1 - comp_ve_trans_dose1
   eta_trans_dose2 <- 1 - comp_ve_trans_dose2
   eta_trans_dose3 <- 1 - comp_ve_trans_dose3
-
+  eta_trans_dose4 <- 1 - comp_ve_trans_dose4
+  eta_trans_dose5 <- 1 - comp_ve_trans_dose5
+  
   # composite delay to protection
   delay_dose1 <- frac_pf_dose1 * delay$pfizer[1] +
     frac_mo_dose1 * delay$moderna[1] +
@@ -405,23 +461,41 @@ convert_vac_schedule2 <- function(vac_schedule,
   delay_dose3 <- ifelse(delay_dose3 == 0, 1, delay_dose3) # this prevents from dividing by 0 in the ODEs
   colnames(delay_dose3) <- paste0("delay", name_suffix_d3)
   
+  delay_dose4 <- frac_pf_dose4 * delay$pfizer[4] + frac_mo_dose4 * delay$moderna[4]
+  delay_dose4 <- ifelse(delay_dose4 == 0, 1, delay_dose4) # this prevents from dividing by 0 in the ODEs
+  colnames(delay_dose4) <- paste0("delay", name_suffix_d4)
+  
+  delay_dose5 <- frac_pf_dose5 * delay$pfizer[5] + frac_mo_dose5 * delay$moderna[5]
+  delay_dose5 <- ifelse(delay_dose5 == 0, 1, delay_dose5) # this prevents from dividing by 0 in the ODEs
+  colnames(delay_dose5) <- paste0("delay", name_suffix_d5)
+  
  # output
   rtn <- list(
     alpha_dose1 = alpha_dose1,
     alpha_dose2 = alpha_dose2,
     alpha_dose3 = alpha_dose3,
+    alpha_dose4 = alpha_dose4,
+    alpha_dose5 = alpha_dose5,
     eta_dose1 = eta_dose1,
     eta_dose2 = eta_dose2,
     eta_dose3 = eta_dose3,
+    eta_dose4 = eta_dose4,
+    eta_dose5 = eta_dose5,
     delay_dose1 = delay_dose1,
     delay_dose2 = delay_dose2,
     delay_dose3 = delay_dose3,
+    delay_dose4 = delay_dose4,
+    delay_dose5 = delay_dose5,
     eta_hosp_dose1 = eta_hosp_dose1,
     eta_hosp_dose2 = eta_hosp_dose2,
     eta_hosp_dose3 = eta_hosp_dose3,
+    eta_hosp_dose4 = eta_hosp_dose4,
+    eta_hosp_dose5 = eta_hosp_dose5,
     eta_trans_dose1 = eta_trans_dose1,
     eta_trans_dose2 = eta_trans_dose2,
-    eta_trans_dose3 = eta_trans_dose3
+    eta_trans_dose3 = eta_trans_dose3,
+    eta_trans_dose4 = eta_trans_dose4,
+    eta_trans_dose5 = eta_trans_dose5
   )
 
   return(rtn)
