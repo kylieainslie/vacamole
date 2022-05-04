@@ -136,17 +136,17 @@ age_struct_seir_ode2 <- function(times, init, params) {
       eta_trans5 <- vac_inputs$eta_trans_dose5[index, ]
       
     } else { # if no vaccination, then fix vac rates to 0 and (1-VE) = 1
-      alpha <- 0; alpha2 <- 0; alpha3 <- 0; alpha4 <- 0                  # vaccination rate
-      delay <- 1; delay2 <- 1; delay3 <- 1; delay4 <- 1                  # delay to protection
-      eta <- 1; eta2 <- 1; eta3 <- 1; eta4 <- 1                          # 1 - VE_infection
-      eta_hosp <- 1; eta_hosp2 <- 1; eta_hosp3 <- 1; eta_hosp4 <- 1      # 1 - VE_hospitalisation
-      eta_trans <- 1; eta_trans2 <- 1; eta_trans3 <- 1; eta_trans4 <- 1  # 1 - VE_transmission
+      alpha <- 0; alpha2 <- 0; alpha3 <- 0; alpha4 <- 0; alpha5 <- 0                      # vaccination rate
+      delay <- 1; delay2 <- 1; delay3 <- 1; delay4 <- 1; delay5 <- 0                      # delay to protection
+      eta <- 1; eta2 <- 1; eta3 <- 1; eta4 <- 1; eta5 <- 1                                # 1 - VE_infection
+      eta_hosp <- 1; eta_hosp2 <- 1; eta_hosp3 <- 1; eta_hosp4 <- 1; eta_hosp5 <- 1       # 1 - VE_hospitalisation
+      eta_trans <- 1; eta_trans2 <- 1; eta_trans3 <- 1; eta_trans4 <- 1; eta_trans5 <- 1  # 1 - VE_transmission
     }
 
     # determine contact matrix based on criteria --------------------
-    ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d + Hv_3d +Hv_4d))
+    ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d + Hv_3d + Hv_4d + Hv_5d))
 
-    cases <- sum(sigma * (E + Ev_1d + Ev_2d + Ev_3d + Ev_4d) * p_report)
+    cases <- sum(sigma * (E + Ev_1d + Ev_2d + Ev_3d + Ev_4d + Ev_5d) * p_report)
     criteria <- (use_cases) * cases + (!use_cases) * ic_admin
 
     # initialize flags
@@ -179,7 +179,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     # determine force of infection ----------------------------------
     calendar_day <- ifelse(times > 365, t_calendar_start + times - 365, t_calendar_start + times)
     beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) # incorporate seasonality in transmission rate
-    lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d) + (eta_trans3 * Iv_3d) + (eta_trans4 * Iv_4d)))
+    lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d) + (eta_trans3 * Iv_3d) + (eta_trans4 * Iv_4d) + (eta_trans5 * Iv_5d)))
     lambda <- ifelse(lambda < 0, 0, lambda)
     # ---------------------------------------------------------------
 
@@ -193,54 +193,63 @@ age_struct_seir_ode2 <- function(times, init, params) {
     dShold_3d <- alpha3 * Sv_2d - (1 / delay3) * Shold_3d - eta2 * lambda * Shold_3d
     dSv_3d <- (1 / delay3) * Shold_3d - eta3 * lambda * Sv_3d - alpha4 * Sv_3d + (omega*2) * Rv_3d_1w
     dShold_4d <- alpha4 * Sv_3d - (1 / delay4) * Shold_4d - eta3 * lambda * Shold_4d
-    dSv_4d <- (1 / delay4) * Shold_4d - eta4 * lambda * Sv_4d + (omega*2) * Rv_4d_1w
+    dSv_4d <- (1 / delay4) * Shold_4d - eta4 * lambda * Sv_4d - alpha5 * Sv_4d + (omega*2) * Rv_4d_1w
+    dShold_5d <- alpha5 * Sv_4d - (1 / delay5) * Shold_5d - eta4 * lambda * Shold_5d
+    dSv_5d <- (1 / delay5) * Shold_5d - eta5 * lambda * Sv_5d + (omega*2) * Rv_5d_1w
     
     dE     <- lambda * (S + Shold_1d) - sigma * E + epsilon
     dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta2 * lambda * Sv_2d - sigma * Ev_2d
     dEv_3d <- eta3 * lambda * Sv_3d - sigma * Ev_3d
     dEv_4d <- eta4 * lambda * Sv_4d - sigma * Ev_4d
+    dEv_5d <- eta5 * lambda * Sv_5d - sigma * Ev_5d
     
     dI     <- sigma * E - (gamma + h) * I
     dIv_1d <- sigma * Ev_1d - (gamma + eta_hosp * h) * Iv_1d
     dIv_2d <- sigma * Ev_2d - (gamma + eta_hosp2 * h) * Iv_2d
     dIv_3d <- sigma * Ev_3d - (gamma + eta_hosp3 * h) * Iv_3d
     dIv_4d <- sigma * Ev_4d - (gamma + eta_hosp4 * h) * Iv_4d
+    dIv_5d <- sigma * Ev_5d - (gamma + eta_hosp5 * h) * Iv_5d
     
     dH     <- h * I - (i1 + d + r) * H
     dHv_1d <- eta_hosp * h * Iv_1d - (i1 + d + r) * Hv_1d
     dHv_2d <- eta_hosp2 * h * Iv_2d - (i1 + d + r) * Hv_2d
     dHv_3d <- eta_hosp3 * h * Iv_3d - (i1 + d + r) * Hv_3d
     dHv_4d <- eta_hosp4 * h * Iv_4d - (i1 + d + r) * Hv_4d
-  
+    dHv_5d <- eta_hosp5 * h * Iv_5d - (i1 + d + r) * Hv_5d
+    
     dIC     <- i1 * H - (i2 + d_ic) * IC
     dICv_1d <- i1 * Hv_1d - (i2 + d_ic) * ICv_1d
     dICv_2d <- i1 * Hv_2d - (i2 + d_ic) * ICv_2d
     dICv_3d <- i1 * Hv_3d - (i2 + d_ic) * ICv_3d
     dICv_4d <- i1 * Hv_4d - (i2 + d_ic) * ICv_4d
+    dICv_5d <- i1 * Hv_5d - (i2 + d_ic) * ICv_5d
     
     dH_IC     <- i2 * IC - (r_ic + d_hic) * H_IC
     dH_ICv_1d <- i2 * ICv_1d - (r_ic + d_hic) * H_ICv_1d
     dH_ICv_2d <- i2 * ICv_2d - (r_ic + d_hic) * H_ICv_2d
     dH_ICv_3d <- i2 * ICv_3d - (r_ic + d_hic) * H_ICv_3d
     dH_ICv_4d <- i2 * ICv_4d - (r_ic + d_hic) * H_ICv_4d
+    dH_ICv_5d <- i2 * ICv_5d - (r_ic + d_hic) * H_ICv_5d
     
-    dD <- d * (H + Hv_1d + Hv_2d + Hv_3d + Hv_4d) + 
-      d_ic * (IC + ICv_1d + ICv_2d + ICv_3d + ICv_4d) + 
-      d_hic * (H_IC + H_ICv_1d + H_ICv_2d + H_ICv_3d + H_ICv_4d)
+    dD <- d * (H + Hv_1d + Hv_2d + Hv_3d + Hv_4d + Hv_5d) + 
+      d_ic * (IC + ICv_1d + ICv_2d + ICv_3d + ICv_4d + ICv_5d) + 
+      d_hic * (H_IC + H_ICv_1d + H_ICv_2d + H_ICv_3d + H_ICv_4d + H_ICv_5d)
   
     dR     <- gamma * I + r * H + r_ic * H_IC - (omega*2) * R
     dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d - (omega*2) * Rv_1d
     dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d - (omega*2) * Rv_2d
     dRv_3d <- gamma * Iv_3d + r * Hv_3d + r_ic * H_ICv_3d - (omega*2) * Rv_3d
     dRv_4d <- gamma * Iv_4d + r * Hv_4d + r_ic * H_ICv_4d - (omega*2) * Rv_4d
+    dRv_5d <- gamma * Iv_5d + r * Hv_5d + r_ic * H_ICv_5d - (omega*2) * Rv_5d
     
     dR_1w     <- (omega*2) * R - (omega*2) * R_1w
     dRv_1d_1w <- (omega*2) * Rv_1d - (omega*2) * Rv_1d_1w
     dRv_2d_1w <- (omega*2) * Rv_2d - (omega*2) * Rv_2d_1w
     dRv_3d_1w <- (omega*2) * Rv_3d - (omega*2) * Rv_3d_1w
     dRv_4d_1w <- (omega*2) * Rv_4d - (omega*2) * Rv_4d_1w
-
+    dRv_5d_1w <- (omega*2) * Rv_5d - (omega*2) * Rv_5d_1w
+    
     # assign variables to global environment, so they can be used for next iteration
     assign("flag_relaxed", flag_relaxed, envir = globalenv())
     assign("flag_very_relaxed", flag_very_relaxed, envir = globalenv())
@@ -248,15 +257,15 @@ age_struct_seir_ode2 <- function(times, init, params) {
     ################################################################
     dt <- 1
     list(c(
-      dt, dS, dShold_1d, dSv_1d, dShold_2d, dSv_2d, dShold_3d, dSv_3d, dShold_4d, dSv_4d,
-      dE, dEv_1d, dEv_2d, dEv_3d, dEv_4d,
-      dI, dIv_1d, dIv_2d, dIv_3d, dIv_4d,
-      dH, dHv_1d, dHv_2d, dHv_3d, dHv_4d,
-      dIC, dICv_1d, dICv_2d, dICv_3d, dICv_4d,
-      dH_IC, dH_ICv_1d, dH_ICv_2d, dH_ICv_3d, dH_ICv_4d,
+      dt, dS, dShold_1d, dSv_1d, dShold_2d, dSv_2d, dShold_3d, dSv_3d, dShold_4d, dSv_4d, dShold_5d, dSv_5d,
+      dE, dEv_1d, dEv_2d, dEv_3d, dEv_4d, dEv_5d,
+      dI, dIv_1d, dIv_2d, dIv_3d, dIv_4d, dIv_5d,
+      dH, dHv_1d, dHv_2d, dHv_3d, dHv_4d, dHv_5d,
+      dIC, dICv_1d, dICv_2d, dICv_3d, dICv_4d, dICv_5d,
+      dH_IC, dH_ICv_1d, dH_ICv_2d, dH_ICv_3d, dH_ICv_4d, dH_ICv_5d,
       dD, 
-      dR, dRv_1d, dRv_2d, dRv_3d, dRv_4d,
-      dR_1w, dRv_1d_1w, dRv_2d_1w, dRv_3d_1w, dRv_4d_1w
+      dR, dRv_1d, dRv_2d, dRv_3d, dRv_4d, dRv_5d,
+      dR_1w, dRv_1d_1w, dRv_2d_1w, dRv_3d_1w, dRv_4d_1w, dRv_5d_1w
     ))
   })
 }
