@@ -8,7 +8,7 @@
 # Define model -----------------------------------------------------
 age_struct_seir_ode2 <- function(times, init, params) {
   with(as.list(c(params, init)), {
-    print(t)
+    # print(t)
     # define initial state vectors from input ----------------------
     # susceptible
     S <- c(S1, S2, S3, S4, S5, S6, S7, S8, S9)
@@ -96,7 +96,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     Rv_3d_1w <- c(Rv_3d_1w1, Rv_3d_1w2, Rv_3d_1w3, Rv_3d_1w4, Rv_3d_1w5, Rv_3d_1w6, Rv_3d_1w7, Rv_3d_1w8, Rv_3d_1w9)
     Rv_4d_1w <- c(Rv_4d_1w1, Rv_4d_1w2, Rv_4d_1w3, Rv_4d_1w4, Rv_4d_1w5, Rv_4d_1w6, Rv_4d_1w7, Rv_4d_1w8, Rv_4d_1w9)
     Rv_5d_1w <- c(Rv_5d_1w1, Rv_5d_1w2, Rv_5d_1w3, Rv_5d_1w4, Rv_5d_1w5, Rv_5d_1w6, Rv_5d_1w7, Rv_5d_1w8, Rv_5d_1w9)
-    
+
     # determine vaccination rate -----------------------------------
     if (!no_vac) {
       index <- floor(times) + 1
@@ -137,7 +137,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
       
     } else { # if no vaccination, then fix vac rates to 0 and (1-VE) = 1
       alpha <- 0; alpha2 <- 0; alpha3 <- 0; alpha4 <- 0; alpha5 <- 0                      # vaccination rate
-      delay <- 1; delay2 <- 1; delay3 <- 1; delay4 <- 1; delay5 <- 0                      # delay to protection
+      delay <- 1; delay2 <- 1; delay3 <- 1; delay4 <- 1; delay5 <- 1                      # delay to protection
       eta <- 1; eta2 <- 1; eta3 <- 1; eta4 <- 1; eta5 <- 1                                # 1 - VE_infection
       eta_hosp <- 1; eta_hosp2 <- 1; eta_hosp3 <- 1; eta_hosp4 <- 1; eta_hosp5 <- 1       # 1 - VE_hospitalisation
       eta_trans <- 1; eta_trans2 <- 1; eta_trans3 <- 1; eta_trans4 <- 1; eta_trans5 <- 1  # 1 - VE_transmission
