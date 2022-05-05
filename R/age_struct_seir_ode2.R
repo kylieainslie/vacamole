@@ -8,7 +8,7 @@
 # Define model -----------------------------------------------------
 age_struct_seir_ode2 <- function(times, init, params) {
   with(as.list(c(params, init)), {
-    #print(t)
+    print(t)
     # define initial state vectors from input ----------------------
     # susceptible
     S <- c(S1, S2, S3, S4, S5, S6, S7, S8, S9)
@@ -198,10 +198,10 @@ age_struct_seir_ode2 <- function(times, init, params) {
     dSv_5d <- (1 / delay5) * Shold_5d - eta5 * lambda * Sv_5d + (omega*2) * Rv_5d_1w
     
     dE     <- lambda * (S + Shold_1d) - sigma * E + epsilon
-    dEv_1d <- eta * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
-    dEv_2d <- eta2 * lambda * Sv_2d - sigma * Ev_2d
-    dEv_3d <- eta3 * lambda * Sv_3d - sigma * Ev_3d
-    dEv_4d <- eta4 * lambda * Sv_4d - sigma * Ev_4d
+    dEv_1d <- eta  * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
+    dEv_2d <- eta2 * lambda * (Sv_2d + Shold_3d) - sigma * Ev_2d
+    dEv_3d <- eta3 * lambda * (Sv_3d + Shold_4d) - sigma * Ev_3d
+    dEv_4d <- eta4 * lambda * (Sv_4d + Shold_5d) - sigma * Ev_4d
     dEv_5d <- eta5 * lambda * Sv_5d - sigma * Ev_5d
     
     dI     <- sigma * E - (gamma + h) * I
