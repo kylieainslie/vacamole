@@ -43,7 +43,7 @@ beta_draws <- list()
 daily_cases <- list()
 
 # begin loop over breakpoints --------------------------------
-for (j in 1:(n_bp-1)) {
+for (j in 1:n_bp) {
   print(j)
   # set contact matrix for time window
   if (breakpoints$contact_matrix[j] == "april_2017"){contact_matrix <- contact_matrices$april_2017
