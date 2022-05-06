@@ -188,5 +188,5 @@ names(my_df) <- names(vac_sched1)
 vac_schedule <- bind_rows(my_df, vac_sched1)
 
 # write out to directory
-saveRDS(vac_schedule,"inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv")
+saveRDS(vac_schedule,"inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.rds")
 
