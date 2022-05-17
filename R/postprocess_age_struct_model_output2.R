@@ -138,6 +138,20 @@ postprocess_age_struct_model_output2 <- function(dat) {
     select(names(dat)[str_detect(names(dat), pattern = "Rv_4d_1w[:digit:]")])
   Rv_5d_1w <- dat %>%
     select(names(dat)[str_detect(names(dat), pattern = "Rv_5d_1w[:digit:]")])
+  
+  # R_2w ------
+  R_2w <- dat %>%
+    select(names(dat)[str_detect(names(dat), pattern = "R_2w[:digit:]")])
+  Rv_1d_2w <- dat %>%
+    select(names(dat)[str_detect(names(dat), pattern = "Rv_1d_2w[:digit:]")])
+  Rv_2d_2w <- dat %>%
+    select(names(dat)[str_detect(names(dat), pattern = "Rv_2d_2w[:digit:]")])
+  Rv_3d_2w <- dat %>%
+    select(names(dat)[str_detect(names(dat), pattern = "Rv_3d_2w[:digit:]")])
+  Rv_4d_2w <- dat %>%
+    select(names(dat)[str_detect(names(dat), pattern = "Rv_4d_2w[:digit:]")])
+  Rv_5d_2w <- dat %>%
+    select(names(dat)[str_detect(names(dat), pattern = "Rv_5d_2w[:digit:]")])
 
   rtn <- list(
     S = S,
@@ -193,7 +207,13 @@ postprocess_age_struct_model_output2 <- function(dat) {
     Rv_2d_1w = Rv_2d_1w,
     Rv_3d_1w = Rv_3d_1w,
     Rv_4d_1w = Rv_4d_1w,
-    Rv_5d_1w = Rv_5d_1w
+    Rv_5d_1w = Rv_5d_1w,
+    R_2w = R_2w,
+    Rv_1d_2w = Rv_1d_2w,
+    Rv_2d_2w = Rv_2d_2w,
+    Rv_3d_2w = Rv_3d_2w,
+    Rv_4d_2w = Rv_4d_2w,
+    Rv_5d_2w = Rv_5d_2w
   )
 
   return(rtn)
