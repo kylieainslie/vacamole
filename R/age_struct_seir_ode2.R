@@ -104,6 +104,13 @@ age_struct_seir_ode2 <- function(times, init, params) {
     Rv_4d_2w <- c(Rv_4d_2w1, Rv_4d_2w2, Rv_4d_2w3, Rv_4d_2w4, Rv_4d_2w5, Rv_4d_2w6, Rv_4d_2w7, Rv_4d_2w8, Rv_4d_2w9)
     Rv_5d_2w <- c(Rv_5d_2w1, Rv_5d_2w2, Rv_5d_2w3, Rv_5d_2w4, Rv_5d_2w5, Rv_5d_2w6, Rv_5d_2w7, Rv_5d_2w8, Rv_5d_2w9)
     
+    R_3w <- c(R_3w1, R_3w2, R_3w3, R_3w4, R_3w5, R_3w6, R_3w7, R_3w8, R_3w9)
+    Rv_1d_3w <- c(Rv_1d_3w1, Rv_1d_3w2, Rv_1d_3w3, Rv_1d_3w4, Rv_1d_3w5, Rv_1d_3w6, Rv_1d_3w7, Rv_1d_3w8, Rv_1d_3w9)
+    Rv_2d_3w <- c(Rv_2d_3w1, Rv_2d_3w2, Rv_2d_3w3, Rv_2d_3w4, Rv_2d_3w5, Rv_2d_3w6, Rv_2d_3w7, Rv_2d_3w8, Rv_2d_3w9)
+    Rv_3d_3w <- c(Rv_3d_3w1, Rv_3d_3w2, Rv_3d_3w3, Rv_3d_3w4, Rv_3d_3w5, Rv_3d_3w6, Rv_3d_3w7, Rv_3d_3w8, Rv_3d_3w9)
+    Rv_4d_3w <- c(Rv_4d_3w1, Rv_4d_3w2, Rv_4d_3w3, Rv_4d_3w4, Rv_4d_3w5, Rv_4d_3w6, Rv_4d_3w7, Rv_4d_3w8, Rv_4d_3w9)
+    Rv_5d_3w <- c(Rv_5d_3w1, Rv_5d_3w2, Rv_5d_3w3, Rv_5d_3w4, Rv_5d_3w5, Rv_5d_3w6, Rv_5d_3w7, Rv_5d_3w8, Rv_5d_3w9)
+    
     # determine vaccination rate -----------------------------------
     if (!no_vac) {
       index <- floor(times) + 1
@@ -192,17 +199,17 @@ age_struct_seir_ode2 <- function(times, init, params) {
 
     ################################################################
     # ODEs:
-    dS <- -lambda * S - alpha * S + (omega*3) * R_2w
+    dS <- -lambda * S - alpha * S + (omega*4) * R_3w
     dShold_1d <- alpha * S - (1 / delay) * Shold_1d - lambda * Shold_1d
-    dSv_1d <- (1 / delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d + (omega*3) * Rv_1d_2w
+    dSv_1d <- (1 / delay) * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d + (omega*4) * Rv_1d_3w
     dShold_2d <- alpha2 * Sv_1d - (1 / delay2) * Shold_2d - eta * lambda * Shold_2d
-    dSv_2d <- (1 / delay2) * Shold_2d - eta2 * lambda * Sv_2d - alpha3 * Sv_2d + (omega*3) * Rv_2d_2w
+    dSv_2d <- (1 / delay2) * Shold_2d - eta2 * lambda * Sv_2d - alpha3 * Sv_2d + (omega*4) * Rv_2d_3w
     dShold_3d <- alpha3 * Sv_2d - (1 / delay3) * Shold_3d - eta2 * lambda * Shold_3d
-    dSv_3d <- (1 / delay3) * Shold_3d - eta3 * lambda * Sv_3d - alpha4 * Sv_3d + (omega*3) * Rv_3d_2w
+    dSv_3d <- (1 / delay3) * Shold_3d - eta3 * lambda * Sv_3d - alpha4 * Sv_3d + (omega*4) * Rv_3d_3w
     dShold_4d <- alpha4 * Sv_3d - (1 / delay4) * Shold_4d - eta3 * lambda * Shold_4d
-    dSv_4d <- (1 / delay4) * Shold_4d - eta4 * lambda * Sv_4d - alpha5 * Sv_4d + (omega*3) * Rv_4d_2w
+    dSv_4d <- (1 / delay4) * Shold_4d - eta4 * lambda * Sv_4d - alpha5 * Sv_4d + (omega*4) * Rv_4d_3w
     dShold_5d <- alpha5 * Sv_4d - (1 / delay5) * Shold_5d - eta4 * lambda * Shold_5d
-    dSv_5d <- (1 / delay5) * Shold_5d - eta5 * lambda * Sv_5d + (omega*3) * Rv_5d_2w
+    dSv_5d <- (1 / delay5) * Shold_5d - eta5 * lambda * Sv_5d + (omega*4) * Rv_5d_3w
     
     dE     <- lambda * (S + Shold_1d) - sigma * E + epsilon
     dEv_1d <- eta  * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
@@ -243,26 +250,33 @@ age_struct_seir_ode2 <- function(times, init, params) {
       d_ic * (IC + ICv_1d + ICv_2d + ICv_3d + ICv_4d + ICv_5d) + 
       d_hic * (H_IC + H_ICv_1d + H_ICv_2d + H_ICv_3d + H_ICv_4d + H_ICv_5d)
   
-    dR     <- gamma * I + r * H + r_ic * H_IC - (omega*3) * R
-    dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d - (omega*3) * Rv_1d
-    dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d - (omega*3) * Rv_2d
-    dRv_3d <- gamma * Iv_3d + r * Hv_3d + r_ic * H_ICv_3d - (omega*3) * Rv_3d
-    dRv_4d <- gamma * Iv_4d + r * Hv_4d + r_ic * H_ICv_4d - (omega*3) * Rv_4d
-    dRv_5d <- gamma * Iv_5d + r * Hv_5d + r_ic * H_ICv_5d - (omega*3) * Rv_5d
+    dR     <- gamma * I + r * H + r_ic * H_IC - (omega*4) * R
+    dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d - (omega*4) * Rv_1d
+    dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d - (omega*4) * Rv_2d
+    dRv_3d <- gamma * Iv_3d + r * Hv_3d + r_ic * H_ICv_3d - (omega*4) * Rv_3d
+    dRv_4d <- gamma * Iv_4d + r * Hv_4d + r_ic * H_ICv_4d - (omega*4) * Rv_4d
+    dRv_5d <- gamma * Iv_5d + r * Hv_5d + r_ic * H_ICv_5d - (omega*4) * Rv_5d
     
-    dR_1w     <- (omega*3) * R - (omega*3) * R_1w
-    dRv_1d_1w <- (omega*3) * Rv_1d - (omega*3) * Rv_1d_1w
-    dRv_2d_1w <- (omega*3) * Rv_2d - (omega*3) * Rv_2d_1w
-    dRv_3d_1w <- (omega*3) * Rv_3d - (omega*3) * Rv_3d_1w
-    dRv_4d_1w <- (omega*3) * Rv_4d - (omega*3) * Rv_4d_1w
-    dRv_5d_1w <- (omega*3) * Rv_5d - (omega*3) * Rv_5d_1w
+    dR_1w     <- (omega*4) * R - (omega*4) * R_1w
+    dRv_1d_1w <- (omega*4) * Rv_1d - (omega*4) * Rv_1d_1w
+    dRv_2d_1w <- (omega*4) * Rv_2d - (omega*4) * Rv_2d_1w
+    dRv_3d_1w <- (omega*4) * Rv_3d - (omega*4) * Rv_3d_1w
+    dRv_4d_1w <- (omega*4) * Rv_4d - (omega*4) * Rv_4d_1w
+    dRv_5d_1w <- (omega*4) * Rv_5d - (omega*4) * Rv_5d_1w
     
-    dR_2w     <- (omega*3) * R_1w - (omega*3) * R_2w
-    dRv_1d_2w <- (omega*3) * Rv_1d_1w - (omega*3) * Rv_1d_2w
-    dRv_2d_2w <- (omega*3) * Rv_2d_1w - (omega*3) * Rv_2d_2w
-    dRv_3d_2w <- (omega*3) * Rv_3d_1w - (omega*3) * Rv_3d_2w
-    dRv_4d_2w <- (omega*3) * Rv_4d_1w - (omega*3) * Rv_4d_2w
-    dRv_5d_2w <- (omega*3) * Rv_5d_1w - (omega*3) * Rv_5d_2w
+    dR_2w     <- (omega*4) * R_1w - (omega*4) * R_2w
+    dRv_1d_2w <- (omega*4) * Rv_1d_1w - (omega*4) * Rv_1d_2w
+    dRv_2d_2w <- (omega*4) * Rv_2d_1w - (omega*4) * Rv_2d_2w
+    dRv_3d_2w <- (omega*4) * Rv_3d_1w - (omega*4) * Rv_3d_2w
+    dRv_4d_2w <- (omega*4) * Rv_4d_1w - (omega*4) * Rv_4d_2w
+    dRv_5d_2w <- (omega*4) * Rv_5d_1w - (omega*4) * Rv_5d_2w
+    
+    dR_3w     <- (omega*4) * R_2w - (omega*4) * R_3w
+    dRv_1d_3w <- (omega*4) * Rv_1d_2w - (omega*4) * Rv_1d_3w
+    dRv_2d_3w <- (omega*4) * Rv_2d_2w - (omega*4) * Rv_2d_3w
+    dRv_3d_3w <- (omega*4) * Rv_3d_2w - (omega*4) * Rv_3d_3w
+    dRv_4d_3w <- (omega*4) * Rv_4d_2w - (omega*4) * Rv_4d_3w
+    dRv_5d_3w <- (omega*4) * Rv_5d_2w - (omega*4) * Rv_5d_3w
     
     # assign variables to global environment, so they can be used for next iteration
     assign("flag_relaxed", flag_relaxed, envir = globalenv())
@@ -280,7 +294,8 @@ age_struct_seir_ode2 <- function(times, init, params) {
       dD, 
       dR, dRv_1d, dRv_2d, dRv_3d, dRv_4d, dRv_5d,
       dR_1w, dRv_1d_1w, dRv_2d_1w, dRv_3d_1w, dRv_4d_1w, dRv_5d_1w,
-      dR_2w, dRv_1d_2w, dRv_2d_2w, dRv_3d_2w, dRv_4d_2w, dRv_5d_2w
+      dR_2w, dRv_1d_2w, dRv_2d_2w, dRv_3d_2w, dRv_4d_2w, dRv_5d_2w,
+      dR_3w, dRv_1d_3w, dRv_2d_3w, dRv_3d_3w, dRv_4d_3w, dRv_5d_3w
     ))
   })
 }
