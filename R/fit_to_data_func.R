@@ -44,7 +44,9 @@ daily_cases <- list()
 
 # begin loop over breakpoints --------------------------------
 for (j in 1:n_bp) {
-  print(j)
+  
+  print(paste("Fitting from", breakpoints$date[j], "to", breakpoints$date[j+1]))
+  
   # set contact matrix for time window
   if (breakpoints$contact_matrix[j] == "april_2017"){contact_matrix <- contact_matrices$april_2017
   } else if (breakpoints$contact_matrix[j] == "april_2020"){contact_matrix <- contact_matrices$april_2020
