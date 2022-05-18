@@ -70,7 +70,8 @@ ve_params <- readRDS("inst/extdata/inputs/ve_params.rds")
 
 # vaccination schedule ----------------------------------------------
 # read in vaccination schedule
-vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv") 
+vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv") %>%
+  select(-X1)
 
 # convert vaccination schedule for input into model
 vac_rates_wt <- convert_vac_schedule2(
@@ -119,7 +120,7 @@ params <- list(beta = 0.0004,
                gamma = 0.5,
                sigma = 0.5,
                epsilon = 0.01,
-               omega = 0.0016,
+               omega = 0.0038,
                N = n_vec,
                h = transition_rates$h,
                i1 = transition_rates$i1,
@@ -134,7 +135,7 @@ params <- list(beta = 0.0004,
                keep_cm_fixed = TRUE,
                vac_inputs = vac_rates_wt,
                use_cases = TRUE,  
-               no_vac = TRUE,
+               no_vac = FALSE,
                t_calendar_start = yday(as.Date("2020-01-01")), 
                beta_change = NULL 
               )
@@ -197,7 +198,19 @@ init <- c(
   Rv_2d_1w = empty_state, 
   Rv_3d_1w = empty_state, 
   Rv_4d_1w = empty_state, 
-  Rv_5d_1w = empty_state
+  Rv_5d_1w = empty_state,
+  R_2w = empty_state, 
+  Rv_1d_2w = empty_state, 
+  Rv_2d_2w = empty_state, 
+  Rv_3d_2w = empty_state, 
+  Rv_4d_2w = empty_state, 
+  Rv_5d_2w = empty_state,
+  R_3w = empty_state, 
+  Rv_1d_3w = empty_state, 
+  Rv_2d_3w = empty_state, 
+  Rv_3d_3w = empty_state, 
+  Rv_4d_3w = empty_state, 
+  Rv_5d_3w = empty_state
 )
 
 
@@ -209,7 +222,7 @@ breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.csv")
   select(date, time, variant, contact_matrix)
 
 # run fit procedure
-fits <- fit_to_data_func(breakpoints = breakpoints[1:3,], params = params, init = init, 
+fits <- fit_to_data_func(breakpoints = breakpoints, params = params, init = init, 
                  case_data = osiris1, contact_matrices = cm_list,
                  vac_info = vac_rates_list, est_omega = FALSE,
                  save_output_to_file = FALSE, path_out = NULL)
