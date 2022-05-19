@@ -36,7 +36,7 @@ likelihood_func2 <- function(x,
     seir_out <- lsoda(init, t, age_struct_seir_ode2, params) #
     seir_out <- as.data.frame(seir_out)
     out <- postprocess_age_struct_model_output2(seir_out)
-    daily_cases <- (params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d + out$Ev_3d)) * params$p_report
+    daily_cases <- (params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d + out$Ev_3d + out$Ev_4d + out$Ev_5d)) * params$p_report
     daily_cases <- ifelse(daily_cases == 0, 0.0001, daily_cases) # prevent likelihood function function from being Inf
   }
 
@@ -44,7 +44,7 @@ likelihood_func2 <- function(x,
 
   # lik <- sum(dpois(x = inc_obs,lambda = incidence,log=TRUE))
   alpha <- x[2]
-  size <- daily_cases * (alpha / (1 - alpha))
-  lik <- -sum(stats::dnbinom(x = inc_obs, mu = daily_cases, size = size, log = TRUE))
+  #size <- daily_cases * (alpha / (1 - alpha))
+  lik <- -sum(stats::dnbinom(x = inc_obs, mu = daily_cases, size = alpha, log = TRUE))
   lik
 }
