@@ -2,8 +2,9 @@
 #' @param breakpoints
 #' @param params
 #' @param init
+#' @param fit_pars
 #' @param case_data
-#' @paramcontact_matrices
+#' @param contact_matrices
 #' @param vac_info
 #' @param save_output_to_file
 #' @param path_out
@@ -17,7 +18,8 @@
 #' @export
 fit_to_data_func <- function(breakpoints, 
                              params, 
-                             init, 
+                             init,
+                             fit_pars,
                              case_data,
                              contact_matrices,
                              vac_info,
@@ -70,8 +72,9 @@ for (j in 1:n_bp) {
   # update initial conditions based on last time window
   if (j == 1) {
     init_update <- init
-    if(est_omega){pars <- c(2.3, 0.01, 0.0027)
-    } else{pars <- c(2.3, 0.01)}
+    pars <- fit_pars$init_value
+    # if(est_omega){pars <- c(2.3, 0.01, 0.0027)
+    # } else{pars <- c(2.3, 0.01)}
     S_diag <- diag(init_update[c(2:10)])
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   } else {
@@ -87,19 +90,19 @@ for (j in 1:n_bp) {
   case_data_sub <- case_data[times + 1, ]
   
   # optimize
-  if(est_omega){
-    lower_bound <- c(0,0.005,0)
-    upper_bound <-  c(10,1,6)
-  } else{
-    lower_bound <- c(0,0.005)
-    upper_bound <-  c(10,1)
-  }
+  # if(est_omega){
+  #   lower_bound <- c(0,0.005,0)
+  #   upper_bound <-  c(10,Inf,6)
+  # } else{
+  #   lower_bound <- c(0,0.005)
+  #   upper_bound <-  c(10,Inf)
+  # }
   
   res <- optim(par = pars, 
                fn = likelihood_func2,
                method = "L-BFGS-B",
-               lower = lower_bound,
-               upper = upper_bound,
+               lower = fit_pars$lower_bound,
+               upper = fit_pars$upper_bound,
                t = times,
                data = case_data_sub,
                params = params,
@@ -114,7 +117,7 @@ for (j in 1:n_bp) {
   mles[j,2] <- res$par[2]
   if(est_omega){mles[j,3] <- res$par[3]}
   
-  print(res$par)
+  print(mles)
   # draw 200 parameter values
   parameter_draws[[j]] <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
   beta_draws[[j]] <- data.frame(beta = (parameter_draws[[j]][,1] / rho) * params$gamma) %>%
@@ -126,7 +129,8 @@ for (j in 1:n_bp) {
   seir_out <- lsoda(init_update, times, age_struct_seir_ode2, params)
   seir_out <- as.data.frame(seir_out)
   out_mle[[j]] <- postprocess_age_struct_model_output2(seir_out)
-  daily_cases[[j]] <- params$sigma * rowSums(out_mle[[j]]$E + out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d + out_mle[[j]]$Ev_3d) * params$p_report
+  daily_cases[[j]] <- params$sigma * rowSums(out_mle[[j]]$E + out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d + out_mle[[j]]$Ev_3d +
+                                               out_mle[[j]]$Ev_4d + out_mle[[j]]$Ev_5d) * params$p_report
   
   # plot for quick check of fit
   plot(daily_cases[[j]]~times, type = "l")
