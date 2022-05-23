@@ -1,4 +1,4 @@
-#' Age-structured SEIR ODE model of vaccination with 2 dose primary series with 2 booster doses (3rd and 4th doses)
+#' Age-structured SEIR ODE model of vaccination with 2 dose primary series with 3 booster doses (3rd, 4th, and 5th doses)
 #' @param times vector of times
 #' @param init list of initial states
 #' @param params list of parameter values
@@ -211,6 +211,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) # incorporate seasonality in transmission rate
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d) + (eta_trans3 * Iv_3d) + (eta_trans4 * Iv_4d) + (eta_trans5 * Iv_5d)))
     lambda <- ifelse(lambda < 0, 0, lambda)
+    #print(beta_t)
     # ---------------------------------------------------------------
 
     ################################################################
@@ -227,7 +228,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     dShold_5d <- alpha5 * Sv_4d - (1 / delay5) * Shold_5d - eta4 * lambda * Shold_5d
     dSv_5d <- (1 / delay5) * Shold_5d - eta5 * lambda * Sv_5d + (omega*4) * Rv_5d_3w
     
-    dE     <- lambda * (S + Shold_1d) - sigma * E + epsilon
+    dE     <- lambda * (S + Shold_1d) - sigma * E #+ epsilon (removing case importation rate)
     dEv_1d <- eta  * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta2 * lambda * (Sv_2d + Shold_3d) - sigma * Ev_2d
     dEv_3d <- eta3 * lambda * (Sv_3d + Shold_4d) - sigma * Ev_3d
