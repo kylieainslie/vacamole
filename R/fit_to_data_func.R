@@ -23,7 +23,6 @@ fit_to_data_func <- function(breakpoints,
                              case_data,
                              contact_matrices,
                              vac_info,
-                             est_omega = FALSE,
                              save_output_to_file = TRUE,
                              path_out = NULL,
                              ...
@@ -32,17 +31,15 @@ fit_to_data_func <- function(breakpoints,
 
 # create empty lists for storage ----------------------------
 n_bp <- length(breakpoints$date)-1
-if(est_omega){
-  mles <- matrix(rep(NA, 3*n_bp), nrow = n_bp)
-  colnames(mles) <- c("beta", "alpha", "omega")
-} else{
-  mles <- matrix(rep(NA, 2*n_bp), nrow = n_bp)
-  colnames(mles) <- c("beta", "alpha")
-}
+mles <- matrix(rep(NA, 2*n_bp), nrow = n_bp)
+colnames(mles) <- c("beta", "alpha")
+
 out_mle <- list()
 parameter_draws <- list()
 beta_draws <- list()
 daily_cases <- list()
+susceptibles <- list()
+recovered <- list()
 
 # begin loop over breakpoints --------------------------------
 for (j in 1:n_bp) {
@@ -80,8 +77,7 @@ for (j in 1:n_bp) {
   } else {
     init_update <- c(t = times[1], unlist(lapply(unname(out_mle[[j-1]]), tail,1)))
     beta_est <- (mles[j-1,1]/params$gamma)*rho
-    if(est_omega){pars <- c(beta_est, mles[j-1,2], mles[j-1,3]/100)
-    } else {pars <- c(beta_est, mles[j-1,-1])}
+    pars <- c(beta_est, fit_pars$init_value[2]) # mles[j-1,-1]
     S_diag <- diag(init_update[c(2:10)])
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   }
@@ -108,16 +104,14 @@ for (j in 1:n_bp) {
                params = params,
                init = init_update,
                stochastic = FALSE,
-               est_omega = est_omega,
                hessian = TRUE
   )
   
   # store MLE
   mles[j,1] <- (res$par[1] / rho) * params$gamma
   mles[j,2] <- res$par[2]
-  if(est_omega){mles[j,3] <- res$par[3]}
   
-  print(mles)
+  print(mles[j,])
   # draw 200 parameter values
   parameter_draws[[j]] <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
   beta_draws[[j]] <- data.frame(beta = (parameter_draws[[j]][,1] / rho) * params$gamma) %>%
@@ -125,12 +119,16 @@ for (j in 1:n_bp) {
 # --------------------------------------------------
   # run for mle to get initial conditions for next timepoint
   params$beta <- mles[j,1]
-  if(est_omega){params$omega <- mles[j,3]}
+
   seir_out <- lsoda(init_update, times, age_struct_seir_ode2, params)
   seir_out <- as.data.frame(seir_out)
+  
+  # store outputs
   out_mle[[j]] <- postprocess_age_struct_model_output2(seir_out)
   daily_cases[[j]] <- params$sigma * rowSums(out_mle[[j]]$E + out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d + out_mle[[j]]$Ev_3d +
                                                out_mle[[j]]$Ev_4d + out_mle[[j]]$Ev_5d) * params$p_report
+  susceptibles[[j]] <- rowSums(out_mle[[j]]$S)
+  recovered[[j]] <- rowSums(out_mle[[j]]$R + out_mle[[j]]$R_1w + out_mle[[j]]$R_2w + out_mle[[j]]$R_3w)
   
   # plot for quick check of fit
   plot(daily_cases[[j]]~times, type = "l")
@@ -154,6 +152,8 @@ for (j in 1:n_bp) {
               )
   return(rtn)
 } # end of function
+
+
 # ----------------------------------------------------
 # run simulations for mle, lower, and upper bounds 
 # of beta

@@ -120,7 +120,7 @@ params <- list(beta = 0.0004,
                gamma = 0.5,
                sigma = 0.5,
                epsilon = 0.01,
-               omega = 0.0038,
+               omega = 0.0001,
                N = n_vec,
                h = transition_rates$h,
                i1 = transition_rates$i1,
@@ -221,16 +221,23 @@ breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.csv")
          time = as.numeric(date - date[1])) %>%
   select(date, time, variant, contact_matrix)
 
+# specify initial value and bounds for fitted parameters
+fit_params <- list(
+  init_value = c(2.3, 1),
+  lower_bound = c(0.0001, 0.0001),
+  upper_bound = c(Inf, Inf)
+)
 # run fit procedure
-fits <- fit_to_data_func(breakpoints = breakpoints, params = params, init = init, 
-                 case_data = osiris1, contact_matrices = cm_list,
-                 vac_info = vac_rates_list, est_omega = FALSE,
-                 save_output_to_file = FALSE, path_out = NULL)
+fits <- fit_to_data_func(breakpoints = breakpoints[1:25,], params = params, 
+                         init = init, fit_pars = fit_params,
+                         case_data = osiris1, contact_matrices = cm_list,
+                         vac_info = vac_rates_list, est_omega = FALSE,
+                         save_output_to_file = FALSE, path_out = NULL)
 
 # Run forward simulations --------------------------------------------
 times <- seq(0,75, by = 1)
 seir_out <- lsoda(init, times, age_struct_seir_ode2, params)
 seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output2(seir_out)
-cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d + out$Ev_3d) * params$p_report
+cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d + out$Ev_3d + out$Ev_4d + out$Ev_5d) * params$p_report
 plot(cases ~ times, type = "l")

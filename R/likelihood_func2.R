@@ -18,14 +18,13 @@ likelihood_func2 <- function(x,
                             data,
                             params,
                             init,
-                            est_omega = FALSE,
                             stochastic = FALSE) {
  
   r0 <- x[1]
   S_diag <- diag(init[c(2:10)])
   rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   params$beta <- (r0 / rho) * params$gamma
-  if(est_omega){params$omega <- x[3]/100}
+  #if(est_omega){params$omega <- x[3]/100}
 
   if (stochastic) {
     seir_out <- stochastic_age_struct_seir_ode(times = t, init = init, params = params)
@@ -46,5 +45,9 @@ likelihood_func2 <- function(x,
   alpha <- x[2]
   #size <- daily_cases * (alpha / (1 - alpha))
   lik <- -sum(stats::dnbinom(x = inc_obs, mu = daily_cases, size = alpha, log = TRUE))
+  
+  print(x)
+  print(lik)
+  
   lik
 }
