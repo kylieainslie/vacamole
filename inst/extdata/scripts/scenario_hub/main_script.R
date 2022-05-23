@@ -120,7 +120,7 @@ params <- list(beta = 0.0004,
                gamma = 0.5,
                sigma = 0.5,
                epsilon = 0.01,
-               omega = 0.0001,
+               omega = 0.0038,
                N = n_vec,
                h = transition_rates$h,
                i1 = transition_rates$i1,
@@ -217,7 +217,7 @@ init <- c(
 # Model fit ---------------------------------------------------------
 # read in csv with breakpoints
 breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.csv") %>%
-  mutate(date = as.Date(date, format = "%d/%m/%Y"),
+  mutate(date = as.Date(date, format = "%d-%m-%Y"),
          time = as.numeric(date - date[1])) %>%
   select(date, time, variant, contact_matrix)
 
@@ -228,11 +228,19 @@ fit_params <- list(
   upper_bound = c(Inf, Inf)
 )
 # run fit procedure
-fits <- fit_to_data_func(breakpoints = breakpoints[1:25,], params = params, 
+fits <- fit_to_data_func(breakpoints = breakpoints[1:17,], params = params, 
                          init = init, fit_pars = fit_params,
                          case_data = osiris1, contact_matrices = cm_list,
-                         vac_info = vac_rates_list, est_omega = FALSE,
+                         vac_info = vac_rates_list,
                          save_output_to_file = FALSE, path_out = NULL)
+
+# plot S and R as a check
+s_comp <- unique(unlist(susceptibles))
+r_comp <- unique(unlist(recovered))
+t_all <- seq(0,breakpoints$time[25], by = 1)
+
+plot(s_comp[1:450]~t_all[1:450], type = "l")
+lines(r_comp~t_all, col = "blue")
 
 # Run forward simulations --------------------------------------------
 times <- seq(0,75, by = 1)
