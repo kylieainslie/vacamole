@@ -85,15 +85,6 @@ for (j in 1:n_bp) {
   # subset data for time window
   case_data_sub <- case_data[times + 1, ]
   
-  # optimize
-  # if(est_omega){
-  #   lower_bound <- c(0,0.005,0)
-  #   upper_bound <-  c(10,Inf,6)
-  # } else{
-  #   lower_bound <- c(0,0.005)
-  #   upper_bound <-  c(10,Inf)
-  # }
-  
   res <- optim(par = pars, 
                fn = likelihood_func2,
                method = "L-BFGS-B",
@@ -145,10 +136,12 @@ for (j in 1:n_bp) {
     names(out_mle) <- paste0("end_date_", breakpoints$date) # name list elements for easier indexing
     saveRDS(out_mle, file = paste0(path_out, "output_from_fits_", todays_date, ".rds"))
   }
-  rtn <- list(cases = unlist(daily_cases),
+  rtn <- list(cases = unique(unlist(daily_cases)),
               ml_est = mles,
               beta_draws = beta_draws,
-              out_mle = out_mle
+              out_mle = out_mle,
+              susceptibles = unique(unlist(susceptibles)),
+              recovered = unique(unlist(recovered))
               )
   return(rtn)
 } # end of function
