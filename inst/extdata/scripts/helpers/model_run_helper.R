@@ -129,8 +129,8 @@ ve_inf_list <- list(
     jansen = c(0.5, 0.5)
   ),
   omicron = list( # from https://www.medrxiv.org/content/10.1101/2022.02.06.22270457v2
-    pfizer = c(0, 0.33, 0.68), 
-    moderna = c(0, 0.33, 0.68), 
+    pfizer = c(0, 0.33, 0.68, 0.65, 0.65),  # Grewal et al. 2022 (4th dose) - assuming same for 5th dose
+    moderna = c(0, 0.33, 0.68, 0.65, 0.65), # Grewal et al. 2022 (4th dose) - assuming same for 5th dose
     astrazeneca = c(0, 0.33), 
     jansen = c(0, 0.33)
   )
@@ -138,7 +138,7 @@ ve_inf_list <- list(
 
 
 ve_trans_list <- list(
-  wildtype = list(  # same as alpha !!!
+  wildtype = list( # same as alpha !!!
     pfizer = c(0.26, 0.70),      
     moderna = c(0.51, 0.88),     
     astrazeneca = c(0.15, 0.58),
@@ -156,11 +156,11 @@ ve_trans_list <- list(
     astrazeneca = c(0, 0.25),
     jansen = c(0.42) 
   ),
-  omicron = list( # same as Delta for now
-    pfizer = c(0.46, 0.52),      
-    moderna = c(0.66, 0.24),     
+  omicron = list( # MADE-UP VALUES
+    pfizer = c(0.25, 0.33, 0.4, 0.4, 0.4),      
+    moderna = c(0.25, 0.33, 0.4, 0.4, 0.4),     
     astrazeneca = c(0, 0.25),
-    jansen = c(0.42) 
+    jansen = c(0.25, 0.33) 
   )
 )
 
@@ -181,12 +181,12 @@ ve_hosp_list <- list(
   delta = list(
    pfizer = c(0.89, 0.96, 0.98),      # from Brechje (pre-print)
    moderna = c(0.95, 0.85, 0.98),     # from Brechje (pre-print)
-   astrazeneca = c(0.88, 0.94), # from Brechje (pre-print)
-   jansen = c(0.92)             # from Brechje (pre-print)
+   astrazeneca = c(0.88, 0.94),       # from Brechje (pre-print)
+   jansen = c(0.92)                   # from Brechje (pre-print)
   ),
   omicron = list( # from https://www.rivm.nl/documenten/effectiviteit-van-covid-19-vaccinatie-tegen-ziekenhuis-en-intensive-care-opname-in-8
-    pfizer = c(0, 0.56, 0.88),
-    moderna = c(0, 0.49, 0.82),
+    pfizer = c(0, 0.56, 0.88, 0.92, 0.92),   # Grewal et al. 2022 (4th dose) - assuming same for 5th dose
+    moderna = c(0, 0.49, 0.82, 0.92, 0.92),  # Grewal et al. 2022 (4th dose) - assuming same for 5th dose
     astrazeneca = c(0, 0.39),
     jansen = c(0.73, 0.73)
   )
@@ -226,7 +226,8 @@ vac_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/manuscripts/impact_va
 #   select(-starts_with("X"))
 
 vac_sched <- read_csv("inst/extdata/inputs/vac_schedule_real_w_booster.csv") %>%
-  rename_with(~ gsub("B", "d3", .x, fixed = TRUE)) %>%
+  rename_with(~ gsub("B1", "d3", .x, fixed = TRUE)) %>%
+  rename_with(~ gsub("B2", "d4", .x, fixed = TRUE)) %>%
   select(-starts_with("X"))
 
 basis1 <- convert_vac_schedule(
