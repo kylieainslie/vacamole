@@ -119,7 +119,7 @@ params <- list(beta = 0.0004,
                beta1 = 0.14,
                gamma = 0.5,
                sigma = 0.5,
-               epsilon = 0.01,
+               epsilon = 0.0,
                omega = 0.0038,
                N = n_vec,
                h = transition_rates$h,
@@ -137,7 +137,8 @@ params <- list(beta = 0.0004,
                use_cases = TRUE,  
                no_vac = FALSE,
                t_calendar_start = yday(as.Date("2020-01-01")), 
-               beta_change = NULL 
+               beta_change = 0.0001,
+               t_beta_change = 165
               )
 
 # Specify initial conditions --------------------------------------
@@ -216,7 +217,7 @@ init <- c(
 
 # Model fit ---------------------------------------------------------
 # read in csv with breakpoints
-breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.csv") %>%
+df_breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.csv") %>%
   mutate(date = as.Date(date, format = "%d-%m-%Y"),
          time = as.numeric(date - date[1])) %>%
   select(date, time, variant, contact_matrix)
@@ -228,7 +229,9 @@ fit_params <- list(
   upper_bound = c(Inf, Inf)
 )
 # run fit procedure
-fits <- fit_to_data_func(breakpoints = breakpoints[1:17,], params = params, 
+breakpoint_sub <- df_breakpoints[1:7,]
+
+fits <- fit_to_data_func(breakpoints = breakpoint_sub, params = params, 
                          init = init, fit_pars = fit_params,
                          case_data = osiris1, contact_matrices = cm_list,
                          vac_info = vac_rates_list,
@@ -237,15 +240,42 @@ fits <- fit_to_data_func(breakpoints = breakpoints[1:17,], params = params,
 # plot S and R as a check
 s_comp <- unique(unlist(susceptibles))
 r_comp <- unique(unlist(recovered))
-t_all <- seq(0,breakpoints$time[25], by = 1)
+r_comp1 <-unique(unlist(recovered1))
+r_comp2 <- unique(unlist(recovered2))
+t_all <- seq(0,breakpoint_sub$time[length(breakpoint_sub$time)], by = 1)
 
-plot(s_comp[1:450]~t_all[1:450], type = "l")
-lines(r_comp~t_all, col = "blue")
-
+plot(s_comp~t_all, type = "l", ylim = c(0, s_comp[1]))
+plot(r_comp ~ t_all, type = "l", col = "green")
+lines(r_comp1[1:190]~t_all[1:190], col = "blue")
+lines(r_comp2[1:190]~t_all[1:190], col = "red")
+abline(h = sum(params$N), lty = "dashed")
+abline(v = 152, lty = "dotted")
 # Run forward simulations --------------------------------------------
-times <- seq(0,75, by = 1)
+times <- seq(0,250, by = 1)
+
 seir_out <- lsoda(init, times, age_struct_seir_ode2, params)
 seir_out <- as.data.frame(seir_out)
 out <- postprocess_age_struct_model_output2(seir_out)
-cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d + out$Ev_3d + out$Ev_4d + out$Ev_5d) * params$p_report
-plot(cases ~ times, type = "l")
+
+susceptibles <- rowSums(out$S)
+exposed <- rowSums(out$E)
+infected <- rowSums(out$I)
+hospitalised <- rowSums(out$H)
+ic <- rowSums(out$IC)
+hosp_after_ic <- rowSums(out$H_IC)
+deaths <- rowSums(out$D)
+recovered <- rowSums(out$R) + rowSums(out$R_1w) + rowSums(out$R_2w) + rowSums(out$R_3w) 
+#cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d + out$Ev_3d + out$Ev_4d + out$Ev_5d) * params$p_report
+
+plot(susceptibles ~ times, type = "l") #, ylim = c(0, sum(params$N))
+abline(h = sum(params$N), lty = "dashed")
+
+plot(recovered ~ times, type = "l", col = "blue", ylim = c(0,max(recovered)))
+lines(exposed ~ times, col = "green")
+lines(infected ~ times, col = "red")
+# lines(hospitalised ~ times, col = "orange")
+# lines(ic ~ times, col = "pink")
+# lines(hosp_after_ic ~ times, col = "purple")
+
+plot((susceptibles + exposed + infected + recovered +
+         hospitalised + ic + hosp_after_ic) ~ times, type = "l", lty = "dashed")

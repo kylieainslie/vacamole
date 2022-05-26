@@ -46,8 +46,8 @@ likelihood_func2 <- function(x,
   #size <- daily_cases * (alpha / (1 - alpha))
   lik <- -sum(stats::dnbinom(x = inc_obs, mu = daily_cases, size = alpha, log = TRUE))
   
-  print(x)
-  print(lik)
+  #print(x)
+  #print(lik)
   
   lik
 }

@@ -8,7 +8,7 @@
 # Define model -----------------------------------------------------
 age_struct_seir_ode2 <- function(times, init, params) {
   with(as.list(c(params, init)), {
-    # print(t)
+    print(t)
     # define initial state vectors from input ----------------------
     # susceptible
     S <- c(S1, S2, S3, S4, S5, S6, S7, S8, S9)
@@ -202,7 +202,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     flag_very_relaxed <- tmp2$flag_very_relaxed
     flag_normal <- tmp2$flag_normal
 
-    if (flag_normal > 0 & !is.null(beta_change)) {
+    if ((flag_normal > 0 || t > t_beta_change) & !is.null(beta_change)) {
       beta <- beta_change
     }
 
@@ -211,7 +211,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) # incorporate seasonality in transmission rate
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d) + (eta_trans3 * Iv_3d) + (eta_trans4 * Iv_4d) + (eta_trans5 * Iv_5d)))
     lambda <- ifelse(lambda < 0, 0, lambda)
-    #print(beta_t)
+    print(beta_t)
     # ---------------------------------------------------------------
 
     ################################################################
@@ -228,7 +228,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     dShold_5d <- alpha5 * Sv_4d - (1 / delay5) * Shold_5d - eta4 * lambda * Shold_5d
     dSv_5d <- (1 / delay5) * Shold_5d - eta5 * lambda * Sv_5d + (omega*4) * Rv_5d_3w
     
-    dE     <- lambda * (S + Shold_1d) - sigma * E #+ epsilon (removing case importation rate)
+    dE     <- lambda * (S + Shold_1d) - sigma * E + epsilon #(removing case importation rate)
     dEv_1d <- eta  * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta2 * lambda * (Sv_2d + Shold_3d) - sigma * Ev_2d
     dEv_3d <- eta3 * lambda * (Sv_3d + Shold_4d) - sigma * Ev_3d
@@ -304,12 +304,12 @@ age_struct_seir_ode2 <- function(times, init, params) {
       d_ic * (IC + ICv_1d + ICv_2d + ICv_3d + ICv_4d + ICv_5d) + 
       d_hic * (H_IC + H_ICv_1d + H_ICv_2d + H_ICv_3d + H_ICv_4d + H_ICv_5d)
   
-    dR     <- gamma * I + r * H + r_ic * H_IC - (omega*4) * R
-    dRv_1d <- gamma * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d - (omega*4) * Rv_1d
-    dRv_2d <- gamma * Iv_2d + r * Hv_2d + r_ic * H_ICv_2d - (omega*4) * Rv_2d
-    dRv_3d <- gamma * Iv_3d + r * Hv_3d + r_ic * H_ICv_3d - (omega*4) * Rv_3d
-    dRv_4d <- gamma * Iv_4d + r * Hv_4d + r_ic * H_ICv_4d - (omega*4) * Rv_4d
-    dRv_5d <- gamma * Iv_5d + r * Hv_5d + r_ic * H_ICv_5d - (omega*4) * Rv_5d
+    dR     <- (gamma * I) + (r * H) + (r_ic * H_IC) - ((omega*4) * R)
+    dRv_1d <- (gamma * Iv_1d) + (r * Hv_1d) + (r_ic * H_ICv_1d) - ((omega*4) * Rv_1d)
+    dRv_2d <- (gamma * Iv_2d) + (r * Hv_2d) + (r_ic * H_ICv_2d) - ((omega*4) * Rv_2d)
+    dRv_3d <- (gamma * Iv_3d) + (r * Hv_3d) + (r_ic * H_ICv_3d) - ((omega*4) * Rv_3d)
+    dRv_4d <- (gamma * Iv_4d) + (r * Hv_4d) + (r_ic * H_ICv_4d) - ((omega*4) * Rv_4d)
+    dRv_5d <- (gamma * Iv_5d) + (r * Hv_5d) + (r_ic * H_ICv_5d) - ((omega*4) * Rv_5d)
     
     # dR     <- (gamma*2) * I + r * H + r_ic * H_IC - (omega*4) * R
     # dRv_1d <- (gamma*2) * Iv_1d + r * Hv_1d + r_ic * H_ICv_1d - (omega*4) * Rv_1d

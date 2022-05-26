@@ -39,7 +39,12 @@ parameter_draws <- list()
 beta_draws <- list()
 daily_cases <- list()
 susceptibles <- list()
+exposed <- list()
+infected <- list()
 recovered <- list()
+recovered1 <- list()
+recovered2 <- list()
+recovered3 <- list()
 
 # begin loop over breakpoints --------------------------------
 for (j in 1:n_bp) {
@@ -47,22 +52,23 @@ for (j in 1:n_bp) {
   print(paste("Fitting from", breakpoints$date[j], "to", breakpoints$date[j+1]))
   
   # set contact matrix for time window
-  if (breakpoints$contact_matrix[j] == "april_2017"){contact_matrix <- contact_matrices$april_2017
-  } else if (breakpoints$contact_matrix[j] == "april_2020"){contact_matrix <- contact_matrices$april_2020
-  } else if (breakpoints$contact_matrix[j] == "june_2020"){contact_matrix <- contact_matrices$june_2020
-  } else if (breakpoints$contact_matrix[j] == "september_2020"){contact_matrix <- contact_matrices$september_2020
-  } else if (breakpoints$contact_matrix[j] == "february_2021"){contact_matrix <- contact_matrices$february_2021
-  } else if (breakpoints$contact_matrix[j] == "june_2021"){contact_matrix <- contact_matrices$june_2021
+  if (breakpoints$contact_matrix[j+1] == "april_2017"){contact_matrix <- contact_matrices$april_2017
+  } else if (breakpoints$contact_matrix[j+1] == "april_2020"){contact_matrix <- contact_matrices$april_2020
+  } else if (breakpoints$contact_matrix[j+1] == "june_2020"){contact_matrix <- contact_matrices$june_2020
+  } else if (breakpoints$contact_matrix[j+1] == "september_2020"){contact_matrix <- contact_matrices$september_2020
+  } else if (breakpoints$contact_matrix[j+1] == "february_2021"){contact_matrix <- contact_matrices$february_2021
+  } else if (breakpoints$contact_matrix[j+1] == "june_2021"){contact_matrix <- contact_matrices$june_2021
   } else {contact_matrix <- contact_matrices$november_2021} 
   
   params$c_start <- contact_matrix
   
-  # set VE for time window depending on which variant was dominant
-  if (breakpoints$variant[j] == "wildtype"){params$vac_inputs <- vac_info$wildtype
-  } else if (breakpoints$variant[j] == "alpha"){params$vac_inputs <- vac_info$alpha
-  } else if (breakpoints$variant[j] == "delta"){params$vac_inputs <- vac_info$delta
-  } else {params$vac_inputs <- vac_info$omicron}
-  
+  if(!is.null(params$vac_inputs)){
+    # set VE for time window depending on which variant was dominant
+    if (breakpoints$variant[j+1] == "wildtype"){params$vac_inputs <- vac_info$wildtype
+    } else if (breakpoints$variant[j+1] == "alpha"){params$vac_inputs <- vac_info$alpha
+    } else if (breakpoints$variant[j+1] == "delta"){params$vac_inputs <- vac_info$delta
+    } else {params$vac_inputs <- vac_info$omicron}
+  }
   # set time sequence  
   times <- seq(breakpoints$time[j], breakpoints$time[j+1], by = 1)
   
@@ -70,8 +76,6 @@ for (j in 1:n_bp) {
   if (j == 1) {
     init_update <- init
     pars <- fit_pars$init_value
-    # if(est_omega){pars <- c(2.3, 0.01, 0.0027)
-    # } else{pars <- c(2.3, 0.01)}
     S_diag <- diag(init_update[c(2:10)])
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   } else {
@@ -81,7 +85,7 @@ for (j in 1:n_bp) {
     S_diag <- diag(init_update[c(2:10)])
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   }
-  
+
   # subset data for time window
   case_data_sub <- case_data[times + 1, ]
   
@@ -116,11 +120,15 @@ for (j in 1:n_bp) {
   
   # store outputs
   out_mle[[j]] <- postprocess_age_struct_model_output2(seir_out)
-  daily_cases[[j]] <- params$sigma * rowSums(out_mle[[j]]$E + out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d + out_mle[[j]]$Ev_3d +
-                                               out_mle[[j]]$Ev_4d + out_mle[[j]]$Ev_5d) * params$p_report
+  daily_cases[[j]] <- params$sigma * rowSums(out_mle[[j]]$E) * params$p_report #+ out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d + out_mle[[j]]$Ev_3d + out_mle[[j]]$Ev_4d + out_mle[[j]]$Ev_5d
   susceptibles[[j]] <- rowSums(out_mle[[j]]$S)
-  recovered[[j]] <- rowSums(out_mle[[j]]$R + out_mle[[j]]$R_1w + out_mle[[j]]$R_2w + out_mle[[j]]$R_3w)
-  
+  exposed[[j]] <- rowSums(out_mle[[j]]$E)
+  infected[[j]] <- rowSums(out_mle[[j]]$I)
+  recovered[[j]] <- rowSums(out_mle[[j]]$R) 
+  recovered1[[j]] <- rowSums(out_mle[[j]]$R_1w)
+  recovered2[[j]] <- rowSums(out_mle[[j]]$R_2w)
+  recovered3[[j]] <- rowSums(out_mle[[j]]$R_3w)
+
   # plot for quick check of fit
   plot(daily_cases[[j]]~times, type = "l")
   points(times, case_data_sub$inc, pch = 16, col = "red")
@@ -141,7 +149,10 @@ for (j in 1:n_bp) {
               beta_draws = beta_draws,
               out_mle = out_mle,
               susceptibles = unique(unlist(susceptibles)),
-              recovered = unique(unlist(recovered))
+              recovered = unique(unlist(recovered)),
+              recovered1 = unique(unlist(recovered1)),
+              recovered2 = unique(unlist(recovered2)),
+              recovered3 = unique(unlist(recovered3))
               )
   return(rtn)
 } # end of function
