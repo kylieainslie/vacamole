@@ -26,7 +26,7 @@ likelihood_func_test <- function(x,
   rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   params$beta <- (r0 / rho) * params$gamma
   
-  seir_out <- lsoda(init, t, model_func, params) #age_struct_seir_ode_test
+  seir_out <- lsoda(init, t, model_func, params, rtol = 0.00001, hmax = 0.02) # hmax = 0.02, age_struct_seir_ode_test
   seir_out <- as.data.frame(seir_out)
   out <- postprocess_age_struct_model_output2(seir_out)
   daily_cases <- (params$sigma * rowSums(out$E)) * params$p_report

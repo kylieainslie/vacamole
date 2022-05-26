@@ -73,7 +73,7 @@ init <- c(
 # parameters must be in a named list
 dt <- 1
 params <- list(dt = dt,
-               beta = 0.0004/dt,
+               beta = 0.0004/dt, #4.848224e-04
                beta1 = 0.14/dt,
                gamma = 0.5/dt,
                sigma = 0.5/dt,
@@ -82,9 +82,9 @@ params <- list(dt = dt,
                N = n_vec,
                h = transition_rates$h/dt,
                i1 = transition_rates$i1/dt,
-               i2 = c(rep(0,9)), #transition_rates$i2/dt,
+               i2 = transition_rates$i2/dt,
                d = transition_rates$d/dt,
-               d_ic = c(rep(0,9)), #transition_rates$d_ic/dt,
+               d_ic = transition_rates$d_ic/dt,
                d_hic = transition_rates$d_hic/dt,
                r = transition_rates$r/dt,
                r_ic = transition_rates$r_ic/dt,
@@ -98,39 +98,6 @@ params <- list(dt = dt,
                beta_change = NULL,
                t_beta_change = NULL
 )
-# --------------------------------------------------------------------
-# Run forward simulations --------------------------------------------
-times <- seq(0,500, by = 1)
-
-seir_out <- lsoda(init, times, age_struct_seir_ode_test, params)
-seir_out <- as.data.frame(seir_out)
-out <- postprocess_age_struct_model_output2(seir_out)
-
-# get number of people in each compartment
-susceptibles <- rowSums(out$S)
-exposed <- rowSums(out$E)
-infected <- rowSums(out$I)
-hospitalised <- rowSums(out$H)
-ic <- rowSums(out$IC)
-hosp_after_ic <- rowSums(out$H_IC)
-deaths <- rowSums(out$D)
-recovered <- rowSums(out$R) #+ rowSums(out$R_1w) + rowSums(out$R_2w) + rowSums(out$R_3w) 
-
-cases <- params$sigma * rowSums(out$E) * params$p_report
-plot(cases~times, type = "l")
-# --------------------------------------------------------------------
-# plot 
-plot(susceptibles ~ times, type = "l", ylim = c(0, sum(params$N)))
-abline(h = sum(params$N), lty = "dashed")
-lines(recovered ~ times, type = "l", col = "blue") #, ylim = c(0,max(recovered))
-lines(exposed ~ times, col = "green")
-lines(infected ~ times, col = "red")
-lines(hospitalised ~ times, col = "orange")
-lines(ic ~ times, col = "pink")
-lines(hosp_after_ic ~ times, col = "purple")
-lines(deaths ~ times, col = "grey")
-# --------------------------------------------------------------------
-# --------------------------------------------------------------------
 
 # --------------------------------------------------------------------
 # try model fits to first wave ----------------------------------------
@@ -147,7 +114,7 @@ fit_params <- list(
 )
 
 # run fit procedure (not using function wrapper) 
-breakpoint_sub <- df_breakpoints[1:18,]
+breakpoint_sub <- df_breakpoints[1:10,]
 
 n_bp <- length(breakpoint_sub$date)-1
 mles <- matrix(rep(NA, 2*n_bp), nrow = n_bp)
@@ -175,12 +142,12 @@ for (j in 1:n_bp) {
   print(paste("Fitting from", breakpoints$date[j], "to", breakpoints$date[j+1]))
   
   # set contact matrix for time window
-  if (breakpoints$contact_matrix[j+1] == "april_2017"){contact_matrix <- contact_matrices$april_2017
-  } else if (breakpoints$contact_matrix[j+1] == "april_2020"){contact_matrix <- contact_matrices$april_2020
-  } else if (breakpoints$contact_matrix[j+1] == "june_2020"){contact_matrix <- contact_matrices$june_2020
-  } else if (breakpoints$contact_matrix[j+1] == "september_2020"){contact_matrix <- contact_matrices$september_2020
-  } else if (breakpoints$contact_matrix[j+1] == "february_2021"){contact_matrix <- contact_matrices$february_2021
-  } else if (breakpoints$contact_matrix[j+1] == "june_2021"){contact_matrix <- contact_matrices$june_2021
+  if (breakpoints$contact_matrix[j+1] == "april_2017"){contact_matrix <- contact_matrices$april_2017; print("april_2017")
+  } else if (breakpoints$contact_matrix[j+1] == "april_2020"){contact_matrix <- contact_matrices$april_2020; print("april_2020")
+  } else if (breakpoints$contact_matrix[j+1] == "june_2020"){contact_matrix <- contact_matrices$june_2020; print("june_2020")
+  } else if (breakpoints$contact_matrix[j+1] == "september_2020"){contact_matrix <- contact_matrices$september_2020; print("septemeber_2020")
+  } else if (breakpoints$contact_matrix[j+1] == "february_2021"){contact_matrix <- contact_matrices$february_2021; print("february_2021")
+  } else if (breakpoints$contact_matrix[j+1] == "june_2021"){contact_matrix <- contact_matrices$june_2021; print("june_2021")
   } else {contact_matrix <- contact_matrices$november_2021} 
   
   params$c_start <- contact_matrix
@@ -202,6 +169,7 @@ for (j in 1:n_bp) {
     rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
   }
   
+  print(init_update)
   # subset data for time window
   case_data_sub <- case_data[times + 1, ]
   
@@ -227,7 +195,7 @@ for (j in 1:n_bp) {
   # run for mle to get initial conditions for next timepoint
   params$beta <- mles[j,1]
   
-  seir_out <- lsoda(init_update, times, age_struct_seir_ode_test, params)
+  seir_out <- lsoda(init_update, times, age_struct_seir_ode_test, params, rtol = 0.00001, hmax = 0.02) #hmax = 0.02
   seir_out <- as.data.frame(seir_out)
   
   # store outputs
@@ -288,3 +256,51 @@ lines(unique(unlist(infected)) ~ times_all, col = "red")
 plot(unique(unlist(hospitalised)) ~ times_all, col = "orange")
 plot(unique(unlist(ic)) ~ times_all, tpe = "l", col = "purple")
 lines(unique(unlist(hosp_after_ic)) ~ times_all, col = "grey")
+
+# --------------------------------------------------------------------
+# Run forward simulations --------------------------------------------
+# simulate forward with initial conditions that result in negative IC values
+params$beta <- 4.848224e-04 #0.0002457851
+init_cond <- c(t = 7.600000e+01,
+               S = c(1.796233e+06, 2.021641e+06, 2.214668e+06, 2.121977e+06, 2.275925e+06, 2.524675e+06, 2.103065e+06, 1.531171e+06, 8.030364e+05),
+               E = c(3.707938e+01, 2.175486e+02, 5.307151e+02, 2.610720e+02, 2.724314e+02, 3.290284e+02, 3.457338e+02, 3.402400e+02, 2.699806e+02), 
+               I = c(3.105244e+01, 1.826302e+02, 4.454958e+02, 2.189514e+02, 2.282486e+02, 2.749749e+02, 2.881797e+02, 2.811478e+02, 2.227498e+02), 
+               H = c(2.091348e-01, 4.961192e-02, 3.137189e-01, 5.496294e-01, 9.891533e-01, 2.461984e+00, 3.820313e+00, 8.696155e+00, 9.720779e+00), 
+               H_IC = c(0, 2.382904e-03, 2.348453e-02, 4.706867e-02, 1.265463e-01, 3.778414e-01, 1.658210e-01, 9.850088e-01, 1.745855e-01), 
+               IC = c(0, 8.179626e-03, 8.058121e-02, 1.614645e-01, 4.336877e-01, 1.333769e+00, 2.629808e+00, 4.654115e+00, 9.273612e-01), 
+               D = c(5.505607e-04, 8.362371e-04, 9.543505e-03, 2.727756e-02, 6.302218e-02, 2.526043e-01, 1.707657e+00, 3.840142e+00, 4.409166e+00), 
+               R = c(1.482346e+02, 8.692593e+02, 2.120647e+03, 1.042637e+03, 1.088236e+03, 1.311541e+03, 1.375330e+03, 1.346433e+03, 1.068415e+03)
+)
+
+times <- seq(76, 119, by = 1)
+
+seir_out <- lsoda(init_cond, times, age_struct_seir_ode_test, params, atol = 1e-06, hmax = 0.002)
+seir_out <- as.data.frame(seir_out)
+out <- postprocess_age_struct_model_output2(seir_out)
+
+# get number of people in each compartment
+susceptibles <- rowSums(out$S)
+exposed <- rowSums(out$E)
+infected <- rowSums(out$I)
+hospitalised <- rowSums(out$H)
+ic <- rowSums(out$IC)
+hosp_after_ic <- rowSums(out$H_IC)
+deaths <- rowSums(out$D)
+recovered <- rowSums(out$R) #+ rowSums(out$R_1w) + rowSums(out$R_2w) + rowSums(out$R_3w)
+
+# cases <- params$sigma * rowSums(out$E) * params$p_report
+# plot(cases~times, type = "l")
+# --------------------------------------------------------------------
+# plot SEIR compartments
+plot(susceptibles ~ times, type = "l", ylim = c(0, sum(params$N)))
+abline(h = sum(params$N), lty = "dashed")
+lines(recovered ~ times, type = "l", col = "blue") #, ylim = c(0,max(recovered))
+lines(exposed ~ times, col = "green")
+lines(infected ~ times, col = "red")
+# plot severe disease compartments
+plot(hospitalised ~ times, type = "l", col = "orange", ylim = c(min(ic),max(hospitalised)))
+lines(ic ~ times, col = "pink", type = "l")
+lines(hosp_after_ic ~ times, col = "purple")
+lines(deaths ~ times, col = "grey")
+# --------------------------------------------------------------------
+# --------------------------------------------------------------------
