@@ -23,13 +23,14 @@ likelihood_func_test <- function(x,
   
   r0 <- x[1]
   S_diag <- diag(init[c(2:10)])
-  rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
-  params$beta <- (r0 / rho) * params$gamma
+  rho <- as.numeric(eigs(S_diag %*% params$contact_mat, 1)$values)
+  params$beta <- (r0 / rho) * mean(params$gamma)
   
-  seir_out <- lsoda(init, t, model_func, params, rtol = 0.00001, hmax = 0.02) # hmax = 0.02, age_struct_seir_ode_test
-  seir_out <- as.data.frame(seir_out)
-  out <- postprocess_age_struct_model_output2(seir_out)
-  daily_cases <- (params$sigma * rowSums(out$E)) * params$p_report
+  rk45 <- rkMethod("rk45dp7")
+  seir_out <- ode(init, times, model_func, params, method = rk45, rtol = 1e-08, hmax = 0.02) # , rtol = 1e-08, hmax = 0.02
+  out <- as.data.frame(seir_out)
+  out1 <- postprocess_age_struct_model_output2(out)
+  daily_cases <- rowSums(params$sigma * out1$E * params$p_report)
   daily_cases <- ifelse(daily_cases == 0, 0.0001, daily_cases) # prevent likelihood function function from being Inf
   
   inc_obs <- data$inc
@@ -39,8 +40,8 @@ likelihood_func_test <- function(x,
   #size <- daily_cases * (alpha / (1 - alpha))
   lik <- -sum(stats::dnbinom(x = inc_obs, mu = daily_cases, size = alpha, log = TRUE))
   
-  #print(x)
-  #print(lik)
+  # print(x)
+  # print(lik)
   
   lik
 }

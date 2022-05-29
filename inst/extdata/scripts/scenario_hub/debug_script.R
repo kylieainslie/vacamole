@@ -2,8 +2,8 @@
 
 # Load required packages/functions ---------------------------------
 library(deSolve)
-library(reshape2)
-library(ggplot2)
+#library(reshape2)
+#library(ggplot2)
 library(dplyr)
 library(stringr)
 library(tidyr)
@@ -21,8 +21,45 @@ library(vacamole)
 data_date <- "2022-03-12"
 osiris1 <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rds"))
 
-# read in transition rates -----------------------------------------
-transition_rates <- readRDS("inst/extdata/inputs/transition_rates.rds")
+# probabilities -----------------------------------------------------
+dons_probs <- read_xlsx("inst/extdata/inputs/ProbabilitiesDelays_20210107.xlsx")
+p_infection2admission <- dons_probs$P_infection2admission
+p_admission2death <- dons_probs$P_admission2death
+p_admission2IC <- dons_probs$P_admission2IC
+p_IC2hospital <- dons_probs$P_IC2hospital
+p_hospital2death <- c(rep(0, 5), 0.01, 0.04, 0.12, 0.29) # (after ICU)
+p_reported_by_age <- c(0.29, 0.363, 0.381, 0.545, 0.645, 0.564, 0.365, 0.33, 0.409) # from Jantien
+# p_reported_all <- 0.428 # from Jantien
+# p_inf_by_age <- c(0.018, 0.115, 0.156, 0.118, 0.142, 0.199, 0.114, 0.062, 0.054 + 0.023)
+# p_recovered <- c(
+#   0.01120993, 0.09663659, 0.24141186, 0.11004723, 0.10677859, 0.11977255,
+#   0.11904044, 0.11714503, 0.11347191
+# )
+
+# delays ------------------------------------------------------------
+time_symptom2admission <- c(2.29, 5.51, 5.05, 5.66, 6.55, 5.88, 5.69, 5.09, 4.33) # assume same as infectious2admission
+time_admission2discharge <- 7.9
+time_admission2IC <- 2.28
+time_IC2hospital <- 15.6
+time_hospital2discharge <- 10.1 # (after ICU)
+time_admission2death <- 7
+time_IC2death <- 19
+time_hospital2death <- 10 # (after ICU)
+
+# define transition rates -------------------------------------------
+i2r    <- (1-p_infection2admission) / 2                   # I -> R
+i2h    <- p_infection2admission / time_symptom2admission      # I -> H
+
+h2ic   <- p_admission2IC / time_admission2IC                 # H -> IC
+h2d    <- p_admission2death / time_admission2death            # H -> D
+h2r    <- (1 - (p_admission2IC + p_admission2death)) / time_admission2discharge
+                                                         # H -> R
+
+ic2hic <- p_IC2hospital / time_IC2hospital                   # IC -> H_IC
+ic2d   <- (1 - p_IC2hospital) / time_IC2death                       # IC -> D
+
+hic2d  <- p_hospital2death / time_hospital2death          # H_IC -> D
+hic2r  <- (1 - p_hospital2death) / time_hospital2discharge # H_IC -> R
 
 # define population size (by age group)
 n_vec <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,
@@ -52,51 +89,62 @@ cm_list <- list(
 
 # Specify initial conditions --------------------------------------
 empty_state <- c(rep(0, 9)) # vector of zeros
+seed_age_group <- sample(1:9,1)
+inf_seed_vec <- empty_state
+inf_seed_vec[seed_age_group] <- 1
 
-init <- c(
-  t = 0,
-  S = c(n_vec[1:4], n_vec[5]-1, n_vec[6:9]),
-  E = empty_state,
-  I = c(rep(0,4),1,rep(0,4)),
-  H = empty_state,
-  IC = empty_state,
-  H_IC = empty_state,
-  D = empty_state,
-  R = empty_state #,
-  # R_1w = empty_state,
-  # R_2w = empty_state,
-  # R_3w = empty_state
+s_vec   <- n_vec - inf_seed_vec
+e_vec   <- empty_state
+i_vec   <- inf_seed_vec
+h_vec   <- empty_state
+ic_vec  <- empty_state
+hic_vec <- empty_state
+d_vec   <- empty_state
+r_vec   <- empty_state
+r_vec1  <- empty_state
+r_vec2  <- empty_state
+r_vec3  <- n_vec - s_vec - e_vec - i_vec - h_vec - ic_vec - hic_vec - d_vec - r_vec - r_vec1 - r_vec2
+
+init <- c(t    = 0,
+          S    = s_vec,
+          E    = e_vec,
+          I    = i_vec,
+          H    = h_vec,
+          IC   = ic_vec,
+          H_IC = hic_vec,
+          D    = d_vec,
+          R    = r_vec,
+          R_1w = r_vec1,
+          R_2w = r_vec2,
+          R_3w = r_vec3
 )
-
 
 # specify initial model parameters ---------------------------------
 # parameters must be in a named list
 dt <- 1
 params <- list(dt = dt,
+               N = n_vec,
                beta = 0.0004/dt, #4.848224e-04
                beta1 = 0.14/dt,
-               gamma = 0.5/dt,
                sigma = 0.5/dt,
-               epsilon = 0.005/dt,
+               gamma = i2r/dt,
+               h = i2h/dt,
+               i1 = h2ic/dt,
+               d = h2d/dt,
+               r = h2r/dt,
+               i2 = ic2hic/dt,
+               d_ic = ic2d/dt,
+               d_hic = hic2d/dt,
+               r_ic = hic2r/dt,
+               epsilon = 0.00/dt,
                omega = 0.0038/dt,
-               N = n_vec,
-               h = transition_rates$h/dt,
-               i1 = transition_rates$i1/dt,
-               i2 = transition_rates$i2/dt,
-               d = transition_rates$d/dt,
-               d_ic = transition_rates$d_ic/dt,
-               d_hic = transition_rates$d_hic/dt,
-               r = transition_rates$r/dt,
-               r_ic = transition_rates$r_ic/dt,
-               p_report = 1/3,
-               c_start = april_2017,
+               p_report = p_reported_by_age,
+               contact_mat = april_2017,
                #keep_cm_fixed = TRUE,
                #vac_inputs = vac_rates_wt,
                #use_cases = TRUE,  
                #no_vac = FALSE,
-               calendar_start_date = as.Date("2020-01-01"), 
-               beta_change = NULL,
-               t_beta_change = NULL
+               calendar_start_date = as.Date("2020-01-01")
 )
 
 # --------------------------------------------------------------------
@@ -124,13 +172,6 @@ out_mle <- list()
 parameter_draws <- list()
 beta_draws <- list()
 daily_cases <- list()
-# susceptibles <- list()
-# exposed <- list()
-# infected <- list()
-# recovered <- list()
-# recovered1 <- list()
-# recovered2 <- list()
-# recovered3 <- list()
 
 breakpoints <- breakpoint_sub
 fit_pars <- fit_params
@@ -150,26 +191,37 @@ for (j in 1:n_bp) {
   } else if (breakpoints$contact_matrix[j+1] == "june_2021"){contact_matrix <- contact_matrices$june_2021; print("june_2021")
   } else {contact_matrix <- contact_matrices$november_2021} 
   
-  params$c_start <- contact_matrix
+  params$contact_mat <- contact_matrix
   
   # set time sequence  
   times <- seq(breakpoints$time[j], breakpoints$time[j+1], by = 1)
   
   # update initial conditions based on last time window
+  g <- mean(params$gamma)
   if (j == 1) {
     init_update <- init
     pars <- fit_pars$init_value
     S_diag <- diag(init_update[c(2:10)])
-    rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
+    rho <- as.numeric(eigs(S_diag %*% params$contact_mat, 1)$values)
   } else {
-    init_update <- c(t = times[1], unlist(lapply(unname(out_mle[[j-1]]), tail,1)))
-    beta_est <- (mles[j-1,1]/params$gamma)*rho
+    end_states <- unlist(lapply(unname(out_mle[[j-1]]), tail,1))
+    init_update <- c(t = times[1], end_states)
+    
+    # output error message if sum of all compartments is not equal to the total population size
+    if(!isTRUE(all.equal(sum(init_update[-1]),sum(params$N)))){
+      stop("Error: sum of compartments is not equal to population size")
+    }
+    if(!any(end_states) < 0){
+      stop("Error: Negative compartment values")
+    }
+    
+    beta_est <- (mles[j-1,1]/g)*rho
     pars <- c(beta_est, fit_pars$init_value[2]) # mles[j-1,-1]
     S_diag <- diag(init_update[c(2:10)])
-    rho <- as.numeric(eigs(S_diag %*% params$c_start, 1)$values)
+    rho <- as.numeric(eigs(S_diag %*% params$contact_mat, 1)$values)
   }
   
-  print(init_update)
+  # print(init_update)
   # subset data for time window
   case_data_sub <- case_data[times + 1, ]
   
@@ -187,7 +239,7 @@ for (j in 1:n_bp) {
   )
   
   # store MLE
-  mles[j,1] <- (res$par[1] / rho) * params$gamma
+  mles[j,1] <- (res$par[1] / rho) * g
   mles[j,2] <- res$par[2]
   
   print(mles[j,])
@@ -195,23 +247,18 @@ for (j in 1:n_bp) {
   # run for mle to get initial conditions for next timepoint
   params$beta <- mles[j,1]
   
-  seir_out <- lsoda(init_update, times, age_struct_seir_ode_test, params, rtol = 0.00001, hmax = 0.02) #hmax = 0.02
-  seir_out <- as.data.frame(seir_out)
+  rk45 <- rkMethod("rk45dp7")
+  seir_out <- ode(init_update, times, age_struct_seir_ode_test, params, method = rk45, rtol = 1e-08, hmax = 0.02) # , method = rk45, rtol = 1e-08, hmax = 0.02
+  out <- as.data.frame(seir_out)
   
   # store outputs
-  out_mle[[j]] <- postprocess_age_struct_model_output2(seir_out)
+  out_mle[[j]] <- postprocess_age_struct_model_output2(out)
   daily_cases[[j]] <- params$sigma * rowSums(out_mle[[j]]$E) * params$p_report #+ out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d + out_mle[[j]]$Ev_3d + out_mle[[j]]$Ev_4d + out_mle[[j]]$Ev_5d
-  # susceptibles[[j]] <- rowSums(out_mle[[j]]$S)
-  # exposed[[j]] <- rowSums(out_mle[[j]]$E)
-  # infected[[j]] <- rowSums(out_mle[[j]]$I)
-  # recovered[[j]] <- rowSums(out_mle[[j]]$R) 
-  # recovered1[[j]] <- rowSums(out_mle[[j]]$R_1w)
-  # recovered2[[j]] <- rowSums(out_mle[[j]]$R_2w)
-  # recovered3[[j]] <- rowSums(out_mle[[j]]$R_3w)
   
   # plot for quick check of fit
-  plot(daily_cases[[j]]~times, type = "l")
-  points(times, case_data_sub$inc, pch = 16, col = "red")
+  plot(times, case_data_sub$inc, pch = 16, col = "red", ylim = c(0, max(case_data_sub$inc,daily_cases[[j]])))
+  lines(daily_cases[[j]]~times) # , type = "l", ylim = c(0, max(daily_cases[[j]]))
+  
   
 } # end of for loop over breakpoints
 
@@ -226,9 +273,9 @@ ic <- list()
 hosp_after_ic <- list()
 recovered <- list()
 deaths <- list()
-# recovered1 <- list()
-# recovered2 <- list()
-# recovered3 <- list()
+recovered1 <- list()
+recovered2 <- list()
+recovered3 <- list()
 for (j in 1:n_bp){
   susceptibles[[j]] <- rowSums(out_mle[[j]]$S)
   exposed[[j]] <- rowSums(out_mle[[j]]$E)
@@ -238,9 +285,9 @@ for (j in 1:n_bp){
   hosp_after_ic[[j]] <- rowSums(out_mle[[j]]$H_IC)
   deaths[[j]] <- rowSums(out_mle[[j]]$D)
   recovered[[j]] <- rowSums(out_mle[[j]]$R)
-  # recovered1[[j]] <- rowSums(out_mle[[j]]$R_1w)
-  # recovered2[[j]] <- rowSums(out_mle[[j]]$R_2w)
-  # recovered3[[j]] <- rowSums(out_mle[[j]]$R_3w)
+  recovered1[[j]] <- rowSums(out_mle[[j]]$R_1w)
+  recovered2[[j]] <- rowSums(out_mle[[j]]$R_2w)
+  recovered3[[j]] <- rowSums(out_mle[[j]]$R_3w)
 }
 
 # plot susceptibles
@@ -250,33 +297,27 @@ plot(unique(unlist(susceptibles)) ~ times_all, type = "l"#, ylim = c(0, sum(para
 abline(h = sum(params$N), lty = "dashed")
 
 # plot recovered
-plot(unique(unlist(recovered)) ~ times_all, type = "l", col = "blue", ylim = c(0,max(unlist(recovered))))
+plot(unique(unlist(recovered)) ~ times_all, type = "l", col = "blue",ylim = c(0,max(unlist(recovered))))
+lines(unique(unlist(recovered1)) ~ times_all, col = "blue", lty = "dashed")
+lines(unique(unlist(recovered2)) ~ times_all, col = "blue", lty = "dotted")
+lines(unique(unlist(recovered3)) ~ times_all, col = "blue", lty = "twodash")
 lines(unique(unlist(exposed)) ~ times_all, col = "green")
 lines(unique(unlist(infected)) ~ times_all, col = "red")
-plot(unique(unlist(hospitalised)) ~ times_all, col = "orange")
+
+plot(unique(unlist(hospitalised)) ~ times_all, col = "orange", type = "l", ylim = c(min(unlist(ic)), max(unlist(hospitalised))))
 plot(unique(unlist(ic)) ~ times_all, tpe = "l", col = "purple")
 lines(unique(unlist(hosp_after_ic)) ~ times_all, col = "grey")
 
 # --------------------------------------------------------------------
 # Run forward simulations --------------------------------------------
 # simulate forward with initial conditions that result in negative IC values
-params$beta <- 4.848224e-04 #0.0002457851
-init_cond <- c(t = 7.600000e+01,
-               S = c(1.796233e+06, 2.021641e+06, 2.214668e+06, 2.121977e+06, 2.275925e+06, 2.524675e+06, 2.103065e+06, 1.531171e+06, 8.030364e+05),
-               E = c(3.707938e+01, 2.175486e+02, 5.307151e+02, 2.610720e+02, 2.724314e+02, 3.290284e+02, 3.457338e+02, 3.402400e+02, 2.699806e+02), 
-               I = c(3.105244e+01, 1.826302e+02, 4.454958e+02, 2.189514e+02, 2.282486e+02, 2.749749e+02, 2.881797e+02, 2.811478e+02, 2.227498e+02), 
-               H = c(2.091348e-01, 4.961192e-02, 3.137189e-01, 5.496294e-01, 9.891533e-01, 2.461984e+00, 3.820313e+00, 8.696155e+00, 9.720779e+00), 
-               H_IC = c(0, 2.382904e-03, 2.348453e-02, 4.706867e-02, 1.265463e-01, 3.778414e-01, 1.658210e-01, 9.850088e-01, 1.745855e-01), 
-               IC = c(0, 8.179626e-03, 8.058121e-02, 1.614645e-01, 4.336877e-01, 1.333769e+00, 2.629808e+00, 4.654115e+00, 9.273612e-01), 
-               D = c(5.505607e-04, 8.362371e-04, 9.543505e-03, 2.727756e-02, 6.302218e-02, 2.526043e-01, 1.707657e+00, 3.840142e+00, 4.409166e+00), 
-               R = c(1.482346e+02, 8.692593e+02, 2.120647e+03, 1.042637e+03, 1.088236e+03, 1.311541e+03, 1.375330e+03, 1.346433e+03, 1.068415e+03)
-)
+params$beta <- 0.0003445653
+#times <- seq(0, 119, by = 1)
 
-times <- seq(76, 119, by = 1)
-
-seir_out <- lsoda(init_cond, times, age_struct_seir_ode_test, params, atol = 1e-06, hmax = 0.002)
-seir_out <- as.data.frame(seir_out)
-out <- postprocess_age_struct_model_output2(seir_out)
+#rk45 <- rkMethod("rk45dp7")
+seir_out <- ode(init_update, times, age_struct_seir_ode_test, params)  # , method = rk45, rtol = 1e-08, hmax = 0.02
+seir_out1 <- as.data.frame(seir_out)
+out <- postprocess_age_struct_model_output2(seir_out1)
 
 # get number of people in each compartment
 susceptibles <- rowSums(out$S)
@@ -288,8 +329,9 @@ hosp_after_ic <- rowSums(out$H_IC)
 deaths <- rowSums(out$D)
 recovered <- rowSums(out$R) #+ rowSums(out$R_1w) + rowSums(out$R_2w) + rowSums(out$R_3w)
 
-# cases <- params$sigma * rowSums(out$E) * params$p_report
-# plot(cases~times, type = "l")
+cases <- params$sigma * rowSums(out$E) * params$p_report
+plot(cases~times, type = "l")
+points(times, case_data_sub$inc, pch = 16, col = "red") # , ylim = c(0, max(case_data_sub$inc))
 # --------------------------------------------------------------------
 # plot SEIR compartments
 plot(susceptibles ~ times, type = "l", ylim = c(0, sum(params$N)))
