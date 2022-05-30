@@ -18,7 +18,6 @@ likelihood_func_test <- function(x,
                              data,
                              params,
                              init,
-                             model_func,
                              ...) {
   
   r0 <- x[1]
@@ -27,7 +26,7 @@ likelihood_func_test <- function(x,
   params$beta <- (r0 / rho) * mean(params$gamma)
   
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init, times, model_func, params, method = rk45, rtol = 1e-08, hmax = 0.02) # , rtol = 1e-08, hmax = 0.02
+  seir_out <- ode(init, times, age_struct_seir_ode_test, params, method = rk45, rtol = 1e-08, hmax = 0.02) # , rtol = 1e-08, hmax = 0.02
   out <- as.data.frame(seir_out)
   out1 <- postprocess_age_struct_model_output2(out)
   daily_cases <- rowSums(params$sigma * out1$E * params$p_report)

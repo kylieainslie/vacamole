@@ -140,10 +140,6 @@ params <- list(dt = dt,
                omega = 0.0038/dt,
                p_report = p_reported_by_age,
                contact_mat = april_2017,
-               #keep_cm_fixed = TRUE,
-               #vac_inputs = vac_rates_wt,
-               #use_cases = TRUE,  
-               #no_vac = FALSE,
                calendar_start_date = as.Date("2020-01-01")
 )
 
@@ -172,6 +168,7 @@ out_mle <- list()
 parameter_draws <- list()
 beta_draws <- list()
 daily_cases <- list()
+init_update <- list()
 
 breakpoints <- breakpoint_sub
 fit_pars <- fit_params
@@ -205,13 +202,39 @@ for (j in 1:n_bp) {
     rho <- as.numeric(eigs(S_diag %*% params$contact_mat, 1)$values)
   } else {
     end_states <- unlist(lapply(unname(out_mle[[j-1]]), tail,1))
+    s_vec   <- end_states[c(paste0("S",1:9))]
+    e_vec   <- end_states[c(paste0("E",1:9))]
+    i_vec   <- end_states[c(paste0("I",1:9))]
+    h_vec   <- end_states[c(paste0("H",1:9))]
+    ic_vec  <- end_states[c(paste0("IC",1:9))]
+    hic_vec <- end_states[c(paste0("H_IC",1:9))]
+    d_vec   <- end_states[c(paste0("D",1:9))]
+    r_vec   <- end_states[c(paste0("R",1:9))]
+    r_vec1  <- end_states[c(paste0("R_1w",1:9))]
+    r_vec2  <- end_states[c(paste0("R_2w",1:9))]
+    r_vec3  <- n_vec - s_vec - e_vec - i_vec - h_vec - ic_vec - hic_vec - d_vec - r_vec - r_vec1 - r_vec2
+    
+    init_update <- c(t    = times[1],
+                     S    = s_vec,
+                     E    = e_vec,
+                     I    = i_vec,
+                     H    = h_vec,
+                     IC   = ic_vec,
+                     H_IC = hic_vec,
+                     D    = d_vec,
+                     R    = r_vec,
+                     R_1w = r_vec1,
+                     R_2w = r_vec2,
+                     R_3w = r_vec3
+    )
+    
     init_update <- c(t = times[1], end_states)
     
     # output error message if sum of all compartments is not equal to the total population size
     if(!isTRUE(all.equal(sum(init_update[-1]),sum(params$N)))){
       stop("Error: sum of compartments is not equal to population size")
     }
-    if(!any(end_states) < 0){
+    if(any(end_states < 0)){
       stop("Error: Negative compartment values")
     }
     
@@ -253,7 +276,7 @@ for (j in 1:n_bp) {
   
   # store outputs
   out_mle[[j]] <- postprocess_age_struct_model_output2(out)
-  daily_cases[[j]] <- params$sigma * rowSums(out_mle[[j]]$E) * params$p_report #+ out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d + out_mle[[j]]$Ev_3d + out_mle[[j]]$Ev_4d + out_mle[[j]]$Ev_5d
+  daily_cases[[j]] <-  rowSums(params$sigma * out_mle[[j]]$E * params$p_report) #+ out_mle[[j]]$Ev_1d + out_mle[[j]]$Ev_2d + out_mle[[j]]$Ev_3d + out_mle[[j]]$Ev_4d + out_mle[[j]]$Ev_5d
   
   # plot for quick check of fit
   plot(times, case_data_sub$inc, pch = 16, col = "red", ylim = c(0, max(case_data_sub$inc,daily_cases[[j]])))
