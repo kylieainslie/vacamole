@@ -101,7 +101,8 @@ init_t0 <- c(t    = 0,
 
 # Specify model parameters ------------------------------------------
 # define contact/transmission matrix --------------------------------
-path <- "inst/extdata/inputs/contact_matrices/converted/"
+# path <- "inst/extdata/inputs/contact_matrices/converted/"
+path <- "/rivm/s/ainsliek/data/contact_matrices/converted/" 
 april_2017     <- readRDS(paste0(path,"transmission_matrix_april_2017.rds"))
 april_2020     <- readRDS(paste0(path,"transmission_matrix_april_2020.rds"))
 june_2020      <- readRDS(paste0(path,"transmission_matrix_june_2020.rds"))
@@ -195,7 +196,8 @@ likelihood_func_test <- function(x, t, data, params, init) {
   # run model with current parameter values
   params$beta <- x[1]/10000
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init, t, age_struct_seir_ode_test, params, method = rk45, rtol = 1e-08, hmax = 0.02) # , rtol = 1e-08, hmax = 0.02
+  seir_out <- ode(init, t, age_struct_seir_ode_test, params, method = rk45, 
+                  rtol = 1e-08, hmax = 0.02) 
   out <- as.data.frame(seir_out)
   
   # modeled cases
@@ -235,6 +237,9 @@ out <- list()           # model output for each time point
 times <- list()         # time points
 cases <- list()         # daily cases to plot against real data
 mles <- list()          # MLEs for each time window
+beta_draws <- list()    # store 200 parameter draws
+ci_out <- list()        # store model outputs for confidence bounds
+ci_cases <- list()
 
 susceptibles <- list()
 exposed <- list()
@@ -271,7 +276,7 @@ for (j in 1:n_bp) {
   } else {contact_matrix <- contact_matrices$november_2021} 
   
   # change contact matrix in params list ----------------------------
-  params$contact_mat <- contact_matrix
+  params$contact_mat <- contact_matrix$mean
   
   # set time sequence -----------------------------------------------
   times[[j]] <- seq(bp_for_fit$time[j], bp_for_fit$time[j+1], by = 1)
@@ -300,7 +305,7 @@ for (j in 1:n_bp) {
   params$beta <- res$par[1]/10000
   rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
-                  params, method = rk45) #, rtol = 1e-08, hmax = 0.02
+                  params, method = rk45, rtol = 1e-08, hmax = 0.02)
   
   # store outputs ----------------------------------------------------
   out[[j]] <- as.data.frame(seir_out) 
@@ -310,6 +315,24 @@ for (j in 1:n_bp) {
   plot(case_data_sub$inc ~ times[[j]], pch = 16, col = "red", 
        ylim = c(0, max(case_data_sub$inc,cases[[j]])))
   lines(cases[[j]] ~ times[[j]]) 
+  
+  #------------------------------------------------------------------
+  # get confidence bounds -------------------------------------------
+  # draw 200 parameter values
+  parameter_draws <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
+  beta_draws[[j]] <- data.frame(beta = (parameter_draws[,1]/10000)) %>%
+    mutate(index = 1:200)
+  
+  # run model for each beta draw (with different contact matrix) ----
+  for(i in 1:200){
+    params$beta <- beta_draws[i,1]
+    params$contact_mat <- contact_matrix[[i]]
+    seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
+                       params, method = rk45, rtol = 1e-08, hmax = 0.02)
+    ci_out[[j]][[i]] <- as.data.frame(seir_out_ci) 
+    ci_cases[[j]][[i]] <-  rowSums(params$sigma * ci_out[[j]][[i]][c(paste0("E",1:9))] * params$p_report)
+  }
+  # -----------------------------------------------------------------
   
   # update initial conditions for next time window
   # # tail(as.data.frame(seir_out),1)[-c(1:2)]
@@ -344,7 +367,9 @@ for (j in 1:n_bp) {
     stop("Error: Negative compartment values")
   }
   
-  # get number of people in each compartment
+  # ------------------------------------------------------------------  
+  # get number of people in each compartment (to check for unusual 
+  # behaviour)
   susceptibles[[j]]  <- rowSums(out[[j]][,c(paste0("S",1:9))])
   exposed[[j]]       <- rowSums(out[[j]][,c(paste0("E",1:9))])
   infected[[j]]      <- rowSums(out[[j]][,c(paste0("I",1:9))])
@@ -356,7 +381,6 @@ for (j in 1:n_bp) {
   recovered1[[j]]    <- rowSums(out[[j]][,c(paste0("R_1w",1:9))]) 
   recovered2[[j]]    <- rowSums(out[[j]][,c(paste0("R_2w",1:9))]) 
   recovered3[[j]]    <- rowSums(out[[j]][,c(paste0("R_3w",1:9))]) 
-  
   
 } # end of for loop over breakpoints
 
