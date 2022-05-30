@@ -206,8 +206,8 @@ likelihood_func_test <- function(x, t, data, params, init) {
   # lik <- sum(dpois(x = inc_obs,lambda = incidence,log=TRUE))
   lik <- -sum(stats::dnbinom(x = inc_obs, mu = daily_cases, size = alpha, log = TRUE))
   
-  print(x)
-  print(lik)
+  # print(x)
+  # print(lik)
   lik
 }
 # -------------------------------------------------------------------
@@ -219,7 +219,7 @@ df_breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.cs
          time = as.numeric(date - date[1])) %>%
   select(date, time, variant, contact_matrix)
 
-bp_for_fit <- df_breakpoints[1:5,]
+bp_for_fit <- df_breakpoints[1:18,]
 n_bp <- dim(bp_for_fit)[1] - 1
 
 # specify initial values and bounds for fitted parameters -----------
@@ -235,6 +235,18 @@ out <- list()           # model output for each time point
 times <- list()         # time points
 cases <- list()         # daily cases to plot against real data
 mles <- list()          # MLEs for each time window
+
+susceptibles <- list()
+exposed <- list()
+infected <- list()
+hospitalised <- list()
+ic <- list()
+hosp_after_ic <- list()
+recovered <- list()
+deaths <- list()
+recovered1 <- list()
+recovered2 <- list()
+recovered3 <- list()
 # load case data ----------------------------------------------------
 data_date <- "2022-03-12"
 case_data <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rds"))
@@ -293,7 +305,6 @@ for (j in 1:n_bp) {
   # store outputs ----------------------------------------------------
   out[[j]] <- as.data.frame(seir_out) 
   cases[[j]] <-  rowSums(params$sigma * out[[j]][c(paste0("E",1:9))] * params$p_report)
-  
  
   # plot for quick check of fit --------------------------------------
   plot(case_data_sub$inc ~ times[[j]], pch = 16, col = "red", 
@@ -301,6 +312,7 @@ for (j in 1:n_bp) {
   lines(cases[[j]] ~ times[[j]]) 
   
   # update initial conditions for next time window
+  # # tail(as.data.frame(seir_out),1)[-c(1:2)]
   s_vec   <- unlist(tail(out[[j]][,c(paste0("S",1:9))],1))
   e_vec   <- unlist(tail(out[[j]][,c(paste0("E",1:9))],1))
   i_vec   <- unlist(tail(out[[j]][,c(paste0("I",1:9))],1))
@@ -332,38 +344,46 @@ for (j in 1:n_bp) {
     stop("Error: Negative compartment values")
   }
   
+  # get number of people in each compartment
+  susceptibles[[j]]  <- rowSums(out[[j]][,c(paste0("S",1:9))])
+  exposed[[j]]       <- rowSums(out[[j]][,c(paste0("E",1:9))])
+  infected[[j]]      <- rowSums(out[[j]][,c(paste0("I",1:9))])
+  hospitalised[[j]]  <- rowSums(out[[j]][,c(paste0("H",1:9))])
+  ic[[j]]            <- rowSums(out[[j]][,c(paste0("IC",1:9))])
+  hosp_after_ic[[j]] <- rowSums(out[[j]][,c(paste0("H_IC",1:9))])
+  deaths[[j]]        <- rowSums(out[[j]][,c(paste0("D",1:9))])
+  recovered[[j]]     <- rowSums(out[[j]][,c(paste0("R",1:9))]) 
+  recovered1[[j]]    <- rowSums(out[[j]][,c(paste0("R_1w",1:9))]) 
+  recovered2[[j]]    <- rowSums(out[[j]][,c(paste0("R_2w",1:9))]) 
+  recovered3[[j]]    <- rowSums(out[[j]][,c(paste0("R_3w",1:9))]) 
+  
+  
 } # end of for loop over breakpoints
 
 
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
 # Plot output -------------------------------------------------------
-# get number of people in each compartment
-susceptibles  <- rowSums(out[[j]][,c(paste0("S",1:9))])
-exposed       <- rowSums(out[[j]][,c(paste0("E",1:9))])
-infected      <- rowSums(out[[j]][,c(paste0("I",1:9))])
-hospitalised  <- rowSums(out[[j]][,c(paste0("H",1:9))])
-ic            <- rowSums(out[[j]][,c(paste0("IC",1:9))])
-hosp_after_ic <- rowSums(out[[j]][,c(paste0("H_IC",1:9))])
-deaths        <- rowSums(out[[j]][,c(paste0("D",1:9))])
-recovered     <- rowSums(out[[j]][,c(paste0("R",1:9))]) 
-recovered1    <- rowSums(out[[j]][,c(paste0("R_1w",1:9))]) 
-recovered2    <- rowSums(out[[j]][,c(paste0("R_2w",1:9))]) 
-recovered3    <- rowSums(out[[j]][,c(paste0("R_3w",1:9))]) 
-
 # plot SEIR compartments
 x_axis <- unlist(times)
-plot(susceptibles ~ x_axis, type = "l", ylim = c(0, sum(params$N)))
+plot(unlist(susceptibles) ~ x_axis, type = "l", ylim = c(0, sum(params$N)))
 abline(h = sum(params$N), lty = "dashed")
-lines(recovered ~ x_axis, type = "l", col = "blue") #, ylim = c(0,max(recovered))
-lines(recovered1 ~ x_axis, col = "blue", lty = "dashed")
-lines(recovered2 ~ x_axis, col = "blue", lty = "dotted")
-lines(recovered3 ~ x_axis, col = "blue", lty = "twodash")
-lines(exposed ~ x_axis, col = "green")
-lines(infected ~ x_axis, col = "red")
+lines(unlist(recovered) ~ x_axis, type = "l", col = "blue") #, ylim = c(0,max(recovered))
+lines(unlist(recovered1) ~ x_axis, col = "blue", lty = "dashed")
+lines(unlist(recovered2) ~ x_axis, col = "blue", lty = "dotted")
+lines(unlist(recovered3) ~ x_axis, col = "blue", lty = "twodash")
+lines(unlist(exposed) ~ x_axis, col = "green")
+lines(unlist(infected) ~ x_axis, col = "red")
+
 # plot severe disease compartments
-plot(hospitalised ~ x_axis, type = "l", col = "orange", ylim = c(min(ic),max(hospitalised)))
-lines(ic ~ x_axis, col = "pink", type = "l")
-lines(hosp_after_ic ~ x_axis, col = "purple")
-lines(deaths ~ x_axis, col = "grey")
+plot(unlist(hospitalised) ~ x_axis, type = "l", col = "orange", 
+     ylim = c(min(unlist(ic)),max(unlist(hospitalised),unlist(deaths))))
+lines(unlist(ic) ~ x_axis, col = "pink", type = "l")
+lines(unlist(hosp_after_ic) ~ x_axis, col = "purple")
+lines(unlist(deaths) ~ x_axis, col = "grey")
+
+# plot all cases
+plot(case_data$inc[x_axis + 1] ~ x_axis, pch = 16, col = "red", 
+     ylim = c(0, max(case_data$inc[x_axis + 1],unlist(cases))))
+lines(unlist(cases) ~ x_axis) 
 # --------------------------------------------------------------------
