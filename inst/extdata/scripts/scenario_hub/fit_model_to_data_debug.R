@@ -16,6 +16,7 @@ library(tidyr)
 library(readxl)
 library(readr)
 library(lubridate)
+library(ggplot2)
 # ------------------------------------------------------------------
 # Define model -----------------------------------------------------
 age_struct_seir_ode_test <- function(times, init, params) {
@@ -221,7 +222,7 @@ df_breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.cs
          time = as.numeric(date - date[1])) %>%
   select(date, time, variant, contact_matrix)
 
-bp_for_fit <- df_breakpoints[1:18,]
+bp_for_fit <- df_breakpoints[1:5,]
 n_bp <- dim(bp_for_fit)[1] - 1
 
 # specify initial values and bounds for fitted parameters -----------
@@ -324,14 +325,17 @@ for (j in 1:n_bp) {
     mutate(index = 1:200)
   
   # run model for each beta draw (with different contact matrix) ----
+  #ci_out[[j]] <- list()
+  ci_cases[[j]] <- list()
   for(i in 1:200){
-    params$beta <- beta_draws[i,1]
+    params$beta <- beta_draws[[j]][i,1]
     params$contact_mat <- contact_matrix[[i]]
     seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
                        params, method = rk45, rtol = 1e-08, hmax = 0.02)
-    ci_out[[j]][[i]] <- as.data.frame(seir_out_ci) 
-    ci_cases[[j]][[i]] <-  rowSums(params$sigma * ci_out[[j]][[i]][c(paste0("E",1:9))] * params$p_report)
+    seir_out_ci1 <- as.data.frame(seir_out_ci) 
+    ci_cases[[j]][[i]] <-  rowSums(params$sigma * seir_out_ci1[c(paste0("E",1:9))] * params$p_report)
   }
+  ci_out[[j]] <- do.call("rbind", ci_cases[[j]])
   # -----------------------------------------------------------------
   
   # update initial conditions for next time window
@@ -406,8 +410,37 @@ lines(unlist(ic) ~ x_axis, col = "pink", type = "l")
 lines(unlist(hosp_after_ic) ~ x_axis, col = "purple")
 lines(unlist(deaths) ~ x_axis, col = "grey")
 
-# plot all cases
-plot(case_data$inc[x_axis + 1] ~ x_axis, pch = 16, col = "red", 
-     ylim = c(0, max(case_data$inc[x_axis + 1],unlist(cases))))
-lines(unlist(cases) ~ x_axis) 
+# plot all cases with confidence bounds
+ci_out_wide <- do.call("cbind", ci_out)
+bounds <- apply(ci_out_wide, 2, quantile, probs = c(0.025, 0.975)) # get quantiles
+
+df_model_fit <- data.frame(time = x_axis[1:77], 
+                           date = params$calendar_start_date + x_axis[1:77],
+                           obs = case_data$inc[x_axis[1:77] + 1], 
+                           mle = unlist(cases), 
+                           lower = bounds[1,], 
+                           upper = bounds[2,])
+saveRDS(model_fit, file = paste0(path_out, "model_fit_df_", todays_date, ".rds"))
+
+p <- ggplot(data = df_model_fit, aes(x = date, y = mle, linetype="solid")) +
+  geom_point(data = df_model_fit, aes(x = date, y = obs, color = "Osiris notifications")) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = "95% Confidence bounds"), alpha = 0.3) +
+  scale_color_manual(values = c("red"),
+                     labels = c("Osiris notifications")) +
+  scale_fill_manual(values = c("grey70")) +
+  scale_linetype_manual(values=c(1), labels = c("Model Fit")) +
+  #scale_shape_manual(values=c(NA,20)) +
+  labs(y = "Daily Cases", x = "Date") +
+  ylim(0,NA) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%d %b %Y") +
+  theme(legend.position = "bottom",
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+        axis.text.y = element_text(size = 14),
+        strip.text.x = element_text(size = 14),
+        legend.text = element_text(size = 14),
+        legend.title = element_blank(),
+        axis.title=element_text(size=14))
+p
 # --------------------------------------------------------------------
