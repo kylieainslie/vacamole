@@ -285,7 +285,7 @@ for (j in 1:n_bp) {
   print(mles[[j]])
   
   # Run model --------------------------------------------------------
-  params$beta <- res$par[1]
+  params$beta <- res$par[1]/10000
   rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
                   params, method = rk45) #, rtol = 1e-08, hmax = 0.02
@@ -301,30 +301,31 @@ for (j in 1:n_bp) {
   lines(cases[[j]] ~ times[[j]]) 
   
   # update initial conditions for next time window
-  s_vec   <- tail(out[[j]][,c(paste0("S",1:9))],1)
-  e_vec   <- tail(out[[j]][,c(paste0("E",1:9))],1)
-  i_vec   <- tail(out[[j]][,c(paste0("I",1:9))],1)
-  h_vec   <- tail(out[[j]][,c(paste0("H",1:9))],1)
-  ic_vec  <- tail(out[[j]][,c(paste0("IC",1:9))],1)
-  hic_vec <- tail(out[[j]][,c(paste0("H_IC",1:9))],1)
-  d_vec   <- tail(out[[j]][,c(paste0("D",1:9))],1)
-  r_vec   <- tail(out[[j]][,c(paste0("R",1:9))],1)
-  r_vec1  <- tail(out[[j]][,c(paste0("R_1w",1:9))],1)
-  r_vec2  <- tail(out[[j]][,c(paste0("R_2w",1:9))],1)
+  s_vec   <- unlist(tail(out[[j]][,c(paste0("S",1:9))],1))
+  e_vec   <- unlist(tail(out[[j]][,c(paste0("E",1:9))],1))
+  i_vec   <- unlist(tail(out[[j]][,c(paste0("I",1:9))],1))
+  h_vec   <- unlist(tail(out[[j]][,c(paste0("H",1:9))],1))
+  ic_vec  <- unlist(tail(out[[j]][,c(paste0("IC",1:9))],1))
+  hic_vec <- unlist(tail(out[[j]][,c(paste0("H_IC",1:9))],1))
+  d_vec   <- unlist(tail(out[[j]][,c(paste0("D",1:9))],1))
+  r_vec   <- unlist(tail(out[[j]][,c(paste0("R",1:9))],1))
+  r_vec1  <- unlist(tail(out[[j]][,c(paste0("R_1w",1:9))],1))
+  r_vec2  <- unlist(tail(out[[j]][,c(paste0("R_2w",1:9))],1))
   r_vec3  <- params$N - s_vec - e_vec - i_vec - h_vec - ic_vec - hic_vec - d_vec - r_vec - r_vec1 - r_vec2
+  names(r_vec3) <- paste0("R_3w", 1:9)
   
-  init_cond[[j+1]] <- c(t    = tail(times[[j]],1),
-                        S    = s_vec,
-                        E    = e_vec,
-                        I    = i_vec,
-                        H    = h_vec,
-                        IC   = ic_vec,
-                        H_IC = hic_vec,
-                        D    = d_vec,
-                        R    = r_vec,
-                        R_1w = r_vec1,
-                        R_2w = r_vec2,
-                        R_3w = r_vec3 )
+  init_cond[[j+1]] <- c(t = tail(times[[j]],1),
+                        s_vec,
+                        e_vec,
+                        i_vec,
+                        h_vec,
+                        ic_vec,
+                        hic_vec,
+                        d_vec,
+                        r_vec,
+                        r_vec1,
+                        r_vec2,
+                        r_vec3)
   
   # output error message if negative compartment values
   if(any(init_cond[[j+1]] < 0)){
@@ -338,30 +339,31 @@ for (j in 1:n_bp) {
 # -------------------------------------------------------------------
 # Plot output -------------------------------------------------------
 # get number of people in each compartment
-susceptibles  <- rowSums(out[,c(paste0("S",1:9))])
-exposed       <- rowSums(out[,c(paste0("E",1:9))])
-infected      <- rowSums(out[,c(paste0("I",1:9))])
-hospitalised  <- rowSums(out[,c(paste0("H",1:9))])
-ic            <- rowSums(out[,c(paste0("IC",1:9))])
-hosp_after_ic <- rowSums(out[,c(paste0("H_IC",1:9))])
-deaths        <- rowSums(out[,c(paste0("D",1:9))])
-recovered     <- rowSums(out[,c(paste0("R",1:9))]) 
-recovered1    <- rowSums(out[,c(paste0("R_1w",1:9))]) 
-recovered2    <- rowSums(out[,c(paste0("R_2w",1:9))]) 
-recovered3    <- rowSums(out[,c(paste0("R_3w",1:9))]) 
+susceptibles  <- rowSums(out[[j]][,c(paste0("S",1:9))])
+exposed       <- rowSums(out[[j]][,c(paste0("E",1:9))])
+infected      <- rowSums(out[[j]][,c(paste0("I",1:9))])
+hospitalised  <- rowSums(out[[j]][,c(paste0("H",1:9))])
+ic            <- rowSums(out[[j]][,c(paste0("IC",1:9))])
+hosp_after_ic <- rowSums(out[[j]][,c(paste0("H_IC",1:9))])
+deaths        <- rowSums(out[[j]][,c(paste0("D",1:9))])
+recovered     <- rowSums(out[[j]][,c(paste0("R",1:9))]) 
+recovered1    <- rowSums(out[[j]][,c(paste0("R_1w",1:9))]) 
+recovered2    <- rowSums(out[[j]][,c(paste0("R_2w",1:9))]) 
+recovered3    <- rowSums(out[[j]][,c(paste0("R_3w",1:9))]) 
 
 # plot SEIR compartments
-plot(susceptibles ~ times, type = "l", ylim = c(0, sum(params$N)))
+x_axis <- unlist(times)
+plot(susceptibles ~ x_axis, type = "l", ylim = c(0, sum(params$N)))
 abline(h = sum(params$N), lty = "dashed")
-lines(recovered ~ times, type = "l", col = "blue") #, ylim = c(0,max(recovered))
-lines(recovered1 ~ times, col = "blue", lty = "dashed")
-lines(recovered2 ~ times, col = "blue", lty = "dotted")
-lines(recovered3 ~ times, col = "blue", lty = "twodash")
-lines(exposed ~ times, col = "green")
-lines(infected ~ times, col = "red")
+lines(recovered ~ x_axis, type = "l", col = "blue") #, ylim = c(0,max(recovered))
+lines(recovered1 ~ x_axis, col = "blue", lty = "dashed")
+lines(recovered2 ~ x_axis, col = "blue", lty = "dotted")
+lines(recovered3 ~ x_axis, col = "blue", lty = "twodash")
+lines(exposed ~ x_axis, col = "green")
+lines(infected ~ x_axis, col = "red")
 # plot severe disease compartments
-plot(hospitalised ~ times, type = "l", col = "orange", ylim = c(min(ic),max(hospitalised)))
-lines(ic ~ times, col = "pink", type = "l")
-lines(hosp_after_ic ~ times, col = "purple")
-lines(deaths ~ times, col = "grey")
+plot(hospitalised ~ x_axis, type = "l", col = "orange", ylim = c(min(ic),max(hospitalised)))
+lines(ic ~ x_axis, col = "pink", type = "l")
+lines(hosp_after_ic ~ x_axis, col = "purple")
+lines(deaths ~ x_axis, col = "grey")
 # --------------------------------------------------------------------
