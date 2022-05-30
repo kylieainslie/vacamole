@@ -44,7 +44,7 @@ age_struct_seir_ode_test <- function(times, init, params) {
     
     #################################################################
     # ODEs:
-    dS    <- -lambda * S + (omega * 4 * R)
+    dS    <- -lambda * S + (omega * 4 * R_3w)
     dE    <- lambda * S - sigma * E + epsilon 
     dI    <- sigma * E - gamma * I - h * I
     dH    <- (h * I) - (i1 * H) - (d * H) - (r * H)
@@ -85,7 +85,7 @@ r_vec1  <- empty_state
 r_vec2  <- empty_state
 r_vec3  <- n_vec - s_vec - e_vec - i_vec - h_vec - ic_vec - hic_vec - d_vec - r_vec - r_vec1 - r_vec2
 
-init <- c(t    = 0,
+init_t0 <- c(t    = 0,
           S    = s_vec,
           E    = e_vec,
           I    = i_vec,
@@ -242,7 +242,7 @@ case_data <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rd
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
 # Fit model to data -------------------------------------------------
-init_cond[[1]] <- init
+init_cond[[1]] <- init_t0
 
 # loop over time windows --------------------------------------------
 for (j in 1:n_bp) {
