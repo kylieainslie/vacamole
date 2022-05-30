@@ -8,7 +8,7 @@
 # Define model -----------------------------------------------------
 age_struct_seir_ode2 <- function(times, init, params) {
   with(as.list(c(params, init)), {
-    print(t)
+    # print(t)
     # define initial state vectors from input ----------------------
     # susceptible
     S <- c(S1, S2, S3, S4, S5, S6, S7, S8, S9)
@@ -172,46 +172,47 @@ age_struct_seir_ode2 <- function(times, init, params) {
     }
 
     # determine contact matrix based on criteria --------------------
-    ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d + Hv_3d + Hv_4d + Hv_5d))
-
-    cases <- sum(sigma * (E + Ev_1d + Ev_2d + Ev_3d + Ev_4d + Ev_5d) 
-                 #+ (EE + EEv_1d + EEv_2d + EEv_3d + EEv_4d + EEv_5d) 
-                 * p_report)
-    criteria <- (use_cases) * cases + (!use_cases) * ic_admin
-
-    # initialize flags
-    if (times == 0 | params$keep_cm_fixed) {
-      flag_relaxed <- 0
-      flag_very_relaxed <- 0
-      flag_normal <- 0
-    }
-
-    # determine contact matrix to use based on criteria
-    tmp2 <- choose_contact_matrix(
-      times = t,
-      params = params,
-      criteria = criteria,
-      flag_relaxed = flag_relaxed,
-      flag_very_relaxed = flag_very_relaxed,
-      flag_normal = flag_normal,
-      keep_fixed = keep_cm_fixed
-    )
-
-    contact_mat <- tmp2$contact_matrix
-    flag_relaxed <- tmp2$flag_relaxed
-    flag_very_relaxed <- tmp2$flag_very_relaxed
-    flag_normal <- tmp2$flag_normal
-
-    if ((flag_normal > 0 || t > t_beta_change) & !is.null(beta_change)) {
-      beta <- beta_change
-    }
+    # ic_admin <- sum(i1 * (H + Hv_1d + Hv_2d + Hv_3d + Hv_4d + Hv_5d))
+    # 
+    # cases <- sum(sigma * (E + Ev_1d + Ev_2d + Ev_3d + Ev_4d + Ev_5d) 
+    #              #+ (EE + EEv_1d + EEv_2d + EEv_3d + EEv_4d + EEv_5d) 
+    #              * p_report)
+    # criteria <- (use_cases) * cases + (!use_cases) * ic_admin
+    # 
+    # # initialize flags
+    # if (times == 0 | params$keep_cm_fixed) {
+    #   flag_relaxed <- 0
+    #   flag_very_relaxed <- 0
+    #   flag_normal <- 0
+    # }
+    # 
+    # # determine contact matrix to use based on criteria
+    # tmp2 <- choose_contact_matrix(
+    #   times = t,
+    #   params = params,
+    #   criteria = criteria,
+    #   flag_relaxed = flag_relaxed,
+    #   flag_very_relaxed = flag_very_relaxed,
+    #   flag_normal = flag_normal,
+    #   keep_fixed = keep_cm_fixed
+    # )
+    # 
+    # contact_mat <- tmp2$contact_matrix
+    # flag_relaxed <- tmp2$flag_relaxed
+    # flag_very_relaxed <- tmp2$flag_very_relaxed
+    # flag_normal <- tmp2$flag_normal
+    # 
+    # if ((flag_normal > 0 || t > t_beta_change) & !is.null(beta_change)) {
+    #   beta <- beta_change
+    # }
 
     # determine force of infection ----------------------------------
     calendar_day <- ifelse(times > 365, t_calendar_start + times - 365, t_calendar_start + times)
     beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) # incorporate seasonality in transmission rate
-    lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d) + (eta_trans3 * Iv_3d) + (eta_trans4 * Iv_4d) + (eta_trans5 * Iv_5d)))
-    lambda <- ifelse(lambda < 0, 0, lambda)
-    print(beta_t)
+    lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d) + 
+                                        (eta_trans3 * Iv_3d) + (eta_trans4 * Iv_4d) + (eta_trans5 * Iv_5d)))
+    # lambda <- ifelse(lambda < 0, 0, lambda)
+    # print(beta_t)
     # ---------------------------------------------------------------
 
     ################################################################
@@ -340,9 +341,9 @@ age_struct_seir_ode2 <- function(times, init, params) {
     dRv_5d_3w <- (omega*4) * Rv_5d_2w - (omega*4) * Rv_5d_3w
     
     # assign variables to global environment, so they can be used for next iteration
-    assign("flag_relaxed", flag_relaxed, envir = globalenv())
-    assign("flag_very_relaxed", flag_very_relaxed, envir = globalenv())
-    assign("flag_normal", flag_normal, envir = globalenv())
+    # assign("flag_relaxed", flag_relaxed, envir = globalenv())
+    # assign("flag_very_relaxed", flag_very_relaxed, envir = globalenv())
+    # assign("flag_normal", flag_normal, envir = globalenv())
     ################################################################
     dt <- 1
     list(c(
