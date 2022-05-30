@@ -414,13 +414,17 @@ lines(unlist(deaths) ~ x_axis, col = "grey")
 ci_out_wide <- do.call("cbind", ci_out)
 bounds <- apply(ci_out_wide, 2, quantile, probs = c(0.025, 0.975)) # get quantiles
 
-df_model_fit <- data.frame(time = x_axis[1:77], 
-                           date = params$calendar_start_date + x_axis[1:77],
-                           obs = case_data$inc[x_axis[1:77] + 1], 
+df_model_fit <- data.frame(time = x_axis, 
+                           date = params$calendar_start_date + x_axis,
+                           obs = case_data$inc[x_axis + 1], 
                            mle = unlist(cases), 
                            lower = bounds[1,], 
                            upper = bounds[2,])
-saveRDS(model_fit, file = paste0(path_out, "model_fit_df_", todays_date, ".rds"))
+
+path_out <- "inst/extdata/results/model_fits/"
+saveRDS(df_model_fit,
+        file = paste0(path_out, "model_fit_df_from_", df_model_fit$date[1],"_to_",
+                      tail(df_model_fit$date,1), ".rds"))
 
 p <- ggplot(data = df_model_fit, aes(x = date, y = mle, linetype="solid")) +
   geom_point(data = df_model_fit, aes(x = date, y = obs, color = "Osiris notifications")) +
