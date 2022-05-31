@@ -207,8 +207,9 @@ age_struct_seir_ode2 <- function(times, init, params) {
     # }
 
     # determine force of infection ----------------------------------
-    calendar_day <- ifelse(times > 365, t_calendar_start + times - 365, t_calendar_start + times)
-    beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) # incorporate seasonality in transmission rate
+    # incorporate seasonality in transmission rate 
+    calendar_day <- lubridate::yday(as.Date(times, origin = calendar_start_date))
+    beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24))
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans * Iv_1d) + (eta_trans2 * Iv_2d) + 
                                         (eta_trans3 * Iv_3d) + (eta_trans4 * Iv_4d) + (eta_trans5 * Iv_5d)))
     # lambda <- ifelse(lambda < 0, 0, lambda)
@@ -229,7 +230,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     dShold_5d <- alpha5 * Sv_4d - (1 / delay5) * Shold_5d - eta4 * lambda * Shold_5d
     dSv_5d <- (1 / delay5) * Shold_5d - eta5 * lambda * Sv_5d + (omega*4) * Rv_5d_3w
     
-    dE     <- lambda * (S + Shold_1d) - sigma * E + epsilon #(removing case importation rate)
+    dE     <- lambda * (S + Shold_1d) - sigma * E + epsilon
     dEv_1d <- eta  * lambda * (Sv_1d + Shold_2d) - sigma * Ev_1d
     dEv_2d <- eta2 * lambda * (Sv_2d + Shold_3d) - sigma * Ev_2d
     dEv_3d <- eta3 * lambda * (Sv_3d + Shold_4d) - sigma * Ev_3d
@@ -345,7 +346,7 @@ age_struct_seir_ode2 <- function(times, init, params) {
     # assign("flag_very_relaxed", flag_very_relaxed, envir = globalenv())
     # assign("flag_normal", flag_normal, envir = globalenv())
     ################################################################
-    dt <- 1
+    #dt <- 1
     list(c(
       dt, dS, dShold_1d, dSv_1d, dShold_2d, dSv_2d, dShold_3d, dSv_3d, dShold_4d, dSv_4d, dShold_5d, dSv_5d,
       dE, dEv_1d, dEv_2d, dEv_3d, dEv_4d, dEv_5d,
