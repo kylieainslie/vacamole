@@ -116,7 +116,7 @@ i2h    <- p_infection2admission / time_symptom2admission   # I -> H
 h2ic   <- p_admission2IC / time_admission2IC               # H -> IC
 h2d    <- p_admission2death / time_admission2death         # H -> D
 h2r    <- (1 - (p_admission2IC + p_admission2death)) / time_admission2discharge
-# H -> R
+                                                           # H -> R
 
 ic2hic <- p_IC2hospital / time_IC2hospital                 # IC -> H_IC
 ic2d   <- (1 - p_IC2hospital) / time_IC2death              # IC -> D
@@ -221,7 +221,7 @@ recovered1 <- list()
 recovered2 <- list()
 recovered3 <- list()
 # load case data ----------------------------------------------------
-data_date <- "2022-03-12"
+data_date <- "2022-05-21"
 case_data <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rds"))
 
 # -------------------------------------------------------------------
@@ -277,7 +277,9 @@ for (j in 1:n_bp) {
   
   # store outputs ----------------------------------------------------
   out[[j]] <- as.data.frame(seir_out) 
-  cases[[j]] <-  rowSums(params$sigma * out[[j]][c(paste0("E",1:9))] * params$p_report)
+  cases[[j]] <-  rowSums(params$sigma * (out[[j]][c(paste0("E",1:9))] + out[[j]][c(paste0("Ev_1d",1:9))] +
+                                         out[[j]][c(paste0("Ev_2d",1:9))] + out[[j]][c(paste0("Ev_3d",1:9))] +
+                                         out[[j]][c(paste0("Ev_4d",1:9))] + out[[j]][c(paste0("Ev_5d",1:9))]) * params$p_report)
   
   # plot for quick check of fit --------------------------------------
   plot(case_data_sub$inc ~ times[[j]], pch = 16, col = "red", 
@@ -306,36 +308,16 @@ for (j in 1:n_bp) {
   # -----------------------------------------------------------------
   
   # update initial conditions for next time window
-  # # tail(as.data.frame(seir_out),1)[-c(1:2)]
-  s_vec   <- unlist(tail(out[[j]][,c(paste0("S",1:9))],1))
-  e_vec   <- unlist(tail(out[[j]][,c(paste0("E",1:9))],1))
-  i_vec   <- unlist(tail(out[[j]][,c(paste0("I",1:9))],1))
-  h_vec   <- unlist(tail(out[[j]][,c(paste0("H",1:9))],1))
-  ic_vec  <- unlist(tail(out[[j]][,c(paste0("IC",1:9))],1))
-  hic_vec <- unlist(tail(out[[j]][,c(paste0("H_IC",1:9))],1))
-  d_vec   <- unlist(tail(out[[j]][,c(paste0("D",1:9))],1))
-  r_vec   <- unlist(tail(out[[j]][,c(paste0("R",1:9))],1))
-  r_vec1  <- unlist(tail(out[[j]][,c(paste0("R_1w",1:9))],1))
-  r_vec2  <- unlist(tail(out[[j]][,c(paste0("R_2w",1:9))],1))
-  r_vec3  <- params$N - s_vec - e_vec - i_vec - h_vec - ic_vec - hic_vec - d_vec - r_vec - r_vec1 - r_vec2
-  names(r_vec3) <- paste0("R_3w", 1:9)
-  
-  init_cond[[j+1]] <- c(t = tail(times[[j]],1),
-                        s_vec,
-                        e_vec,
-                        i_vec,
-                        h_vec,
-                        ic_vec,
-                        hic_vec,
-                        d_vec,
-                        r_vec,
-                        r_vec1,
-                        r_vec2,
-                        r_vec3)
+  init_cond[[j+1]] <- tail(out[[j]],1)[names(out[[j]]) != "time"]
   
   # output error message if negative compartment values
   if(any(init_cond[[j+1]] < 0)){
     stop("Error: Negative compartment values")
+  }
+  
+  # output error message if sum of initial conditions != N
+  if(sum(init_cond[[j+1]][-1]) != sum(params$N)){
+    stop("Error: Sum of compartments not equal to total population size")
   }
   
   # ------------------------------------------------------------------  
