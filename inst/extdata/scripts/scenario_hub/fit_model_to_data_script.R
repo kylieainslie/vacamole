@@ -34,7 +34,7 @@ i_vec     <- inf_seed_vec; iv1_vec <- empty_state; iv2_vec <- empty_state; iv3_v
 h_vec     <- empty_state; hv1_vec <- empty_state; hv2_vec <- empty_state; hv3_vec <- empty_state; hv4_vec <- empty_state; hv5_vec <- empty_state
 ic_vec    <- empty_state; icv1_vec <- empty_state; icv2_vec <- empty_state; icv3_vec <- empty_state; icv4_vec <- empty_state; icv5_vec <- empty_state;
 hic_vec   <- empty_state; hicv1_vec <- empty_state; hicv2_vec <- empty_state; hicv3_vec <- empty_state; hicv4_vec <- empty_state; hicv5_vec <- empty_state;
-d_vec     <- empty_state; dv1_vec <- empty_state; dv2_vec <- empty_state; dv3_vec <- empty_state; dv4_vec <- empty_state; dv5_vec <- empty_state;
+d_vec     <- empty_state
 r_vec     <- empty_state; rv1_vec <- empty_state; rv2_vec <- empty_state; rv3_vec <- empty_state; rv4_vec <- empty_state; rv5_vec <- empty_state;
 r1_vec    <- empty_state; r1v1_vec <- empty_state; r1v2_vec <- empty_state; r1v3_vec <- empty_state; r1v4_vec <- empty_state; r1v5_vec <- empty_state;
 r2_vec    <- empty_state; r2v1_vec <- empty_state; r2v2_vec <- empty_state; r2v3_vec <- empty_state; r2v4_vec <- empty_state; r2v5_vec <- empty_state;
@@ -54,17 +54,17 @@ r3_vec    <- n_vec - s_vec - sv1_vec - sv2_vec - sv3_vec - sv4_vec - sv5_vec -
 
 init_t0 <- c(t        = 0,
              S        = s_vec, Sv_1d = sv1_vec, Sv_2d = sv2_vec, Sv_3d = sv3_vec, Sv_4d = sv4_vec, Sv_5d = sv5_vec,
-             Shold_1d = shold1_vec, Shold_2d = shold2_vec, Shold_3d = shold3_vec, Shold_4d = shold4_vec, Shold_5d - shold5_vec,
+             Shold_1d = shold1_vec, Shold_2d = shold2_vec, Shold_3d = shold3_vec, Shold_4d = shold4_vec, Shold_5d = shold5_vec,
              E        = e_vec, Ev_1d = ev1_vec, Ev_2d = ev2_vec, Ev_3d = ev3_vec, Ev_4d = ev4_vec, Ev_5d = ev5_vec,
              I        = i_vec, Iv_1d = iv1_vec, Iv_2d = iv2_vec, Iv_3d = iv3_vec, Iv_4d = iv4_vec, Iv_5d = iv5_vec,
              H        = h_vec, Hv_1d = hv1_vec, Hv_2d = hv2_vec, Hv_3d = hv3_vec, Hv_4d = hv4_vec, Hv_5d = hv5_vec,
              IC       = ic_vec, ICv_1d = icv1_vec, ICv_2d = icv2_vec, ICv_3d = icv3_vec, ICv_4d = icv4_vec, ICv_5d = icv5_vec,
              H_IC     = hic_vec, H_ICv_1d = hicv1_vec, H_ICv_2d = hicv2_vec, H_ICv_3d = hicv3_vec, H_ICv_4d = hicv4_vec, H_ICv_5d = hicv5_vec,
-             D        = d_vec, Dv_1d = dv1_vec, Dv_2d = dv2_vec, Dv_3d = dv3_vec, Dv_4d = dv4_vec, Dv_5d = dv5_vec,
+             D        = d_vec,
              R        = r_vec, Rv_1d = rv1_vec, Rv_2d = rv2_vec, Rv_3d = rv3_vec, Rv_4d = rv4_vec, Rv_5d = rv5_vec,
              R_1w     = r1_vec, Rv_1d_1w = r1v1_vec, Rv_2d_1w = r1v2_vec, Rv_3d_1w = r1v3_vec, Rv_4d_1w = r1v4_vec, Rv_5d_1w = r1v5_vec,
              R_2w     = r2_vec, Rv_1d_2w = r2v1_vec, Rv_2d_2w = r2v2_vec, Rv_3d_2w = r2v3_vec, Rv_4d_2w = r2v4_vec, Rv_5d_2w = r2v5_vec,
-             R_3w     = r3_vec, Rv_1d_3w = r3v1_vec, Rv_2d_3w = r3v2_vec, Rv_3d_3w = r3v3_vec, Rv_4d_3w = r3v4_vec, Rv_5d_3w = r3v5_vec,
+             R_3w     = r3_vec, Rv_1d_3w = r3v1_vec, Rv_2d_3w = r3v2_vec, Rv_3d_3w = r3v3_vec, Rv_4d_3w = r3v4_vec, Rv_5d_3w = r3v5_vec
 )
 
 # Specify model parameters ------------------------------------------
@@ -140,7 +140,7 @@ vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_do
 
 # source function to convert vac schedule for model input -----------
 source("R/convert_vac_schedule2.R")
-
+source("R/calc_ve_w_waning.R")
 # convert vaccination schedule for input into model
 vac_rates_wt <- convert_vac_schedule2(
   vac_schedule = vac_schedule,
@@ -148,7 +148,7 @@ vac_rates_wt <- convert_vac_schedule2(
   ve = ve_params$ve_inf$wildtype,
   hosp_multiplier = ve_params$ve_hosp$wildtype,
   ve_trans = ve_params$ve_trans$wildtype,
-  wane = FALSE)
+  wane = TRUE)
 
 vac_rates_alpha <- convert_vac_schedule2(
   vac_schedule = vac_schedule,
@@ -156,7 +156,7 @@ vac_rates_alpha <- convert_vac_schedule2(
   ve = ve_params$ve_inf$alpha,
   hosp_multiplier = ve_params$ve_hosp$alpha,
   ve_trans = ve_params$ve_trans$alpha,
-  wane = FALSE)
+  wane = TRUE)
 
 vac_rates_delta <- convert_vac_schedule2(
   vac_schedule = vac_schedule,
@@ -164,7 +164,7 @@ vac_rates_delta <- convert_vac_schedule2(
   ve = ve_params$ve_inf$delta,
   hosp_multiplier = ve_params$ve_hosp$delta,
   ve_trans = ve_params$ve_trans$delta,
-  wane = FALSE)
+  wane = TRUE)
 
 vac_rates_omicron <- convert_vac_schedule2(
   vac_schedule = vac_schedule,
@@ -172,7 +172,7 @@ vac_rates_omicron <- convert_vac_schedule2(
   ve = ve_params$ve_inf$omicron,
   hosp_multiplier = ve_params$ve_hosp$omicron,
   ve_trans = ve_params$ve_trans$omicron,
-  wane = FALSE)
+  wane = TRUE)
 
 # make into a list for input into fit_to_data_func()
 vac_rates_list <- list(
@@ -221,7 +221,7 @@ likelihood_func_test <- function(x, t, data, params, init) {
   # run model with current parameter values
   params$beta <- x[1]/10000
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init, t, age_struct_seir_ode_test, params, method = rk45, 
+  seir_out <- ode(init, t, age_struct_seir_ode2, params, method = rk45, 
                   rtol = 1e-08, hmax = 0.02) 
   out <- as.data.frame(seir_out)
   
@@ -311,10 +311,10 @@ for (j in 1:n_bp) {
   # set vaccination characteristics depending on variant ------------
   if(!params$no_vac){
     # set VE for time window depending on which variant was dominant
-    if (breakpoints$variant[j+1] == "wildtype"){params$vac_inputs <- vac_info$wildtype
-    } else if (breakpoints$variant[j+1] == "alpha"){params$vac_inputs <- vac_info$alpha
-    } else if (breakpoints$variant[j+1] == "delta"){params$vac_inputs <- vac_info$delta
-    } else {params$vac_inputs <- vac_info$omicron}
+    if (bp_for_fit$variant[j+1] == "wildtype"){params$vac_inputs <- vac_rates_list$wildtype
+    } else if (bp_for_fit$variant[j+1] == "alpha"){params$vac_inputs <- vac_rates_list$alpha
+    } else if (bp_for_fit$variant[j+1] == "delta"){params$vac_inputs <- vac_rates_list$delta
+    } else {params$vac_inputs <- vac_rates_list$omicron}
   }
   
   # subset data for time window -------------------------------------
@@ -340,7 +340,7 @@ for (j in 1:n_bp) {
   # Run model --------------------------------------------------------
   params$beta <- res$par[1]/10000
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
+  seir_out <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode2,  
                   params, method = rk45, rtol = 1e-08, hmax = 0.02)
   
   # store outputs ----------------------------------------------------
@@ -367,7 +367,7 @@ for (j in 1:n_bp) {
   for(i in 1:200){
     params$beta <- beta_draws[[j]][i,1]
     params$contact_mat <- contact_matrix[[i]]
-    seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
+    seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode2,  
                        params, method = rk45, rtol = 1e-08, hmax = 0.02)
     seir_out_ci1 <- as.data.frame(seir_out_ci) 
     ci_cases[[j]][[i]] <-  rowSums(params$sigma * seir_out_ci1[c(paste0("E",1:9))] * params$p_report)
