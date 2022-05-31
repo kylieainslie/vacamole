@@ -126,6 +126,62 @@ hic2r  <- (1 - p_hospital2death) / time_hospital2discharge # H_IC -> R
 
 dt <- 1
 
+# ve estimates ------------------------------------------------------
+# list containing the following named lists:
+# delays, ve_inf, ve_hosp, ve_trans
+# each named list has the following named elements:
+# pfizer, moderna, astrazeneca, jansen
+ve_params <- readRDS("inst/extdata/inputs/ve_params.rds")
+
+# vaccination schedule ----------------------------------------------
+# read in vaccination schedule
+vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv") %>%
+  select(-X1)
+
+# source function to convert vac schedule for model input -----------
+source("R/convert_vac_schedule2.R")
+
+# convert vaccination schedule for input into model
+vac_rates_wt <- convert_vac_schedule2(
+  vac_schedule = vac_schedule,
+  delay = ve_params$delays,
+  ve = ve_params$ve_inf$wildtype,
+  hosp_multiplier = ve_params$ve_hosp$wildtype,
+  ve_trans = ve_params$ve_trans$wildtype,
+  wane = FALSE)
+
+vac_rates_alpha <- convert_vac_schedule2(
+  vac_schedule = vac_schedule,
+  delay = ve_params$delays,
+  ve = ve_params$ve_inf$alpha,
+  hosp_multiplier = ve_params$ve_hosp$alpha,
+  ve_trans = ve_params$ve_trans$alpha,
+  wane = FALSE)
+
+vac_rates_delta <- convert_vac_schedule2(
+  vac_schedule = vac_schedule,
+  delay = ve_params$delays,
+  ve = ve_params$ve_inf$delta,
+  hosp_multiplier = ve_params$ve_hosp$delta,
+  ve_trans = ve_params$ve_trans$delta,
+  wane = FALSE)
+
+vac_rates_omicron <- convert_vac_schedule2(
+  vac_schedule = vac_schedule,
+  delay = ve_params$delays,
+  ve = ve_params$ve_inf$omicron,
+  hosp_multiplier = ve_params$ve_hosp$omicron,
+  ve_trans = ve_params$ve_trans$omicron,
+  wane = FALSE)
+
+# make into a list for input into fit_to_data_func()
+vac_rates_list <- list(
+  wildtype = vac_rates_wt,
+  alpha = vac_rates_alpha,
+  delta = vac_rates_delta,
+  omicron = vac_rates_omicron
+)
+
 # model input parameters ---------------------------------------------
 # parameters must be in a named list
 params <- list(dt = dt,
@@ -146,7 +202,8 @@ params <- list(dt = dt,
                omega = 0.0038/dt,
                p_report = p_reported_by_age,
                contact_mat = april_2017,
-               calendar_start_date = as.Date("2020-01-01")
+               calendar_start_date = as.Date("2020-01-01"),
+               no_vac = FALSE
 )
 
 # -------------------------------------------------------------------
@@ -169,7 +226,9 @@ likelihood_func_test <- function(x, t, data, params, init) {
   out <- as.data.frame(seir_out)
   
   # modeled cases
-  daily_cases <- rowSums(params$sigma * out[,c(paste0("E",1:9))] * params$p_report)
+  daily_cases <- rowSums(params$sigma * (out[c(paste0("E",1:9))] + out[c(paste0("Ev_1d",1:9))] +
+                                         out[c(paste0("Ev_2d",1:9))] + out[c(paste0("Ev_3d",1:9))] +
+                                         out[c(paste0("Ev_4d",1:9))] + out[c(paste0("Ev_5d",1:9))]) * params$p_report)
   daily_cases <- ifelse(daily_cases == 0, 0.0001, daily_cases) # prevent likelihood function function from being Inf
   
   # log-likelihood function
@@ -234,6 +293,9 @@ for (j in 1:n_bp) {
   
   print(paste(paste0(j,")"),"Fitting from", bp_for_fit$date[j], "to", bp_for_fit$date[j+1]))
   
+  # set time sequence -----------------------------------------------
+  times[[j]] <- seq(bp_for_fit$time[j], bp_for_fit$time[j+1], by = 1)
+  
   # set contact matrix for time window ------------------------------
   if (bp_for_fit$contact_matrix[j+1] == "april_2017"){contact_matrix <- contact_matrices$april_2017 #; print("april_2017")
   } else if (bp_for_fit$contact_matrix[j+1] == "april_2020"){contact_matrix <- contact_matrices$april_2020 #; print("april_2020")
@@ -246,8 +308,14 @@ for (j in 1:n_bp) {
   # change contact matrix in params list ----------------------------
   params$contact_mat <- contact_matrix$mean
   
-  # set time sequence -----------------------------------------------
-  times[[j]] <- seq(bp_for_fit$time[j], bp_for_fit$time[j+1], by = 1)
+  # set vaccination characteristics depending on variant ------------
+  if(!params$no_vac){
+    # set VE for time window depending on which variant was dominant
+    if (breakpoints$variant[j+1] == "wildtype"){params$vac_inputs <- vac_info$wildtype
+    } else if (breakpoints$variant[j+1] == "alpha"){params$vac_inputs <- vac_info$alpha
+    } else if (breakpoints$variant[j+1] == "delta"){params$vac_inputs <- vac_info$delta
+    } else {params$vac_inputs <- vac_info$omicron}
+  }
   
   # subset data for time window -------------------------------------
   case_data_sub <- case_data[times[[j]] + 1, ]
