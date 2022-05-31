@@ -27,30 +27,44 @@ seed_age_group <- sample(1:9,1)
 inf_seed_vec <- empty_state
 inf_seed_vec[seed_age_group] <- 1
 
-s_vec   <- n_vec - inf_seed_vec
-e_vec   <- empty_state
-i_vec   <- inf_seed_vec
-h_vec   <- empty_state
-ic_vec  <- empty_state
-hic_vec <- empty_state
-d_vec   <- empty_state
-r_vec   <- empty_state
-r_vec1  <- empty_state
-r_vec2  <- empty_state
-r_vec3  <- n_vec - s_vec - e_vec - i_vec - h_vec - ic_vec - hic_vec - d_vec - r_vec - r_vec1 - r_vec2
+s_vec     <- n_vec - inf_seed_vec; sv1_vec <- empty_state; sv2_vec <- empty_state; sv3_vec <- empty_state; sv4_vec <- empty_state; sv5_vec <- empty_state;
+shold1_vec<- empty_state; shold2_vec <- empty_state; shold3_vec <- empty_state; shold4_vec <- empty_state; shold5_vec <- empty_state;
+e_vec     <- empty_state; ev1_vec <- empty_state; ev2_vec <- empty_state; ev3_vec <- empty_state; ev4_vec <- empty_state; ev5_vec <- empty_state;
+i_vec     <- inf_seed_vec; iv1_vec <- empty_state; iv2_vec <- empty_state; iv3_vec <- empty_state; iv4_vec <- empty_state; iv5_vec <- empty_state;
+h_vec     <- empty_state; hv1_vec <- empty_state; hv2_vec <- empty_state; hv3_vec <- empty_state; hv4_vec <- empty_state; hv5_vec <- empty_state
+ic_vec    <- empty_state; icv1_vec <- empty_state; icv2_vec <- empty_state; icv3_vec <- empty_state; icv4_vec <- empty_state; icv5_vec <- empty_state;
+hic_vec   <- empty_state; hicv1_vec <- empty_state; hicv2_vec <- empty_state; hicv3_vec <- empty_state; hicv4_vec <- empty_state; hicv5_vec <- empty_state;
+d_vec     <- empty_state; dv1_vec <- empty_state; dv2_vec <- empty_state; dv3_vec <- empty_state; dv4_vec <- empty_state; dv5_vec <- empty_state;
+r_vec     <- empty_state; rv1_vec <- empty_state; rv2_vec <- empty_state; rv3_vec <- empty_state; rv4_vec <- empty_state; rv5_vec <- empty_state;
+r1_vec    <- empty_state; r1v1_vec <- empty_state; r1v2_vec <- empty_state; r1v3_vec <- empty_state; r1v4_vec <- empty_state; r1v5_vec <- empty_state;
+r2_vec    <- empty_state; r2v1_vec <- empty_state; r2v2_vec <- empty_state; r2v3_vec <- empty_state; r2v4_vec <- empty_state; r2v5_vec <- empty_state;
+r3v1_vec  <- empty_state; r3v2_vec <- empty_state; r3v3_vec <- empty_state; r3v4_vec <- empty_state; r3v5_vec <- empty_state;
+r3_vec    <- n_vec - s_vec - sv1_vec - sv2_vec - sv3_vec - sv4_vec - sv5_vec -
+  shold1_vec - shold2_vec - shold3_vec - shold4_vec - shold5_vec -
+  e_vec - ev1_vec - ev2_vec - ev3_vec - ev4_vec - ev5_vec -
+  i_vec - iv1_vec - iv2_vec - iv3_vec - iv4_vec - iv5_vec -
+  h_vec - hv1_vec - hv2_vec - hv3_vec - hv4_vec - hv5_vec -
+  ic_vec - icv1_vec - icv2_vec - icv3_vec - icv4_vec - icv5_vec -
+  hic_vec - hicv1_vec - hicv2_vec - hicv3_vec - hicv4_vec - hicv5_vec -
+  d_vec - dv1_vec - dv2_vec - dv3_vec - dv4_vec - dv5_vec -
+  r_vec - rv1_vec - rv2_vec - rv3_vec - rv4_vec - rv5_vec -
+  r1_vec - r1v1_vec - r1v2_vec - r1v3_vec - r1v4_vec - r1v5_vec -
+  r2_vec - r2v1_vec - r2v2_vec - r2v3_vec - r2v4_vec - r2v5_vec -
+  r3v1_vec - r3v2_vec - r3v3_vec - r3v4_vec - r3v5_vec
 
-init_t0 <- c(t    = 0,
-             S    = s_vec,
-             E    = e_vec,
-             I    = i_vec,
-             H    = h_vec,
-             IC   = ic_vec,
-             H_IC = hic_vec,
-             D    = d_vec,
-             R    = r_vec,
-             R_1w = r_vec1,
-             R_2w = r_vec2,
-             R_3w = r_vec3
+init_t0 <- c(t        = 0,
+             S        = s_vec, Sv_1d = sv1_vec, Sv_2d = sv2_vec, Sv_3d = sv3_vec, Sv_4d = sv4_vec, Sv_5d = sv5_vec,
+             Shold_1d = shold1_vec, Shold_2d = shold2_vec, Shold_3d = shold3_vec, Shold_4d = shold4_vec, Shold_5d - shold5_vec,
+             E        = e_vec, Ev_1d = ev1_vec, Ev_2d = ev2_vec, Ev_3d = ev3_vec, Ev_4d = ev4_vec, Ev_5d = ev5_vec,
+             I        = i_vec, Iv_1d = iv1_vec, Iv_2d = iv2_vec, Iv_3d = iv3_vec, Iv_4d = iv4_vec, Iv_5d = iv5_vec,
+             H        = h_vec, Hv_1d = hv1_vec, Hv_2d = hv2_vec, Hv_3d = hv3_vec, Hv_4d = hv4_vec, Hv_5d = hv5_vec,
+             IC       = ic_vec, ICv_1d = icv1_vec, ICv_2d = icv2_vec, ICv_3d = icv3_vec, ICv_4d = icv4_vec, ICv_5d = icv5_vec,
+             H_IC     = hic_vec, H_ICv_1d = hicv1_vec, H_ICv_2d = hicv2_vec, H_ICv_3d = hicv3_vec, H_ICv_4d = hicv4_vec, H_ICv_5d = hicv5_vec,
+             D        = d_vec, Dv_1d = dv1_vec, Dv_2d = dv2_vec, Dv_3d = dv3_vec, Dv_4d = dv4_vec, Dv_5d = dv5_vec,
+             R        = r_vec, Rv_1d = rv1_vec, Rv_2d = rv2_vec, Rv_3d = rv3_vec, Rv_4d = rv4_vec, Rv_5d = rv5_vec,
+             R_1w     = r1_vec, Rv_1d_1w = r1v1_vec, Rv_2d_1w = r1v2_vec, Rv_3d_1w = r1v3_vec, Rv_4d_1w = r1v4_vec, Rv_5d_1w = r1v5_vec,
+             R_2w     = r2_vec, Rv_1d_2w = r2v1_vec, Rv_2d_2w = r2v2_vec, Rv_3d_2w = r2v3_vec, Rv_4d_2w = r2v4_vec, Rv_5d_2w = r2v5_vec,
+             R_3w     = r3_vec, Rv_1d_3w = r3v1_vec, Rv_2d_3w = r3v2_vec, Rv_3d_3w = r3v3_vec, Rv_4d_3w = r3v4_vec, Rv_5d_3w = r3v5_vec,
 )
 
 # Specify model parameters ------------------------------------------
@@ -175,7 +189,7 @@ df_breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.cs
          time = as.numeric(date - date[1])) %>%
   select(date, time, variant, contact_matrix)
 
-bp_for_fit <- df_breakpoints[1:5,]
+bp_for_fit <- df_breakpoints#[1:5,]
 n_bp <- dim(bp_for_fit)[1] - 1
 
 # specify initial values and bounds for fitted parameters -----------
