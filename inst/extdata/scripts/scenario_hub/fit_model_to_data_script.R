@@ -132,7 +132,7 @@ dt <- 1
 # each named list has the following named elements:
 # pfizer, moderna, astrazeneca, jansen
 ve_params <- readRDS("inst/extdata/inputs/ve_params.rds")
-
+ve_params$delay_rate <- lapply(ve_params$delays, function(x) 1/x)
 # vaccination schedule ----------------------------------------------
 # read in vaccination schedule
 vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv") %>%
@@ -144,7 +144,7 @@ source("R/calc_ve_w_waning.R")
 # convert vaccination schedule for input into model
 vac_rates_wt <- convert_vac_schedule2(
   vac_schedule = vac_schedule,
-  delay = ve_params$delays,
+  delay = ve_params$delay_rate,
   ve = ve_params$ve_inf$wildtype,
   hosp_multiplier = ve_params$ve_hosp$wildtype,
   ve_trans = ve_params$ve_trans$wildtype,
@@ -182,6 +182,7 @@ vac_rates_list <- list(
   omicron = vac_rates_omicron
 )
 
+lapply(vac_rates_wt, )
 # model input parameters ---------------------------------------------
 # parameters must be in a named list
 params <- list(dt = dt,
@@ -214,15 +215,14 @@ likelihood_func_test <- function(x, t, data, params, init) {
   # parameters to be estimated
   beta <- x[1]
   alpha <- x[2]
-  
+  print(x)
   # observed daily cases
   inc_obs <- data$inc
   
   # run model with current parameter values
   params$beta <- x[1]/10000
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init, t, age_struct_seir_ode2, params, method = rk45, 
-                  rtol = 1e-08, hmax = 0.02) 
+  seir_out <- ode(init, t, age_struct_seir_ode2, params, method = rk45) # , rtol = 1e-08, hmax = 0.02
   out <- as.data.frame(seir_out)
   
   # modeled cases
@@ -235,7 +235,6 @@ likelihood_func_test <- function(x, t, data, params, init) {
   # lik <- sum(dpois(x = inc_obs,lambda = incidence,log=TRUE))
   lik <- -sum(stats::dnbinom(x = inc_obs, mu = daily_cases, size = alpha, log = TRUE))
   
-  # print(x)
   # print(lik)
   lik
 }
@@ -308,6 +307,10 @@ for (j in 1:n_bp) {
   # change contact matrix in params list ----------------------------
   params$contact_mat <- contact_matrix$mean
   
+  # set no_vac = TRUE before vaccination program starts -------------
+  if(bp_for_fit$date[j+1] <= as.Date("2021-01-04")){ params$no_vac <- TRUE
+  } else {params$no_vac <- FALSE}
+  
   # set vaccination characteristics depending on variant ------------
   if(!params$no_vac){
     # set VE for time window depending on which variant was dominant
@@ -341,7 +344,7 @@ for (j in 1:n_bp) {
   params$beta <- res$par[1]/10000
   rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode2,  
-                  params, method = rk45, rtol = 1e-08, hmax = 0.02)
+                  params, method = rk45) # , rtol = 1e-08, hmax = 0.02
   
   # store outputs ----------------------------------------------------
   out[[j]] <- as.data.frame(seir_out) 
@@ -362,13 +365,14 @@ for (j in 1:n_bp) {
     mutate(index = 1:200)
   
   # run model for each beta draw (with different contact matrix) ----
+  print("Getting confidence bounds...")
   #ci_out[[j]] <- list()
   ci_cases[[j]] <- list()
   for(i in 1:200){
     params$beta <- beta_draws[[j]][i,1]
     params$contact_mat <- contact_matrix[[i]]
     seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode2,  
-                       params, method = rk45, rtol = 1e-08, hmax = 0.02)
+                       params, method = rk45) #, rtol = 1e-08, hmax = 0.02
     seir_out_ci1 <- as.data.frame(seir_out_ci) 
     ci_cases[[j]][[i]] <-  rowSums(params$sigma * seir_out_ci1[c(paste0("E",1:9))] * params$p_report)
   }
@@ -376,16 +380,17 @@ for (j in 1:n_bp) {
   # -----------------------------------------------------------------
   
   # update initial conditions for next time window
-  init_cond[[j+1]] <- tail(out[[j]],1)[names(out[[j]]) != "time"]
+  init_cond[[j+1]] <- unlist(tail(out[[j]],1)[names(out[[j]]) != "time"])
   
   # output error message if negative compartment values
   if(any(init_cond[[j+1]] < 0)){
-    stop("Error: Negative compartment values")
+    stop("Negative compartment values")
   }
   
   # output error message if sum of initial conditions != N
-  if(sum(init_cond[[j+1]][-1]) != sum(params$N)){
-    stop("Error: Sum of compartments not equal to total population size")
+  test <- all.equal(sum(init_cond[[j+1]][-1]), sum(params$N))
+  if(!test){
+    stop("Sum of compartments not equal to total population size")
   }
   
   # ------------------------------------------------------------------  
@@ -405,12 +410,34 @@ for (j in 1:n_bp) {
   
 } # end of for loop over breakpoints
 
+# save outputs ------------------------------------------------------
+path_out <- "inst/extdata/results/model_fits/"
+# get confidence bounds
+ci_out_wide <- do.call("cbind", ci_out)
+bounds <- apply(ci_out_wide, 2, quantile, probs = c(0.025, 0.975)) # get quantiles
+
+x_axis <- unlist(times)
+df_model_fit <- data.frame(time = x_axis, 
+                           date = params$calendar_start_date + x_axis,
+                           obs = case_data$inc[x_axis + 1], 
+                           mle = unlist(cases), 
+                           lower = bounds[1,], 
+                           upper = bounds[2,])
+
+saveRDS(df_model_fit,
+        file = paste0(path_out, "model_fit_df_from_", df_model_fit$date[1],"_to_",
+                      tail(df_model_fit$date,1), ".rds"))
+
+rtn <- list(out_mle = out,
+            cases_mle = cases,
+            cases_ci = ci_out)
+saveRDS(rtn, file = paste0(path_out,"model_fit_outputs_from_",df_model_fit$date[1],"_to_",
+                           tail(df_model_fit$date,1), ".rds"))
 
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
 # Plot output -------------------------------------------------------
 # plot SEIR compartments
-x_axis <- unlist(times)
 plot(unlist(susceptibles) ~ x_axis, type = "l", ylim = c(0, sum(params$N)))
 abline(h = sum(params$N), lty = "dashed")
 lines(unlist(recovered) ~ x_axis, type = "l", col = "blue") #, ylim = c(0,max(recovered))
@@ -427,21 +454,6 @@ lines(unlist(ic) ~ x_axis, col = "pink", type = "l")
 lines(unlist(hosp_after_ic) ~ x_axis, col = "purple")
 lines(unlist(deaths) ~ x_axis, col = "grey")
 
-# plot all cases with confidence bounds
-ci_out_wide <- do.call("cbind", ci_out)
-bounds <- apply(ci_out_wide, 2, quantile, probs = c(0.025, 0.975)) # get quantiles
-
-df_model_fit <- data.frame(time = x_axis, 
-                           date = params$calendar_start_date + x_axis,
-                           obs = case_data$inc[x_axis + 1], 
-                           mle = unlist(cases), 
-                           lower = bounds[1,], 
-                           upper = bounds[2,])
-
-path_out <- "inst/extdata/results/model_fits/"
-saveRDS(df_model_fit,
-        file = paste0(path_out, "model_fit_df_from_", df_model_fit$date[1],"_to_",
-                      tail(df_model_fit$date,1), ".rds"))
 
 p <- ggplot(data = df_model_fit, aes(x = date, y = mle, linetype="solid")) +
   geom_point(data = df_model_fit, aes(x = date, y = obs, color = "Osiris notifications")) +
