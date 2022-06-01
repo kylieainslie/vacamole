@@ -129,39 +129,39 @@ age_struct_seir_ode2 <- function(times, init, params) {
     if (!no_vac) {
       index <- floor(times) + 1
       # vaccine rate (per day) by dose
-      alpha <- vac_inputs$alpha_dose1[index, ]
-      alpha2 <- vac_inputs$alpha_dose2[index, ]
-      alpha3 <- vac_inputs$alpha_dose3[index, ]
-      alpha4 <- vac_inputs$alpha_dose4[index, ]
-      alpha5 <- vac_inputs$alpha_dose5[index, ]
+      alpha  <- unname(unlist(vac_inputs$alpha_dose1[index, ]))
+      alpha2 <- unname(unlist(vac_inputs$alpha_dose2[index, ]))
+      alpha3 <- unname(unlist(vac_inputs$alpha_dose3[index, ]))
+      alpha4 <- unname(unlist(vac_inputs$alpha_dose4[index, ]))
+      alpha5 <- unname(unlist(vac_inputs$alpha_dose5[index, ]))
       
       # delay to protection by dose
-      delay  <- vac_inputs$delay_dose1[index, ]
-      delay2 <- vac_inputs$delay_dose2[index, ]
-      delay3 <- vac_inputs$delay_dose3[index, ]
-      delay4 <- vac_inputs$delay_dose4[index, ]
-      delay5 <- vac_inputs$delay_dose5[index, ]
+      delay  <- unname(unlist(vac_inputs$delay_dose1[index, ]))
+      delay2 <- unname(unlist(vac_inputs$delay_dose2[index, ]))
+      delay3 <- unname(unlist(vac_inputs$delay_dose3[index, ]))
+      delay4 <- unname(unlist(vac_inputs$delay_dose4[index, ]))
+      delay5 <- unname(unlist(vac_inputs$delay_dose5[index, ]))
       
       # 1 - VE_infection (for each dose)
-      eta  <- vac_inputs$eta_dose1[index, ]
-      eta2 <- vac_inputs$eta_dose2[index, ]
-      eta3 <- vac_inputs$eta_dose3[index, ]
-      eta4 <- vac_inputs$eta_dose4[index, ]
-      eta5 <- vac_inputs$eta_dose5[index, ]
+      eta  <- unname(unlist(vac_inputs$eta_dose1[index, ]))
+      eta2 <- unname(unlist(vac_inputs$eta_dose2[index, ]))
+      eta3 <- unname(unlist(vac_inputs$eta_dose3[index, ]))
+      eta4 <- unname(unlist(vac_inputs$eta_dose4[index, ]))
+      eta5 <- unname(unlist(vac_inputs$eta_dose5[index, ]))
       
       # 1 - VE_hospitalisation (for each dose)
-      eta_hosp  <- vac_inputs$eta_hosp_dose1[index, ]
-      eta_hosp2 <- vac_inputs$eta_hosp_dose2[index, ]
-      eta_hosp3 <- vac_inputs$eta_hosp_dose3[index, ]
-      eta_hosp4 <- vac_inputs$eta_hosp_dose4[index, ]
-      eta_hosp5 <- vac_inputs$eta_hosp_dose5[index, ]
+      eta_hosp  <- unname(unlist(vac_inputs$eta_hosp_dose1[index, ]))
+      eta_hosp2 <- unname(unlist(vac_inputs$eta_hosp_dose2[index, ]))
+      eta_hosp3 <- unname(unlist(vac_inputs$eta_hosp_dose3[index, ]))
+      eta_hosp4 <- unname(unlist(vac_inputs$eta_hosp_dose4[index, ]))
+      eta_hosp5 <- unname(unlist(vac_inputs$eta_hosp_dose5[index, ]))
       
       # 1 - VE_transmission (for each dose)
-      eta_trans  <- vac_inputs$eta_trans_dose1[index, ]
-      eta_trans2 <- vac_inputs$eta_trans_dose2[index, ]
-      eta_trans3 <- vac_inputs$eta_trans_dose3[index, ]
-      eta_trans4 <- vac_inputs$eta_trans_dose4[index, ]
-      eta_trans5 <- vac_inputs$eta_trans_dose5[index, ]
+      eta_trans  <- unname(unlist(vac_inputs$eta_trans_dose1[index, ]))
+      eta_trans2 <- unname(unlist(vac_inputs$eta_trans_dose2[index, ]))
+      eta_trans3 <- unname(unlist(vac_inputs$eta_trans_dose3[index, ]))
+      eta_trans4 <- unname(unlist(vac_inputs$eta_trans_dose4[index, ]))
+      eta_trans5 <- unname(unlist(vac_inputs$eta_trans_dose5[index, ]))
       
     } else { # if no vaccination, then fix vac rates to 0 and (1-VE) = 1
       alpha <- 0; alpha2 <- 0; alpha3 <- 0; alpha4 <- 0; alpha5 <- 0                      # vaccination rate
