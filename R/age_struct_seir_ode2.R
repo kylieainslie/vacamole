@@ -166,26 +166,25 @@ age_struct_seir_ode2 <- function(times, init, params) {
     # lambda <- ifelse(lambda < 0, 0, lambda)
     # print(beta_t)
     # ---------------------------------------------------------------
-
     ################################################################
     # ODEs:
-    dS <- -lambda * (1 - alpha) * S - alpha * S + (omega*4) * R_3w
-    dShold_1d <- alpha * S - (1 / delay) * Shold_1d - lambda * Shold_1d
-    dSv_1d <- delay * Shold_1d - (1 - alpha2) * eta * lambda * Sv_1d - alpha2 * Sv_1d + (omega*4) * Rv_1d_3w
-    dShold_2d <- alpha2 * Sv_1d - (1 / delay2) * Shold_2d - eta * lambda * Shold_2d
-    dSv_2d <- delay2 * Shold_2d - (1 - alpha3) * eta2 * lambda * Sv_2d - alpha3 * Sv_2d + (omega*4) * Rv_2d_3w
-    dShold_3d <- alpha3 * Sv_2d - (1 / delay3) * Shold_3d - eta2 * lambda * Shold_3d
-    dSv_3d <- delay3 * Shold_3d - (1 - alpha4) * eta3 * lambda * Sv_3d - alpha4 * Sv_3d + (omega*4) * Rv_3d_3w
-    dShold_4d <- alpha4 * Sv_3d - (1 / delay4) * Shold_4d - eta3 * lambda * Shold_4d
-    dSv_4d <- delay4 * Shold_4d - (1 - alpha5) * eta4 * lambda * Sv_4d - alpha5 * Sv_4d + (omega*4) * Rv_4d_3w
-    dShold_5d <- alpha5 * Sv_4d - (1 / delay5) * Shold_5d - eta4 * lambda * Shold_5d
+    dS <- -lambda * S - alpha * S + (omega*4) * R_3w
+    dShold_1d <- alpha * S - delay * Shold_1d - lambda * Shold_1d
+    dSv_1d <- delay * Shold_1d - eta * lambda * Sv_1d - alpha2 * Sv_1d + (omega*4) * Rv_1d_3w
+    dShold_2d <- alpha2 * Sv_1d - delay2 * Shold_2d - eta * lambda * Shold_2d
+    dSv_2d <- delay2 * Shold_2d - eta2 * lambda * Sv_2d - alpha3 * Sv_2d + (omega*4) * Rv_2d_3w
+    dShold_3d <- alpha3 * Sv_2d - delay3 * Shold_3d - eta2 * lambda * Shold_3d
+    dSv_3d <- delay3 * Shold_3d - eta3 * lambda * Sv_3d - alpha4 * Sv_3d + (omega*4) * Rv_3d_3w
+    dShold_4d <- alpha4 * Sv_3d - delay4 * Shold_4d - eta3 * lambda * Shold_4d
+    dSv_4d <- delay4 * Shold_4d - eta4 * lambda * Sv_4d - alpha5 * Sv_4d + (omega*4) * Rv_4d_3w
+    dShold_5d <- alpha5 * Sv_4d - delay5 * Shold_5d - eta4 * lambda * Shold_5d
     dSv_5d <- delay5 * Shold_5d - eta5 * lambda * Sv_5d + (omega*4) * Rv_5d_3w
     
-    dE     <- (1 - alpha) * lambda * S + lambda * Shold_1d - sigma * E + epsilon
-    dEv_1d <- (1 - alpha2) * eta * lambda * Sv_1d + eta * lambda * Shold_2d - sigma * Ev_1d
-    dEv_2d <- (1 - alpha3) * eta2 * lambda * Sv_2d + eta2 * lambda * Shold_3d - sigma * Ev_2d
-    dEv_3d <- (1 - alpha4) * eta3 * lambda * Sv_3d + eta3 * lambda * Shold_4d - sigma * Ev_3d
-    dEv_4d <- (1 - alpha5) * eta4 * lambda * Sv_4d + eta4 * lambda * Shold_5d - sigma * Ev_4d
+    dE     <- lambda * S + lambda * Shold_1d - sigma * E + epsilon
+    dEv_1d <- eta * lambda * Sv_1d + eta * lambda * Shold_2d - sigma * Ev_1d
+    dEv_2d <- eta2 * lambda * Sv_2d + eta2 * lambda * Shold_3d - sigma * Ev_2d
+    dEv_3d <- eta3 * lambda * Sv_3d + eta3 * lambda * Shold_4d - sigma * Ev_3d
+    dEv_4d <- eta4 * lambda * Sv_4d + eta4 * lambda * Shold_5d - sigma * Ev_4d
     dEv_5d <- eta5 * lambda * Sv_5d - sigma * Ev_5d
     
     dI     <- sigma * E - (gamma + h) * I
