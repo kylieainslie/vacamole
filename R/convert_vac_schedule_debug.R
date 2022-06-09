@@ -63,14 +63,12 @@ convert_vac_schedule_debug <- function(vac_schedule,
   vac_schedule <- vac_schedule %>% 
     select(date | matches("[a-z]{2}_d[0-9]_[0-9]+"))
   
-  # some demographic info ------------------------------------------------------
-  age_dist_10 <- c(
-    0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,
-    0.14514332, 0.12092904, 0.08807406, 0.03976755, 0.007398671
-  )
+  # size of each age group -----------------------------------------------------
   n <- 17407585 # Dutch population size
-  n_vec_10 <- n * age_dist_10
+  n_vec_10 <- n * c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,
+                    0.14514332, 0.12092904, 0.08807406, 0.03976755, 0.007398671)
   
+  # reformat date variable if necessary ----------------------------------------
   if (is.Date(vac_schedule$date)){ date_vec <- vac_schedule$date
   } else { date_vec <- as.Date(vac_schedule$date, format = "%m/%d/%Y")}
   
@@ -110,13 +108,21 @@ convert_vac_schedule_debug <- function(vac_schedule,
   # get daily proportion of people vaccinated ----------------------------------
   # take the difference for each row
   vac_schedule_daily <- data.frame(diff(as.matrix(vac_schedule %>% select(-date)))) %>%
-    add_row(vac_schedule %>% select(-date) %>% slice(1), .before = 1) %>%
-    mutate(date = date_vec) %>%
-    select(date, everything()) # move date column to first position
+    add_row(vac_schedule %>% select(-date) %>% slice(1), .before = 1) 
   
   # convert daily proportion to daily rate -------------------------------------
   # vac_schedule is the cumulative daily proportion 
-  vac_schedule_rate <- vac_schedule_daily / (1 - vac_schedule) 
+  # cumulative sums need to be lagged by 1 day
+  vac_schedule_rate <- vac_schedule_daily / (1 - lag(vac_schedule[,-1]))
+  
+  # add date variable back
+  vac_schedule_daily <- vac_schedule_daily %>%
+    mutate(date = date_vec) %>%
+    select(date, everything()) # move date column to first position
+  
+  vac_schedule_rate <- vac_schedule_rate %>%
+    mutate(date = date_vec) %>%
+    select(date, everything()) # move date column to first position
   
   # add extra rows for dates further in the future -----------------------------
   if (add_extra_dates) {
@@ -128,118 +134,35 @@ convert_vac_schedule_debug <- function(vac_schedule,
     vac_schedule_rate <- extra_dat
   } 
   
-  # create separate data frame for each vaccine --------------------------------
-  # pfizer
-  pf_dose1 <- vac_schedule_orig_new %>% select(date, .data$pf_d1_1:.data$pf_d1_9)
-  pf_dose1_cs <- vac_schedule_new_cs %>% select(.data$pf_d1_1:.data$pf_d1_9)
-  pf_dose2 <- vac_schedule_orig_new %>% select(date, .data$pf_d2_1:.data$pf_d2_9)
-  pf_dose2_cs <- vac_schedule_new_cs %>% select(.data$pf_d2_1:.data$pf_d2_9)
-  pf_dose3 <- vac_schedule_orig_new %>% select(date, .data$pf_d3_1:.data$pf_d3_9)
-  pf_dose3_cs <- vac_schedule_new_cs %>% select(.data$pf_d3_1:.data$pf_d3_9)
-  pf_dose4 <- vac_schedule_orig_new %>% select(date, .data$pf_d4_1:.data$pf_d4_9)
-  pf_dose4_cs <- vac_schedule_new_cs %>% select(.data$pf_d4_1:.data$pf_d4_9)
-  pf_dose5 <- vac_schedule_orig_new %>% select(date, .data$pf_d5_1:.data$pf_d5_9)
-  pf_dose5_cs <- vac_schedule_new_cs %>% select(.data$pf_d5_1:.data$pf_d5_9)
+  # daily vaccination rate for each dose ---------------------------------------
+  # first transform data frame to long format
+  vac_rates_long <- vac_schedule_rate %>%
+    pivot_longer(cols = !date, names_to = c("vac_product", "dose", "age_group"), 
+                 names_sep = "_", values_to = "vac_rate") %>%
+    mutate_at(vars(vac_rate), na_to_zero) %>%
+    group_by(date, dose, age_group) %>%
+    summarise(alpha = sum())
   
-  # moderna
-  mo_dose1 <- vac_schedule_orig_new %>% select(date, .data$mo_d1_1:.data$mo_d1_9)
-  mo_dose1_cs <- vac_schedule_new_cs %>% select(.data$mo_d1_1:.data$mo_d1_9)
-  mo_dose2 <- vac_schedule_orig_new %>% select(date, .data$mo_d2_1:.data$mo_d2_9)
-  mo_dose2_cs <- vac_schedule_new_cs %>% select(.data$mo_d2_1:.data$mo_d2_9)
-  mo_dose3 <- vac_schedule_orig_new %>% select(date, .data$mo_d3_1:.data$mo_d3_9)
-  mo_dose3_cs <- vac_schedule_new_cs %>% select(.data$mo_d3_1:.data$mo_d3_9)
-  mo_dose4 <- vac_schedule_orig_new %>% select(date, .data$mo_d4_1:.data$mo_d4_9)
-  mo_dose4_cs <- vac_schedule_new_cs %>% select(.data$mo_d4_1:.data$mo_d4_9)
-  mo_dose5 <- vac_schedule_orig_new %>% select(date, .data$mo_d5_1:.data$mo_d5_9)
-  mo_dose5_cs <- vac_schedule_new_cs %>% select(.data$mo_d5_1:.data$mo_d5_9)
+  vac_prop_long <- vac_schedule_daily %>%
+    pivot_longer(cols = !date, names_to = c("vac_product", "dose", "age_group"), 
+                 names_sep = "_", values_to = "vac_prop") %>%
+    mutate_at(vars(vac_prop), na_to_zero) 
   
-  # astrazeneca
-  az_dose1 <- vac_schedule_orig_new %>% select(date, .data$az_d1_1:.data$az_d1_9)
-  az_dose1_cs <- vac_schedule_new_cs %>% select(.data$az_d1_1:.data$az_d1_9)
-  az_dose2 <- vac_schedule_orig_new %>% select(date, .data$az_d2_1:.data$az_d2_9)
-  az_dose2_cs <- vac_schedule_new_cs %>% select(.data$az_d2_1:.data$az_d2_9)
+  vac_prop_by_dose <- vac_prop_long %>%
+    group_by(date, dose, age_group) %>%
+    summarise(tot = sum(vac_prop))
   
-  # jansen
-  ja_dose1 <- vac_schedule_orig_new %>% select(date, .data$ja_d1_1:.data$ja_d1_9)
-  ja_dose1_cs <- vac_schedule_new_cs %>% select(.data$ja_d1_1:.data$ja_d1_9)
-  ja_dose2 <- vac_schedule_orig_new %>% select(date, .data$ja_d2_1:.data$ja_d2_9)
-  ja_dose2_cs <- vac_schedule_new_cs %>% select(.data$ja_d2_1:.data$ja_d2_9)
+  # get fraction of vaccines from each vaccine product administered on each day 
+  vac_prop_long1 <- left_join(vac_prop_long, vac_prop_by_dose, by = c("date", "dose", "age_group")) %>%
+    group_by(vac_product) %>%
+    mutate(frac = vac_prop/tot,
+           frac = ifelse(is.nan(frac), 0, frac))
   
-  # calculate composite VE ---------------------------------------------------------------------
-  name_suffix_d1 <- c(substr(names(pf_dose1[, -1]), 3, 7))
-  name_suffix_d2 <- c(substr(names(pf_dose2[, -1]), 3, 7))
-  name_suffix_d3 <- c(substr(names(pf_dose3[, -1]), 3, 7))
-  name_suffix_d4 <- c(substr(names(pf_dose4[, -1]), 3, 7))
-  name_suffix_d5 <- c(substr(names(pf_dose5[, -1]), 3, 7))
+  # ----------------------------------------------------------------------------
+  # Vaccine effectiveness
+  # ----------------------------------------------------------------------------
   
-  # daily vaccination rate
-  # dose 1
-  alpha_dose1 <- pf_dose1[, -1] + mo_dose1[, -1] + az_dose1[, -1] + ja_dose1[, -1]
-  names(alpha_dose1) <- paste0("alpha", name_suffix_d1)
-  # dose 2
-  alpha_dose2 <- pf_dose2[, -1] + mo_dose2[, -1] + az_dose2[, -1] + ja_dose2[, -1] # is 2nd dose Janssen a booster?
-  names(alpha_dose2) <- paste0("alpha", name_suffix_d2)
-  # dose 3
-  alpha_dose3 <- pf_dose3[, -1] + mo_dose3[, -1]
-  names(alpha_dose3) <- paste0("alpha", name_suffix_d3)
-  # dose 4
-  alpha_dose4 <- pf_dose4[, -1] + mo_dose4[, -1]
-  names(alpha_dose4) <- paste0("alpha", name_suffix_d4)
-  # dose 3
-  alpha_dose5 <- pf_dose5[, -1] + mo_dose5[, -1]
-  names(alpha_dose5) <- paste0("alpha", name_suffix_d5)
-  
-  # cumulative vaccination percentage
-  # dose 1
-  total_dose1 <- pf_dose1_cs + mo_dose1_cs + az_dose1_cs + ja_dose1_cs
-  names(total_dose1) <- paste0("tot", name_suffix_d1)
-  # dose 2
-  total_dose2 <- pf_dose2_cs + mo_dose2_cs + az_dose2_cs + ja_dose2_cs
-  names(total_dose2) <- paste0("tot", name_suffix_d2)
-  # dose 3
-  total_dose3 <- pf_dose3_cs + mo_dose3_cs
-  names(total_dose3) <- paste0("tot", name_suffix_d3)
-  # dose 4
-  total_dose4 <- pf_dose4_cs + mo_dose4_cs
-  names(total_dose4) <- paste0("tot", name_suffix_d4)
-  # dose 5
-  total_dose5 <- pf_dose5_cs + mo_dose5_cs
-  names(total_dose5) <- paste0("tot", name_suffix_d5)
-  
-  # fraction of each vaccine given up to current time point
-  frac_pf_dose1 <- data.matrix(pf_dose1_cs / total_dose1)
-  frac_pf_dose1 <- ifelse(is.nan(frac_pf_dose1), 0, frac_pf_dose1)
-  frac_pf_dose2 <- data.matrix(pf_dose2_cs / total_dose2)
-  frac_pf_dose2 <- ifelse(is.nan(frac_pf_dose2), 0, frac_pf_dose2)
-  frac_pf_dose3 <- data.matrix(pf_dose3_cs / total_dose3)
-  frac_pf_dose3 <- ifelse(is.nan(frac_pf_dose3), 0, frac_pf_dose3)
-  frac_pf_dose4 <- data.matrix(pf_dose4_cs / total_dose4)
-  frac_pf_dose4 <- ifelse(is.nan(frac_pf_dose4), 0, frac_pf_dose4)
-  frac_pf_dose5 <- data.matrix(pf_dose5_cs / total_dose5)
-  frac_pf_dose5 <- ifelse(is.nan(frac_pf_dose5), 0, frac_pf_dose5)
-  
-  frac_mo_dose1 <- data.matrix(mo_dose1_cs / total_dose1)
-  frac_mo_dose1 <- ifelse(is.nan(frac_mo_dose1), 0, frac_mo_dose1)
-  frac_mo_dose2 <- data.matrix(mo_dose2_cs / total_dose2)
-  frac_mo_dose2 <- ifelse(is.nan(frac_mo_dose2), 0, frac_mo_dose2)
-  frac_mo_dose3 <- data.matrix(mo_dose3_cs / total_dose3)
-  frac_mo_dose3 <- ifelse(is.nan(frac_mo_dose3), 0, frac_mo_dose3)
-  frac_mo_dose4 <- data.matrix(mo_dose4_cs / total_dose4)
-  frac_mo_dose4 <- ifelse(is.nan(frac_mo_dose4), 0, frac_mo_dose4)
-  frac_mo_dose5 <- data.matrix(mo_dose5_cs / total_dose5)
-  frac_mo_dose5 <- ifelse(is.nan(frac_mo_dose5), 0, frac_mo_dose5)
-  
-  frac_az_dose1 <- data.matrix(az_dose1_cs / total_dose1)
-  frac_az_dose1 <- ifelse(is.nan(frac_az_dose1), 0, frac_az_dose1)
-  frac_az_dose2 <- data.matrix(az_dose2_cs / total_dose2)
-  frac_az_dose2 <- ifelse(is.nan(frac_az_dose2), 0, frac_az_dose2)
-  
-  frac_ja_dose1 <- data.matrix(ja_dose1_cs / total_dose1)
-  frac_ja_dose1 <- ifelse(is.nan(frac_ja_dose1), 0, frac_ja_dose1)
-  frac_ja_dose2 <- data.matrix(ja_dose2_cs / total_dose2)
-  frac_ja_dose2 <- ifelse(is.nan(frac_ja_dose2), 0, frac_ja_dose2)
-  
-  # calculate amount of waning
+  # define VE waning function --------------------------------------------------
   # it is based on the weighted overage of the VE, daily vaccination rate, and
   # time since vaccination
   t_vec <- seq(1, dim(pf_dose1)[1], by = 1)
@@ -250,7 +173,7 @@ convert_vac_schedule_debug <- function(vac_schedule,
     waning <- c(rep(0, length(t_vec)))
   }
   
-  # VE against infection
+  # VE against infection -------------------------------------------------------
   # dose 1
   ve_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[, -1], ve_val = ve$pfizer[1], waning = waning)
   ve_m_dose1 <- calc_ve_w_waning(vac_rate = mo_dose1[, -1], ve_val = ve$moderna[1], waning = waning)
