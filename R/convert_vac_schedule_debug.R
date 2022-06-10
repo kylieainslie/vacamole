@@ -43,8 +43,6 @@ convert_vac_schedule_debug <- function(vac_schedule,
                                   delay,
                                   ve_trans,
                                   wane = FALSE,
-                                  k = 0.03,
-                                  t0 = 180,
                                   add_extra_dates = FALSE,
                                   extra_start_date = "2022-01-01",
                                   extra_end_date = "2022-03-31"){
@@ -100,8 +98,8 @@ convert_vac_schedule_debug <- function(vac_schedule,
       ) %>%
       select(
         .data$date, .data$pf_d1_1:.data$ja_d2_9, -.data$pf_d1_10, -.data$pf_d2_10, -.data$pf_d3_10,
-        -.data$mo_d1_10, -.data$mo_d2_10, -.data$mo_d3_10, -.data$az_d1_10, -.data$az_d2_10, 
-        -.data$ja_d1_10, -.data$ja_d2_10
+        -.data$mo_d1_10, -.data$mo_d2_10, -.data$mo_d3_10, -.data$mo_d4_10, -.data$mo_d5_10,
+        -.data$az_d1_10, -.data$az_d2_10, -.data$ja_d1_10, -.data$ja_d2_10
       )
   }
   
@@ -139,10 +137,13 @@ convert_vac_schedule_debug <- function(vac_schedule,
   vac_rates_long <- vac_schedule_rate %>%
     pivot_longer(cols = !date, names_to = c("vac_product", "dose", "age_group"), 
                  names_sep = "_", values_to = "vac_rate") %>%
-    mutate_at(vars(vac_rate), na_to_zero) %>%
+    mutate_at(vars(vac_rate), na_to_zero) 
+  
+  vac_rates_by_dose <- vac_rates_long %>%
     group_by(date, dose, age_group) %>%
     summarise(alpha = sum())
   
+  # proportion vaccinated
   vac_prop_long <- vac_schedule_daily %>%
     pivot_longer(cols = !date, names_to = c("vac_product", "dose", "age_group"), 
                  names_sep = "_", values_to = "vac_prop") %>%
@@ -154,24 +155,40 @@ convert_vac_schedule_debug <- function(vac_schedule,
   
   # get fraction of vaccines from each vaccine product administered on each day 
   vac_prop_long1 <- left_join(vac_prop_long, vac_prop_by_dose, by = c("date", "dose", "age_group")) %>%
-    group_by(vac_product) %>%
+    group_by(date, vac_product, dose, age_group) %>%
     mutate(frac = vac_prop/tot,
            frac = ifelse(is.nan(frac), 0, frac))
+
+  # join with rate data frame
+  vac_info_joined <- left_join(vac_rates_long, vac_prop_long1, by = c("date", "vac_product", "dose", "age_group")) 
+  
+  # get first day of vaccination with each dose
+  # this will be used when calculating waning
+  first_day_vac <- vac_info_joined %>%
+    group_by(dose) %>%
+    filter(vac_prop > 0, .preserve=TRUE) %>%
+    summarise(first_day = first(date))
   
   # ----------------------------------------------------------------------------
   # Vaccine effectiveness
   # ----------------------------------------------------------------------------
-  
-  # define VE waning function --------------------------------------------------
-  # it is based on the weighted overage of the VE, daily vaccination rate, and
-  # time since vaccination
-  t_vec <- seq(1, dim(pf_dose1)[1], by = 1)
-  
+  test <- vac_info_joined %>%
+    filter(date >= as.Date("2021-01-04"),
+           date <= as.Date("2021-03-04"),
+           vac_product == "pf",
+           dose == "d2",
+           age_group %in% c(9)) 
+
   if (wane) {
-    waning <- (1 / (1 + exp(-k * (t_vec - t0))))
+    ve_dat <- left_join(test, first_day_vac, by = "dose") %>% # vac_info_joined %>%
+      mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
+      group_by(vac_product, dose, age_group) %>%
+      group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start))
   } else {
     waning <- c(rep(0, length(t_vec)))
   }
+  
+
   
   # VE against infection -------------------------------------------------------
   # dose 1
