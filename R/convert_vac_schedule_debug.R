@@ -172,20 +172,20 @@ convert_vac_schedule_debug <- function(vac_schedule,
   # ----------------------------------------------------------------------------
   # Vaccine effectiveness
   # ----------------------------------------------------------------------------
-  test <- vac_info_joined %>%
-    filter(date >= as.Date("2021-01-04"),
-           date <= as.Date("2021-03-04"),
-           vac_product == "pf",
-           dose == "d2",
-           age_group %in% c(9)) 
+  # test <- vac_info_joined %>%
+  #   filter(date >= as.Date("2021-01-04"),
+  #          date <= as.Date("2021-03-04"),
+  #          vac_product == "pf",
+  #          dose == "d2",
+  #          age_group %in% c(9)) 
 
   if (wane) {
-    ve_dat <- left_join(test, first_day_vac, by = "dose") %>% # vac_info_joined %>%
+    ve_dat <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% # vac_info_joined %>%
       mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
       group_by(vac_product, dose, age_group) %>%
       group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start))
   } else {
-    waning <- c(rep(0, length(t_vec)))
+    
   }
   
 
