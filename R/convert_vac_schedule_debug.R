@@ -189,8 +189,11 @@ convert_vac_schedule_debug <- function(vac_schedule,
              comp_delay = ifelse(comp_ve == 0, NA, comp_delay)) %>% 
       tidyr::fill(comp_ve, .direction = c("down")) %>%
       tidyr::fill(comp_delay, .direction = c("down")) %>%
-      mutate(eta = 1 - comp_ve)
-    # need to output vac_rate!!!
+      mutate(eta = 1 - comp_ve,
+             eta = ifelse(is.na(eta), 1, eta),
+             comp_delay = ifelse(is.na(comp_delay), 1, comp_delay)) %>%
+      pivot_longer(., alpha:eta, names_to = "param", values_to = "value")
+
   } else {
     ve_dat <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% # vac_info_joined %>%
       mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
@@ -209,7 +212,10 @@ convert_vac_schedule_debug <- function(vac_schedule,
              comp_delay = ifelse(comp_ve == 0, NA, comp_delay)) %>% 
       tidyr::fill(comp_ve, .direction = c("down")) %>%
       tidyr::fill(comp_delay, .direction = c("down")) %>%
-      mutate(eta = 1 - comp_ve)
+      mutate(eta = 1 - comp_ve,
+             eta = ifelse(is.na(eta), 1, eta),
+             comp_delay = ifelse(is.na(comp_delay), 1, comp_delay)) %>%
+      pivot_longer(., alpha:eta, names_to = "param", values_to = "value")
     
   }
 
