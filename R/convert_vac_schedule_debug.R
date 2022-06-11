@@ -32,8 +32,8 @@ convert_vac_schedule_debug <- function(vac_schedule,
                                   ve_pars,
                                   wane = FALSE,
                                   add_extra_dates = FALSE,
-                                  extra_start_date = "2022-01-01",
-                                  extra_end_date = "2022-03-31"){
+                                  extra_start_date,
+                                  extra_end_date){
   
   # check if there are 9 age groups or 10 age groups ---------------------------
   # extract age group part of each relevant column name of vac_schedule
