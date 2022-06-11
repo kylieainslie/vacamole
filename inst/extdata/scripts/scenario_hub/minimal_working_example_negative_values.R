@@ -7,7 +7,7 @@
 # Load required packages -------------------------------------------
 library(deSolve)
 library(lubridate)
-
+library(readxl)
 # Define model -----------------------------------------------------
 age_struct_seir_ode_test <- function(times, init, params) {
   with(as.list(c(params, init)), {
@@ -230,6 +230,27 @@ ic2d   <- (1 - p_IC2hospital) / time_IC2death             # IC -> D
 
 hic2d  <- p_hospital2death / time_hospital2death          # H_IC -> D
 hic2r  <- (1 - p_hospital2death) / time_hospital2discharge# H_IC -> R
+
+# vaccination schedule ----------------------------------------------
+# read in vaccination schedule
+vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv") %>%
+  select(-X1)
+
+# read in xlsx file with VEs (there is 1 sheet for each variant)
+wt_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "wildtype") 
+alpha_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "alpha") 
+delta_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "delta") 
+omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron") 
+
+# convert vaccination schedule for input into model
+vac_rates_wt <- convert_vac_schedule2(
+  vac_schedule = vac_schedule,
+  delay = ve_params$delays,
+  ve = ve_params$ve_inf$wildtype,
+  hosp_multiplier = ve_params$ve_hosp$wildtype,
+  ve_trans = ve_params$ve_trans$wildtype,
+  wane = FALSE)
+
 
 # parameters must be in a named list
 params <- list(N = n_vec,
