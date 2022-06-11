@@ -7,19 +7,9 @@
 #' dose 1 of the first vaccine
 #' type. The function assumes 9 or 10 age groups (1, .., 10) and four vaccine 
 #' types (pf, mo, az, ja), each with a 2-dose regimen (d1, d2).
-#' @param ve a named list of vaccine effectiveness against infection for each 
-#' dose of each vaccine type.
-#' @param hosp_multiplier a named list of the values for the vaccine 
-#' effectiveness against hospitalization for each dose of each vaccine type. 
-#' Vaccine effectiveness against hospitalization is incorporated as a multiplier
-#' on the probability of being hospitalized after infection as 
-#' (1 – VE_hospitalization) divided by (1-VE_infection) to account for the the 
-#' inclusion of people who are never infected (and thus never hospitalized) 
-#' included in the estimation of VE against hospitalization.
-#' @param delay a named list of the time to protection for each dose of each 
-#' vaccine type.
-#' @param ve_trans a named list of vaccine effectiveness against transmission 
-#' for each dose of each vaccine type.
+#' @param ve_pars a data frame with VE estimates by vaccine product, dose, outcome, 
+#' and age group. The data frame should have the following columns: vac_product,	
+#' dose,	age_group, outcome,	variant, delay,	ve
 #' @param wane logical, if TRUE vaccine effectiveness wanes by a logistic 
 #' function parameterized by arguments
 #' k and t0.
@@ -38,10 +28,7 @@
 #' @import dplyr
 #' @export
 convert_vac_schedule_debug <- function(vac_schedule,
-                                  ve,
-                                  hosp_multiplier,
-                                  delay,
-                                  ve_trans,
+                                  ve_pars,
                                   wane = FALSE,
                                   add_extra_dates = FALSE,
                                   extra_start_date = "2022-01-01",
@@ -216,175 +203,8 @@ convert_vac_schedule_debug <- function(vac_schedule,
     
   }
 
-  # eta
-  eta_dose1 <- 1 - comp_ve_dose1
-  eta_dose2 <- 1 - comp_ve_dose2
-  eta_dose3 <- 1 - comp_ve_dose3
-  eta_dose4 <- 1 - comp_ve_dose4
-  eta_dose5 <- 1 - comp_ve_dose5
-  
-  # VE against hospitalisation
-  # dose 1
-  ve_hosp_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[, -1], ve_val = hosp_multiplier$pfizer[1], waning = waning)
-  ve_hosp_m_dose1 <- calc_ve_w_waning(vac_rate = mo_dose1[, -1], ve_val = hosp_multiplier$moderna[1], waning = waning)
-  ve_hosp_a_dose1 <- calc_ve_w_waning(vac_rate = az_dose1[, -1], ve_val = hosp_multiplier$astrazeneca[1], waning = waning)
-  ve_hosp_j_dose1 <- calc_ve_w_waning(vac_rate = ja_dose1[, -1], ve_val = hosp_multiplier$jansen[1], waning = waning)
-  
-  # dose 2
-  ve_hosp_p_dose2 <- calc_ve_w_waning(vac_rate = pf_dose2[, -1], ve_val = hosp_multiplier$pfizer[2], waning = waning)
-  ve_hosp_m_dose2 <- calc_ve_w_waning(vac_rate = mo_dose2[, -1], ve_val = hosp_multiplier$moderna[2], waning = waning)
-  ve_hosp_a_dose2 <- calc_ve_w_waning(vac_rate = az_dose2[, -1], ve_val = hosp_multiplier$astrazeneca[2], waning = waning)
-  ve_hosp_j_dose2 <- calc_ve_w_waning(vac_rate = ja_dose2[, -1], ve_val = hosp_multiplier$jansen[2], waning = waning)
-  
-  # dose 3
-  ve_hosp_p_dose3 <- calc_ve_w_waning(vac_rate = pf_dose3[, -1], ve_val = hosp_multiplier$pfizer[3], waning = waning)
-  ve_hosp_m_dose3 <- calc_ve_w_waning(vac_rate = mo_dose3[, -1], ve_val = hosp_multiplier$moderna[3], waning = waning)
-  
-  # dose 4
-  ve_hosp_p_dose4 <- calc_ve_w_waning(vac_rate = pf_dose4[, -1], ve_val = hosp_multiplier$pfizer[4], waning = waning)
-  ve_hosp_m_dose4 <- calc_ve_w_waning(vac_rate = mo_dose4[, -1], ve_val = hosp_multiplier$moderna[4], waning = waning)
-  
-  # dose 5
-  ve_hosp_p_dose5 <- calc_ve_w_waning(vac_rate = pf_dose5[, -1], ve_val = hosp_multiplier$pfizer[5], waning = waning)
-  ve_hosp_m_dose5 <- calc_ve_w_waning(vac_rate = mo_dose5[, -1], ve_val = hosp_multiplier$moderna[5], waning = waning)
-  
-  # rate of hospitalisations multiplier
-  hosp_mult_dose1 <- frac_pf_dose1 * ve_hosp_p_dose1 +
-    frac_mo_dose1 * ve_hosp_m_dose1 +
-    frac_az_dose1 * ve_hosp_a_dose1 +
-    frac_ja_dose1 * ve_hosp_j_dose1
-  colnames(hosp_mult_dose1) <- paste0("hosp_mult", name_suffix_d1)
-  
-  hosp_mult_dose2 <- frac_pf_dose2 * ve_hosp_p_dose2 +
-    frac_mo_dose2 * ve_hosp_m_dose2 +
-    frac_az_dose2 * ve_hosp_a_dose2 +
-    frac_ja_dose2 * ve_hosp_j_dose2
-  colnames(hosp_mult_dose2) <- paste0("hosp_mult", name_suffix_d2)
-  
-  hosp_mult_dose3 <- frac_pf_dose3 * ve_hosp_p_dose3 + frac_mo_dose3 * ve_hosp_m_dose3 
-  colnames(hosp_mult_dose3) <- paste0("hosp_mult", name_suffix_d3)
-  
-  hosp_mult_dose4 <- frac_pf_dose4 * ve_hosp_p_dose4 + frac_mo_dose4 * ve_hosp_m_dose4 
-  colnames(hosp_mult_dose4) <- paste0("hosp_mult", name_suffix_d4)
-  
-  hosp_mult_dose5 <- frac_pf_dose5 * ve_hosp_p_dose5 + frac_mo_dose5 * ve_hosp_m_dose5 
-  colnames(hosp_mult_dose5) <- paste0("hosp_mult", name_suffix_d5)
-  
-  eta_hosp_dose1 <- hosp_mult_dose1
-  eta_hosp_dose2 <- hosp_mult_dose2
-  eta_hosp_dose3 <- hosp_mult_dose3
-  eta_hosp_dose4 <- hosp_mult_dose4
-  eta_hosp_dose5 <- hosp_mult_dose5
-  
-  # VE against hospitalisation
-  # dose 1
-  ve_trans_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[, -1], ve_val = ve_trans$pfizer[1], waning = waning)
-  ve_trans_m_dose1 <- calc_ve_w_waning(vac_rate = mo_dose1[, -1], ve_val = ve_trans$moderna[1], waning = waning)
-  ve_trans_a_dose1 <- calc_ve_w_waning(vac_rate = az_dose1[, -1], ve_val = ve_trans$astrazeneca[1], waning = waning)
-  ve_trans_j_dose1 <- calc_ve_w_waning(vac_rate = ja_dose1[, -1], ve_val = ve_trans$jansen[1], waning = waning)
-  
-  # dose 2
-  ve_trans_p_dose2 <- calc_ve_w_waning(vac_rate = pf_dose2[, -1], ve_val = ve_trans$pfizer[2], waning = waning)
-  ve_trans_m_dose2 <- calc_ve_w_waning(vac_rate = mo_dose2[, -1], ve_val = ve_trans$moderna[2], waning = waning)
-  ve_trans_a_dose2 <- calc_ve_w_waning(vac_rate = az_dose2[, -1], ve_val = ve_trans$astrazeneca[2], waning = waning)
-  ve_trans_j_dose2 <- calc_ve_w_waning(vac_rate = ja_dose2[, -1], ve_val = ve_trans$jansen[1], waning = waning)
-  
-  # dose 3
-  ve_trans_p_dose3 <- calc_ve_w_waning(vac_rate = pf_dose3[, -1], ve_val = ve_trans$pfizer[3], waning = waning)
-  ve_trans_m_dose3 <- calc_ve_w_waning(vac_rate = mo_dose3[, -1], ve_val = ve_trans$moderna[3], waning = waning)
-  
-  # dose 4
-  ve_trans_p_dose4 <- calc_ve_w_waning(vac_rate = pf_dose4[, -1], ve_val = ve_trans$pfizer[4], waning = waning)
-  ve_trans_m_dose4 <- calc_ve_w_waning(vac_rate = mo_dose4[, -1], ve_val = ve_trans$moderna[4], waning = waning)
-  
-  # dose 5
-  ve_trans_p_dose5 <- calc_ve_w_waning(vac_rate = pf_dose5[, -1], ve_val = ve_trans$pfizer[5], waning = waning)
-  ve_trans_m_dose5 <- calc_ve_w_waning(vac_rate = mo_dose5[, -1], ve_val = ve_trans$moderna[5], waning = waning)
-  
-  # composite VE (against transmission)
-  comp_ve_trans_dose1 <- frac_pf_dose1 * ve_trans_p_dose1 +
-    frac_mo_dose1 * ve_trans_m_dose1 +
-    frac_az_dose1 * ve_trans_a_dose1 +
-    frac_ja_dose1 * ve_trans_j_dose1
-  colnames(comp_ve_trans_dose1) <- paste0("ve_trans", name_suffix_d1)
-  
-  comp_ve_trans_dose2 <- frac_pf_dose2 * ve_trans_p_dose2 +
-    frac_mo_dose2 * ve_trans_m_dose2 +
-    frac_az_dose2 * ve_trans_a_dose2 +
-    frac_ja_dose2 * ve_trans_j_dose2
-  colnames(comp_ve_trans_dose2) <- paste0("ve_trans", name_suffix_d2)
-  
-  comp_ve_trans_dose3 <- frac_pf_dose3 * ve_trans_p_dose3 + frac_mo_dose3 * ve_trans_m_dose3
-  colnames(comp_ve_trans_dose3) <- paste0("ve_trans", name_suffix_d3)
-  
-  comp_ve_trans_dose4 <- frac_pf_dose4 * ve_trans_p_dose4 + frac_mo_dose4 * ve_trans_m_dose4
-  colnames(comp_ve_trans_dose4) <- paste0("ve_trans", name_suffix_d4)
-  
-  comp_ve_trans_dose5 <- frac_pf_dose5 * ve_trans_p_dose5 + frac_mo_dose5 * ve_trans_m_dose5
-  colnames(comp_ve_trans_dose5) <- paste0("ve_trans", name_suffix_d5)
-  
-  # eta_trans
-  eta_trans_dose1 <- 1 - comp_ve_trans_dose1
-  eta_trans_dose2 <- 1 - comp_ve_trans_dose2
-  eta_trans_dose3 <- 1 - comp_ve_trans_dose3
-  eta_trans_dose4 <- 1 - comp_ve_trans_dose4
-  eta_trans_dose5 <- 1 - comp_ve_trans_dose5
-  
-  # composite delay to protection
-  delay_dose1 <- frac_pf_dose1 * delay$pfizer[1] +
-    frac_mo_dose1 * delay$moderna[1] +
-    frac_az_dose1 * delay$astrazeneca[1] +
-    frac_ja_dose1 * delay$jansen[1]
-  #delay_dose1 <- ifelse(delay_dose1 == 0, 1, delay_dose1) # this prevents from dividing by 0 in the ODEs
-  colnames(delay_dose1) <- paste0("delay", name_suffix_d1)
-  
-  delay_dose2 <- frac_pf_dose2 * delay$pfizer[2] +
-    frac_mo_dose2 * delay$moderna[2] +
-    frac_az_dose2 * delay$astrazeneca[2] +
-    frac_ja_dose2 * delay$jansen[2]
-  #delay_dose2 <- ifelse(delay_dose2 == 0, 1, delay_dose2) # this prevents from dividing by 0 in the ODEs
-  colnames(delay_dose2) <- paste0("delay", name_suffix_d2)
-  
-  delay_dose3 <- frac_pf_dose3 * delay$pfizer[3] + frac_mo_dose3 * delay$moderna[3]
-  #delay_dose3 <- ifelse(delay_dose3 == 0, 1, delay_dose3) # this prevents from dividing by 0 in the ODEs
-  colnames(delay_dose3) <- paste0("delay", name_suffix_d3)
-  
-  delay_dose4 <- frac_pf_dose4 * delay$pfizer[4] + frac_mo_dose4 * delay$moderna[4]
-  #delay_dose4 <- ifelse(delay_dose4 == 0, 1, delay_dose4) # this prevents from dividing by 0 in the ODEs
-  colnames(delay_dose4) <- paste0("delay", name_suffix_d4)
-  
-  delay_dose5 <- frac_pf_dose5 * delay$pfizer[5] + frac_mo_dose5 * delay$moderna[5]
-  #delay_dose5 <- ifelse(delay_dose5 == 0, 1, delay_dose5) # this prevents from dividing by 0 in the ODEs
-  colnames(delay_dose5) <- paste0("delay", name_suffix_d5)
-  
   # output
-  rtn <- list(
-    alpha_dose1 = alpha_dose1,
-    alpha_dose2 = alpha_dose2,
-    alpha_dose3 = alpha_dose3,
-    alpha_dose4 = alpha_dose4,
-    alpha_dose5 = alpha_dose5,
-    eta_dose1 = eta_dose1,
-    eta_dose2 = eta_dose2,
-    eta_dose3 = eta_dose3,
-    eta_dose4 = eta_dose4,
-    eta_dose5 = eta_dose5,
-    delay_dose1 = delay_dose1,
-    delay_dose2 = delay_dose2,
-    delay_dose3 = delay_dose3,
-    delay_dose4 = delay_dose4,
-    delay_dose5 = delay_dose5,
-    eta_hosp_dose1 = eta_hosp_dose1,
-    eta_hosp_dose2 = eta_hosp_dose2,
-    eta_hosp_dose3 = eta_hosp_dose3,
-    eta_hosp_dose4 = eta_hosp_dose4,
-    eta_hosp_dose5 = eta_hosp_dose5,
-    eta_trans_dose1 = eta_trans_dose1,
-    eta_trans_dose2 = eta_trans_dose2,
-    eta_trans_dose3 = eta_trans_dose3,
-    eta_trans_dose4 = eta_trans_dose4,
-    eta_trans_dose5 = eta_trans_dose5
-  )
+  rtn <- list()
   
   return(rtn)
 }
