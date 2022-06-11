@@ -8,6 +8,10 @@
 library(deSolve)
 library(lubridate)
 library(readxl)
+
+source("R/convert_vac_schedule_debug.R")
+source("R/na_to_zero.R")
+source("R/calc_waning.R")
 # Define model -----------------------------------------------------
 age_struct_seir_ode_test <- function(times, init, params) {
   with(as.list(c(params, init)), {
@@ -70,6 +74,15 @@ age_struct_seir_ode_test <- function(times, init, params) {
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans1 * Iv_1d) + (eta_trans2 * Iv_2d)))
     # ---------------------------------------------------------------
     
+    # define vaccination parameters ---------------------------------
+    index <- floor(t) + 1              # use floor of time point + 1 to index df
+    alpha1 <- params$alpha1[index, -1] # remove date column
+    alpha2 <- params$alpha2[index, -1]
+    delay1 <- params$delay1[index, -1]
+    delay2 <- params$delay2[index, -1]
+    eta1   <- params$eta1[index, -1]
+    eta2   <- params$eta2[index, -1]
+    # ---------------------------------------------------------------
     #################################################################
     # ODEs:
     dS <- -lambda * S - alpha1 * S + (omega*4) * R_3w
@@ -237,8 +250,11 @@ vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_do
   select(-X1)
 
 # subset for only pfizer and 2 doses
+# subset for time vec
 pf_schedule <- vac_schedule %>%
-  select(date:pf_d1_9, pf_d2_1:pf_d2_9)
+  select(date:pf_d1_9, pf_d2_1:pf_d2_9) %>%
+  filter(date >= as.Date("2021-01-03"),
+         date <= as.Date("2021-02-04"))
 
 # read in xlsx file with VEs (there is 1 sheet for each variant)
 # we'll only use wildtype values for now
@@ -252,12 +268,7 @@ vac_rates_wt <- convert_vac_schedule_debug(
   vac_schedule = pf_schedule,
   ve_pars = wt_ve,
   wane = TRUE)
-
-vac_rates_wt %>% filter(date >= as.Date("2021-01-04"),
-                        #vac_product == "pf",
-                        dose == "d1",
-                        age_group == 9
-                        )
+                       
 # data wrangle for model input
 df_input <- pivot_wider(vac_rates_wt %>% 
                           filter(param != "comp_ve") %>%
