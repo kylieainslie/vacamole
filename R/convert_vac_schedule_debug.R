@@ -199,7 +199,8 @@ convert_vac_schedule_debug <- function(vac_schedule,
     ve_comp <- ve_dat %>%
       group_by(date, vac_product, dose, outcome) %>%
       summarise(comp_ve = sum(frac * ve_wane),
-                comp_delay = sum(frac * delay))
+                comp_delay = sum(frac * delay)) %>%
+      mutate(eta = 1 - comp_ve)
     
   } else {
     ve_dat <- left_join(test, first_day_vac, by = "dose") %>% # vac_info_joined %>%
@@ -210,34 +211,11 @@ convert_vac_schedule_debug <- function(vac_schedule,
     ve_comp <- ve_dat %>%
       group_by(date, vac_product, dose, outcome) %>%
       summarise(comp_ve = sum(frac * ve),
-                comp_delay = sum(frac * delay))
+                comp_delay = sum(frac * delay)) %>%
+      mutate(eta = 1 - comp_ve)
     
   }
-  
-  
-  
-  # composite VE (against infection)
-  comp_ve_dose1 <- frac_pf_dose1 * ve_p_dose1 +
-    frac_mo_dose1 * ve_m_dose1 +
-    frac_az_dose1 * ve_a_dose1 +
-    frac_ja_dose1 * ve_j_dose1
-  colnames(comp_ve_dose1) <- paste0("ve", name_suffix_d1)
-  
-  comp_ve_dose2 <- frac_pf_dose2 * ve_p_dose2 +
-    frac_mo_dose2 * ve_m_dose2 +
-    frac_az_dose2 * ve_a_dose2 +
-    frac_ja_dose2 * ve_j_dose2
-  colnames(comp_ve_dose2) <- paste0("ve", name_suffix_d2)
-  
-  comp_ve_dose3 <- frac_pf_dose3 * ve_p_dose3 + frac_mo_dose3 * ve_m_dose3 
-  colnames(comp_ve_dose3) <- paste0("ve", name_suffix_d3)
-  
-  comp_ve_dose4 <- frac_pf_dose4 * ve_p_dose4 + frac_mo_dose4 * ve_m_dose4 
-  colnames(comp_ve_dose4) <- paste0("ve", name_suffix_d4)
-  
-  comp_ve_dose5 <- frac_pf_dose5 * ve_p_dose5 + frac_mo_dose5 * ve_m_dose5 
-  colnames(comp_ve_dose5) <- paste0("ve", name_suffix_d5)
-  
+
   # eta
   eta_dose1 <- 1 - comp_ve_dose1
   eta_dose2 <- 1 - comp_ve_dose2
