@@ -21,8 +21,9 @@
 #' @param extra_end_date character string of the date (YYYY-MM-DD format) to 
 #' end the vaccination schedule (which will
 #' also be the last date of the simulation)
-#' @return list of vaccination rate by day and dose and weighted VE and delay 
-#' to protection by day and dose
+#' @return data frame of vaccination rate by day, dose, vaccine product, and age
+#' group and weighted VE and delay to protection by day, dose, age group, and 
+#' outcome
 #' @keywords vacamole
 #' @import tidyr
 #' @import dplyr
