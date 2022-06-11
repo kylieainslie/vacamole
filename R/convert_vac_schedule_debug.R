@@ -178,11 +178,19 @@ convert_vac_schedule_debug <- function(vac_schedule,
     
     # calculate composite VE ---------------------------------------------------
     ve_comp <- ve_dat %>%
-      group_by(date, vac_product, dose, outcome) %>%
-      summarise(comp_ve = sum(frac * ve_wane),
+      group_by(date, dose, age_group, outcome) %>%
+      summarise(alpha = sum(vac_rate),
+                comp_ve = sum(frac * ve_wane),
                 comp_delay = sum(frac * delay)) %>%
+      ungroup() %>%      
+      # fill in zeros with previous value
+      # even when no people are vaccinated on a given date, comp_ve should be > 0
+      mutate(comp_ve = ifelse(comp_ve == 0, NA, comp_ve),
+             comp_delay = ifelse(comp_ve == 0, NA, comp_delay)) %>% 
+      tidyr::fill(comp_ve, .direction = c("down")) %>%
+      tidyr::fill(comp_delay, .direction = c("down")) %>%
       mutate(eta = 1 - comp_ve)
-    
+    # need to output vac_rate!!!
   } else {
     ve_dat <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% # vac_info_joined %>%
       mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
@@ -190,9 +198,17 @@ convert_vac_schedule_debug <- function(vac_schedule,
     
     # calculate composite VE ---------------------------------------------------
     ve_comp <- ve_dat %>%
-      group_by(date, vac_product, dose, outcome) %>%
-      summarise(comp_ve = sum(frac * ve),
+      group_by(date, dose, age_group, outcome) %>%
+      summarise(alpha = sum(vac_rate),
+                comp_ve = sum(frac * ve),
                 comp_delay = sum(frac * delay)) %>%
+      ungroup() %>%
+      # fill in zeros with previous value
+      # even when no people are vaccinated on a given date, comp_ve should be > 0
+      mutate(comp_ve = ifelse(comp_ve == 0, NA, comp_ve),
+             comp_delay = ifelse(comp_ve == 0, NA, comp_delay)) %>% 
+      tidyr::fill(comp_ve, .direction = c("down")) %>%
+      tidyr::fill(comp_delay, .direction = c("down")) %>%
       mutate(eta = 1 - comp_ve)
     
   }
