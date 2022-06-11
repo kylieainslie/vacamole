@@ -160,7 +160,8 @@ convert_vac_schedule_debug <- function(vac_schedule,
            frac = ifelse(is.nan(frac), 0, frac))
 
   # join with rate data frame
-  vac_info_joined <- left_join(vac_rates_long, vac_prop_long1, by = c("date", "vac_product", "dose", "age_group")) 
+  vac_info_joined <- left_join(vac_rates_long, vac_prop_long1, by = c("date", "vac_product", "dose", "age_group")) %>%
+    mutate(age_group = as.numeric(age_group))
   
   # get first day of vaccination with each dose
   # this will be used when calculating waning
@@ -183,9 +184,17 @@ convert_vac_schedule_debug <- function(vac_schedule,
     ve_dat <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% # vac_info_joined %>%
       mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
       group_by(vac_product, dose, age_group) %>%
-      group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start))
+      # calculate waning
+      group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start)) %>%
+      # calculate VE with waning
+      left_join(., ve_pars, by = c("vac_product", "dose", "age_group")) %>%
+      group_by(dose, outcome) %>%
+      mutate(ve_wane = ve - (ve * w))
   } else {
-    
+    ve_dat <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% # vac_info_joined %>%
+      mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
+      group_by(vac_product, dose, age_group) %>%
+      left_join(., ve_pars, by = c("vac_product", "dose", "age_group"))
   }
   
 
