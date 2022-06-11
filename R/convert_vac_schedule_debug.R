@@ -160,29 +160,22 @@ convert_vac_schedule_debug <- function(vac_schedule,
   # ----------------------------------------------------------------------------
   # Vaccine effectiveness
   # ----------------------------------------------------------------------------
-  test <- vac_info_joined %>%
-    filter(date >= as.Date("2021-01-04"),
-           date <= as.Date("2021-03-04"),
-           vac_product == "pf",
-           dose == "d1",
-           age_group %in% c(9))
-
   if (wane) {
-    ve_dat <- left_join(test, first_day_vac, by = "dose") %>% 
+    ve_dat <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% 
       mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
       group_by(vac_product, dose, age_group) %>%
       # calculate waning
       group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start)) %>%
       # convert t to date
-      mutate(date = row_number() + test$date[1] - 1) %>%
+      mutate(date = row_number() + vac_info_joined$date[1] - 1) %>%
       ungroup() %>%
       # calculate VE with waning
       left_join(., ve_pars, by = c("vac_product", "dose", "age_group")) %>%
-      left_join(., test, by = c("date","vac_product", "dose", "age_group")) %>%
+      left_join(., vac_info_joined, by = c("date","vac_product", "dose", "age_group")) %>%
       group_by(dose, age_group, outcome) %>%
       mutate(ve_wane = ve - (ve * w))
     
-    # calculate composite VE -----------------------------------------------------
+    # calculate composite VE ---------------------------------------------------
     ve_comp <- ve_dat %>%
       group_by(date, vac_product, dose, outcome) %>%
       summarise(comp_ve = sum(frac * ve_wane),
@@ -190,11 +183,11 @@ convert_vac_schedule_debug <- function(vac_schedule,
       mutate(eta = 1 - comp_ve)
     
   } else {
-    ve_dat <- left_join(test, first_day_vac, by = "dose") %>% # vac_info_joined %>%
+    ve_dat <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% # vac_info_joined %>%
       mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
       left_join(., ve_pars, by = c("vac_product", "dose", "age_group")) 
     
-    # calculate composite VE -----------------------------------------------------
+    # calculate composite VE ---------------------------------------------------
     ve_comp <- ve_dat %>%
       group_by(date, vac_product, dose, outcome) %>%
       summarise(comp_ve = sum(frac * ve),
@@ -203,8 +196,6 @@ convert_vac_schedule_debug <- function(vac_schedule,
     
   }
 
-  # output
-  rtn <- list()
-  
-  return(rtn)
+  # output ---------------------------------------------------------------------
+  return(ve_comp)
 }
