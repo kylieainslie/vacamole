@@ -161,7 +161,7 @@ convert_vac_schedule_debug <- function(vac_schedule,
 
   # join with rate data frame
   vac_info_joined <- left_join(vac_rates_long, vac_prop_long1, by = c("date", "vac_product", "dose", "age_group")) %>%
-    mutate(age_group = as.numeric(age_group))
+    mutate(age_group = as.numeric(age_group)) 
   
   # get first day of vaccination with each dose
   # this will be used when calculating waning
@@ -173,56 +173,48 @@ convert_vac_schedule_debug <- function(vac_schedule,
   # ----------------------------------------------------------------------------
   # Vaccine effectiveness
   # ----------------------------------------------------------------------------
-  # test <- vac_info_joined %>%
-  #   filter(date >= as.Date("2021-01-04"),
-  #          date <= as.Date("2021-03-04"),
-  #          vac_product == "pf",
-  #          dose == "d2",
-  #          age_group %in% c(9)) 
+  test <- vac_info_joined %>%
+    filter(date >= as.Date("2021-01-04"),
+           date <= as.Date("2021-03-04"),
+           vac_product == "pf",
+           dose == "d1",
+           age_group %in% c(9))
 
   if (wane) {
-    ve_dat <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% # vac_info_joined %>%
+    ve_dat <- left_join(test, first_day_vac, by = "dose") %>% 
       mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
       group_by(vac_product, dose, age_group) %>%
       # calculate waning
       group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start)) %>%
+      # convert t to date
+      mutate(date = row_number() + test$date[1] - 1) %>%
+      ungroup() %>%
       # calculate VE with waning
       left_join(., ve_pars, by = c("vac_product", "dose", "age_group")) %>%
-      group_by(dose, outcome) %>%
+      left_join(., test, by = c("date","vac_product", "dose", "age_group")) %>%
+      group_by(dose, age_group, outcome) %>%
       mutate(ve_wane = ve - (ve * w))
+    
+    # calculate composite VE -----------------------------------------------------
+    ve_comp <- ve_dat %>%
+      group_by(date, vac_product, dose, outcome) %>%
+      summarise(comp_ve = sum(frac * ve_wane),
+                comp_delay = sum(frac * delay))
+    
   } else {
-    ve_dat <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% # vac_info_joined %>%
+    ve_dat <- left_join(test, first_day_vac, by = "dose") %>% # vac_info_joined %>%
       mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
-      group_by(vac_product, dose, age_group) %>%
-      left_join(., ve_pars, by = c("vac_product", "dose", "age_group"))
+      left_join(., ve_pars, by = c("vac_product", "dose", "age_group")) 
+    
+    # calculate composite VE -----------------------------------------------------
+    ve_comp <- ve_dat %>%
+      group_by(date, vac_product, dose, outcome) %>%
+      summarise(comp_ve = sum(frac * ve),
+                comp_delay = sum(frac * delay))
+    
   }
   
-
   
-  # VE against infection -------------------------------------------------------
-  # dose 1
-  ve_p_dose1 <- calc_ve_w_waning(vac_rate = pf_dose1[, -1], ve_val = ve$pfizer[1], waning = waning)
-  ve_m_dose1 <- calc_ve_w_waning(vac_rate = mo_dose1[, -1], ve_val = ve$moderna[1], waning = waning)
-  ve_a_dose1 <- calc_ve_w_waning(vac_rate = az_dose1[, -1], ve_val = ve$astrazeneca[1], waning = waning)
-  ve_j_dose1 <- calc_ve_w_waning(vac_rate = ja_dose1[, -1], ve_val = ve$jansen[1], waning = waning)
-  
-  # dose 2
-  ve_p_dose2 <- calc_ve_w_waning(vac_rate = pf_dose2[, -1], ve_val = ve$pfizer[2], waning = waning)
-  ve_m_dose2 <- calc_ve_w_waning(vac_rate = mo_dose2[, -1], ve_val = ve$moderna[2], waning = waning)
-  ve_a_dose2 <- calc_ve_w_waning(vac_rate = az_dose2[, -1], ve_val = ve$astrazeneca[2], waning = waning)
-  ve_j_dose2 <- calc_ve_w_waning(vac_rate = ja_dose2[, -1], ve_val = ve$jansen[1], waning = waning)
-  
-  # dose 3
-  ve_p_dose3 <- calc_ve_w_waning(vac_rate = pf_dose3[, -1], ve_val = ve$pfizer[3], waning = waning)
-  ve_m_dose3 <- calc_ve_w_waning(vac_rate = mo_dose3[, -1], ve_val = ve$moderna[3], waning = waning)
-  
-  # dose 4
-  ve_p_dose4 <- calc_ve_w_waning(vac_rate = pf_dose4[, -1], ve_val = ve$pfizer[4], waning = waning)
-  ve_m_dose4 <- calc_ve_w_waning(vac_rate = mo_dose4[, -1], ve_val = ve$moderna[4], waning = waning)
-  
-  # dose 3
-  ve_p_dose5 <- calc_ve_w_waning(vac_rate = pf_dose5[, -1], ve_val = ve$pfizer[5], waning = waning)
-  ve_m_dose5 <- calc_ve_w_waning(vac_rate = mo_dose5[, -1], ve_val = ve$moderna[5], waning = waning)
   
   # composite VE (against infection)
   comp_ve_dose1 <- frac_pf_dose1 * ve_p_dose1 +
