@@ -236,21 +236,34 @@ hic2r  <- (1 - p_hospital2death) / time_hospital2discharge# H_IC -> R
 vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv") %>%
   select(-X1)
 
+# subset for only pfizer and 2 doses
+pf_schedule <- vac_schedule %>%
+  select(date:pf_d1_9, pf_d2_1:pf_d2_9)
+
 # read in xlsx file with VEs (there is 1 sheet for each variant)
+# we'll only use wildtype values for now
 wt_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "wildtype") 
-alpha_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "alpha") 
-delta_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "delta") 
-omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron") 
+# alpha_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "alpha") 
+# delta_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "delta") 
+# omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron") 
 
 # convert vaccination schedule for input into model
-vac_rates_wt <- convert_vac_schedule2(
-  vac_schedule = vac_schedule,
-  delay = ve_params$delays,
-  ve = ve_params$ve_inf$wildtype,
-  hosp_multiplier = ve_params$ve_hosp$wildtype,
-  ve_trans = ve_params$ve_trans$wildtype,
-  wane = FALSE)
+vac_rates_wt <- convert_vac_schedule_debug(
+  vac_schedule = pf_schedule,
+  ve_pars = wt_ve,
+  wane = TRUE)
 
+vac_rates_wt %>% filter(date >= as.Date("2021-01-04"),
+                        #vac_product == "pf",
+                        dose == "d1",
+                        age_group == 9
+                        )
+# data wrangle for model input
+df_input <- pivot_wider(vac_rates_wt %>% 
+                          filter(param != "comp_ve") %>%
+                          mutate(param = ifelse(param == "comp_delay", "delay", param)), 
+                        names_from = c("param", "age_group"), 
+                        names_sep = "", values_from = "value")
 
 # parameters must be in a named list
 params <- list(N = n_vec,
@@ -268,12 +281,24 @@ params <- list(N = n_vec,
                r_ic = hic2r,
                epsilon = 0.00,
                omega = 0.0038,
-               alpha1 = 0.005,
-               alpha2 = 0,
-               delay1 = 1/14,
-               delay2 = 1/14,
-               eta1 = 0.5,
-               eta2 = 0.2,
+               alpha1 = df_input %>% 
+                 filter(dose == "d1") %>% 
+                 select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+               alpha2 = df_input %>% 
+                 filter(dose == "d2") %>% 
+                 select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+               delay1 = df_input %>% 
+                 filter(dose == "d1") %>% 
+                 select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+               delay2 = df_input %>% 
+                 filter(dose == "d2") %>% 
+                 select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+               eta1 = df_input %>% 
+                 filter(dose == "d1") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta2 = df_input %>% 
+                 filter(dose == "d2") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
                eta_hosp1 = 1,
                eta_hosp2 = 1,
                eta_trans1 = 0.5,
