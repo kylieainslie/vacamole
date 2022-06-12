@@ -85,7 +85,8 @@ convert_vac_schedule_debug <- function(vac_schedule,
         ja_d2_9 = (.data$ja_d2_9 * n_vec_10[9] + .data$ja_d2_10 * n_vec_10[10]) / sum(n_vec_10[9:10])
       ) %>%
       select(
-        .data$date, .data$pf_d1_1:.data$ja_d2_9, -.data$pf_d1_10, -.data$pf_d2_10, -.data$pf_d3_10,
+        .data$date, .data$pf_d1_1:.data$ja_d2_9, 
+        -.data$pf_d1_10, -.data$pf_d2_10, -.data$pf_d3_10, -.data$pf_d4_10, -.data$pf_d5_10,
         -.data$mo_d1_10, -.data$mo_d2_10, -.data$mo_d3_10, -.data$mo_d4_10, -.data$mo_d5_10,
         -.data$az_d1_10, -.data$az_d2_10, -.data$ja_d1_10, -.data$ja_d2_10
       )
