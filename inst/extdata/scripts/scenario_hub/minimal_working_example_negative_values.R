@@ -15,6 +15,7 @@ source("R/calc_waning.R")
 # Define model -----------------------------------------------------
 age_struct_seir_ode_test <- function(times, init, params) {
   with(as.list(c(params, init)), {
+    print(t)
     # define initial state vectors from input ----------------------
     # susceptible
     S <- c(S1, S2, S3, S4, S5, S6, S7, S8, S9)     
@@ -67,13 +68,6 @@ age_struct_seir_ode_test <- function(times, init, params) {
     Rv_1d_3w <- c(Rv_1d_3w1, Rv_1d_3w2, Rv_1d_3w3, Rv_1d_3w4, Rv_1d_3w5, Rv_1d_3w6, Rv_1d_3w7, Rv_1d_3w8, Rv_1d_3w9)
     Rv_2d_3w <- c(Rv_2d_3w1, Rv_2d_3w2, Rv_2d_3w3, Rv_2d_3w4, Rv_2d_3w5, Rv_2d_3w6, Rv_2d_3w7, Rv_2d_3w8, Rv_2d_3w9)
     
-    # determine force of infection ----------------------------------
-    # incorporate seasonality in transmission rate 
-    calendar_day <- lubridate::yday(as.Date(times, origin = calendar_start_date))
-    beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) 
-    lambda <- beta_t * (contact_mat %*% (I + (eta_trans1 * Iv_1d) + (eta_trans2 * Iv_2d)))
-    # ---------------------------------------------------------------
-    
     # define vaccination parameters ---------------------------------
     index <- floor(t) + 1              # use floor of time point + 1 to index df
     alpha1 <- params$alpha1[index, -1] # remove date column
@@ -82,7 +76,19 @@ age_struct_seir_ode_test <- function(times, init, params) {
     delay2 <- params$delay2[index, -1]
     eta1   <- params$eta1[index, -1]
     eta2   <- params$eta2[index, -1]
+    eta_hosp1   <- params$eta1[index, -1]
+    eta_hosp2   <- params$eta2[index, -1]
+    # eta_trans1   <- params$eta_trans1[index, -1]
+    # eta_trans2   <- params$eta_trans2[index, -1]
     # ---------------------------------------------------------------
+    
+    # determine force of infection ----------------------------------
+    # incorporate seasonality in transmission rate 
+    calendar_day <- lubridate::yday(as.Date(times, origin = calendar_start_date))
+    beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) 
+    lambda <- beta_t * (contact_mat %*% (I + (eta_trans1 * Iv_1d) + (eta_trans2 * Iv_2d)))
+    # ---------------------------------------------------------------
+    
     #################################################################
     # ODEs:
     dS <- -lambda * S - alpha1 * S + (omega*4) * R_3w
@@ -250,11 +256,8 @@ vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_do
   select(-X1)
 
 # subset for only pfizer and 2 doses
-# subset for time vec
 pf_schedule <- vac_schedule %>%
-  select(date:pf_d1_9, pf_d2_1:pf_d2_9) %>%
-  filter(date >= as.Date("2021-01-03"),
-         date <= as.Date("2021-02-04"))
+  select(date:pf_d1_9, pf_d2_1:pf_d2_9) 
 
 # read in xlsx file with VEs (there is 1 sheet for each variant)
 # we'll only use wildtype values for now
@@ -293,25 +296,29 @@ params <- list(N = n_vec,
                epsilon = 0.00,
                omega = 0.0038,
                alpha1 = df_input %>% 
-                 filter(dose == "d1") %>% 
+                 filter(dose == "d1", outcome == "infection") %>% 
                  select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
                alpha2 = df_input %>% 
-                 filter(dose == "d2") %>% 
+                 filter(dose == "d2", outcome == "infection") %>% 
                  select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
                delay1 = df_input %>% 
-                 filter(dose == "d1") %>% 
+                 filter(dose == "d1", outcome == "infection") %>% 
                  select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
                delay2 = df_input %>% 
-                 filter(dose == "d2") %>% 
+                 filter(dose == "d2", outcome == "infection") %>% 
                  select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
                eta1 = df_input %>% 
-                 filter(dose == "d1") %>% 
+                 filter(dose == "d1", outcome == "infection") %>% 
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
                eta2 = df_input %>% 
-                 filter(dose == "d2") %>% 
+                 filter(dose == "d2", outcome == "infection") %>% 
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta_hosp1 = 1,
-               eta_hosp2 = 1,
+               eta_hosp1 = df_input %>% 
+                 filter(dose == "d1", outcome == "hospitalisation") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta_hosp2 = df_input %>% 
+                 filter(dose == "d2", outcome == "infection") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
                eta_trans1 = 0.5,
                eta_trans2 = 0.3,
                p_report = p_reported_by_age,
@@ -326,36 +333,21 @@ out <- as.data.frame(seir_out)
 # ---------------------------------------------------------------------
 
 # check for negative values
-tail(seir_out, 1)
+any(tail(seir_out, 1) < 0)
 
 # Plot output ---------------------------------------------------------
-# get number of people in each compartment
-# susceptibles  <- rowSums(out[,c(paste0("S",1:9))])
-# exposed       <- rowSums(out[,c(paste0("E",1:9))])
-# infected      <- rowSums(out[,c(paste0("I",1:9))])
-# hospitalised  <- rowSums(out[,c(paste0("H",1:9))])
-# ic            <- rowSums(out[,c(paste0("IC",1:9))])
-# hosp_after_ic <- rowSums(out[,c(paste0("H_IC",1:9))])
-# deaths        <- rowSums(out[,c(paste0("D",1:9))])
-# recovered     <- rowSums(out[,c(paste0("R",1:9))]) 
-# recovered1    <- rowSums(out[,c(paste0("R_1w",1:9))]) 
-# recovered2    <- rowSums(out[,c(paste0("R_2w",1:9))]) 
-# recovered3    <- rowSums(out[,c(paste0("R_3w",1:9))]) 
-# 
-# # plot SEIR compartments
-# plot(susceptibles ~ times, type = "l", ylim = c(0, sum(params$N)))
-# abline(h = sum(params$N), lty = "dashed")
-# lines(recovered ~ times, type = "l", col = "blue") #, ylim = c(0,max(recovered))
-# lines(recovered1 ~ times, col = "blue", lty = "dashed")
-# lines(recovered2 ~ times, col = "blue", lty = "dotted")
-# lines(recovered3 ~ times, col = "blue", lty = "twodash")
-# lines(exposed ~ times, col = "green")
-# lines(infected ~ times, col = "red")
-# # plot severe disease compartments
-# plot(hospitalised ~ times, type = "l", col = "orange", ylim = c(min(ic),max(hospitalised)))
-# lines(ic ~ times, col = "pink", type = "l")
-# lines(hosp_after_ic ~ times, col = "purple")
-# lines(deaths ~ times, col = "grey")
+out_for_plot <- out %>% 
+  select(-t) %>%
+  pivot_longer(-c(time), names_to = "state", values_to = "value") %>%
+  separate(state, into = c("state", "age_group"), sep = -1) %>%
+  group_by(time, state) %>%
+  summarise(total = sum(value)) %>%
+  ungroup()
+
+p <- ggplot(out_for_plot %>% filter(grepl('Sv', state)), 
+            aes(x = time, y = total, color = state)) +
+  geom_line()
+p
 # --------------------------------------------------------------------
 
 
