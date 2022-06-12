@@ -21,6 +21,9 @@ library(ggplot2)
 source("R/convert_vac_schedule_debug.R")
 source("R/na_to_zero.R")
 source("R/calc_waning.R")
+
+# suppress dplyr::summarise() warnings
+options(dplyr.summarise.inform = FALSE)
 # ------------------------------------------------------------------
 # Define model -----------------------------------------------------
 age_struct_seir_ode_test <- function(times, init, params) {
@@ -291,7 +294,7 @@ r_vec2   <- empty_state; rv1_vec2 <- empty_state; rv2_vec2 <- empty_state; rv3_v
 r_vec3   <- empty_state; rv1_vec3 <- empty_state; rv2_vec3 <- empty_state; rv3_vec3 <- empty_state; rv4_vec3 <- empty_state; rv5_vec3 <- empty_state
 # r_vec3 <- n_vec - s_vec - e_vec - i_vec - h_vec - hic_vec - ic_vec - d_vec - r_vec - r_vec1 - r_vec2
 
-init_t0 <- c(t = times[1],
+init_t0 <- c(t = 0,
                S = s_vec, Sv_1d = sv1_vec, Sv_2d = sv2_vec, Sv_3d = sv3_vec, Sv_4d = sv4_vec, Sv_5d = sv5_vec,
                Shold_1d = shold1_vec, Shold_2d = shold2_vec, Shold_3d = shold3_vec, Shold_4d = shold4_vec, Shold_5d = shold5_vec, 
                E = e_vec, Ev_1d = ev1_vec, Ev_2d = ev2_vec, Ev_3d = ev3_vec, Ev_4d = ev4_vec, Ev_5d = ev5_vec,
@@ -362,8 +365,6 @@ ic2d   <- (1 - p_IC2hospital) / time_IC2death              # IC -> D
 
 hic2d  <- p_hospital2death / time_hospital2death           # H_IC -> D
 hic2r  <- (1 - p_hospital2death) / time_hospital2discharge # H_IC -> R
-
-dt <- 1
 
 # vaccination schedule ----------------------------------------------
 # read in vaccination schedule
@@ -438,7 +439,7 @@ ci_out <- list()        # store model outputs for confidence bounds
 ci_cases <- list()
 
 # load case data ----------------------------------------------------
-data_date <- "2022-03-12"
+data_date <- "2022-05-21"
 case_data <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rds"))
 
 # -------------------------------------------------------------------
