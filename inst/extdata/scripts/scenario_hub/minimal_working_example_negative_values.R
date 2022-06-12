@@ -160,16 +160,16 @@ age_struct_seir_ode_test <- function(times, init, params) {
     #################################################################
     # ODEs:
     dS <- -lambda * S - alpha1 * S + (omega*4) * R_3w
-    dShold_1d <- alpha1 * S - delay1 * Shold_1d - lambda * Shold_1d
-    dSv_1d <- delay1 * Shold_1d - eta1 * lambda * Sv_1d - alpha2 * Sv_1d + (omega*4) * Rv_1d_3w
-    dShold_2d <- alpha2 * Sv_1d - delay2 * Shold_2d - eta1 * lambda * Shold_2d
-    dSv_2d <- delay2 * Shold_2d - eta2 * lambda * Sv_2d - alpha3 * Sv_2d + (omega*4) * Rv_2d_3w
-    dShold_3d <- alpha3 * Sv_2d - delay3 * Shold_3d - eta2 * lambda * Shold_3d
-    dSv_3d <- delay3 * Shold_3d - eta3 * lambda * Sv_3d - alpha4 * Sv_3d + (omega*4) * Rv_3d_3w
-    dShold_4d <- alpha4 * Sv_3d - delay4 * Shold_4d - eta3 * lambda * Shold_4d
-    dSv_4d <- delay4 * Shold_4d - eta4 * lambda * Sv_4d - alpha5 * Sv_4d + (omega*4) * Rv_4d_3w
-    dShold_5d <- alpha5 * Sv_4d - delay5 * Shold_5d - eta4 * lambda * Shold_5d
-    dSv_5d <- delay5 * Shold_5d - eta5 * lambda * Sv_5d + (omega*4) * Rv_5d_3w
+    dShold_1d <- alpha1 * S - (1/delay1) * Shold_1d - lambda * Shold_1d
+    dSv_1d <- (1/delay1) * Shold_1d - eta1 * lambda * Sv_1d - alpha2 * Sv_1d + (omega*4) * Rv_1d_3w
+    dShold_2d <- alpha2 * Sv_1d - (1/delay2) * Shold_2d - eta1 * lambda * Shold_2d
+    dSv_2d <- (1/delay2) * Shold_2d - eta2 * lambda * Sv_2d - alpha3 * Sv_2d + (omega*4) * Rv_2d_3w
+    dShold_3d <- alpha3 * Sv_2d - (1/delay3) * Shold_3d - eta2 * lambda * Shold_3d
+    dSv_3d <- (1/delay3) * Shold_3d - eta3 * lambda * Sv_3d - alpha4 * Sv_3d + (omega*4) * Rv_3d_3w
+    dShold_4d <- alpha4 * Sv_3d - (1/delay4) * Shold_4d - eta3 * lambda * Shold_4d
+    dSv_4d <- (1/delay4) * Shold_4d - eta4 * lambda * Sv_4d - alpha5 * Sv_4d + (omega*4) * Rv_4d_3w
+    dShold_5d <- alpha5 * Sv_4d - (1/delay5) * Shold_5d - eta4 * lambda * Shold_5d
+    dSv_5d <- (1/delay5) * Shold_5d - eta5 * lambda * Sv_5d + (omega*4) * Rv_5d_3w
     
     dE     <- lambda * S + lambda * Shold_1d - sigma * E + epsilon
     dEv_1d <- eta1 * lambda * Sv_1d + eta1 * lambda * Shold_2d - sigma * Ev_1d
