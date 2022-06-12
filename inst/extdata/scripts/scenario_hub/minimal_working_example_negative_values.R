@@ -15,7 +15,7 @@ source("R/calc_waning.R")
 # Define model -----------------------------------------------------
 age_struct_seir_ode_test <- function(times, init, params) {
   with(as.list(c(params, init)), {
-    print(t)
+    #print(t)
     # define initial state vectors from input ----------------------
     # susceptible
     S <- c(S1, S2, S3, S4, S5, S6, S7, S8, S9)     
@@ -78,8 +78,8 @@ age_struct_seir_ode_test <- function(times, init, params) {
     eta2   <- params$eta2[index, -1]
     eta_hosp1   <- params$eta1[index, -1]
     eta_hosp2   <- params$eta2[index, -1]
-    # eta_trans1   <- params$eta_trans1[index, -1]
-    # eta_trans2   <- params$eta_trans2[index, -1]
+    eta_trans1   <- as.numeric(params$eta_trans1[index, -1])
+    eta_trans2   <- as.numeric(params$eta_trans2[index, -1])
     # ---------------------------------------------------------------
     
     # determine force of infection ----------------------------------
@@ -319,8 +319,12 @@ params <- list(N = n_vec,
                eta_hosp2 = df_input %>% 
                  filter(dose == "d2", outcome == "infection") %>% 
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta_trans1 = 0.5,
-               eta_trans2 = 0.3,
+               eta_trans1 = df_input %>% 
+                 filter(dose == "d1", outcome == "transmission") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta_trans2 = df_input %>% 
+                 filter(dose == "d2", outcome == "transmission") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
                p_report = p_reported_by_age,
                contact_mat = cm,
                calendar_start_date = as.Date("2020-01-01")
@@ -344,7 +348,7 @@ out_for_plot <- out %>%
   summarise(total = sum(value)) %>%
   ungroup()
 
-p <- ggplot(out_for_plot %>% filter(grepl('Sv', state)), 
+p <- ggplot(out_for_plot %>% filter(grepl('Rv_2d', state)), 
             aes(x = time, y = total, color = state)) +
   geom_line()
 p
