@@ -509,7 +509,7 @@ for (j in 1:n_bp) {
                  d_hic = hic2d,
                  r_ic = hic2r,
                  epsilon = 0.00,
-                 omega = 0.0038,
+                 omega = 0.02017514,
                  # daily vaccination rate
                  alpha1 = df_input %>% 
                    filter(dose == "d1", outcome == "infection") %>% 
@@ -611,7 +611,7 @@ for (j in 1:n_bp) {
                t = times[[j]],
                data = case_data_sub,
                params = params,
-               init = init_cond[[j]],
+               init = unlist(init_cond[[j]]),
                hessian = TRUE
   )
   
@@ -622,7 +622,7 @@ for (j in 1:n_bp) {
   # Run model --------------------------------------------------------
   params$beta <- res$par[1]/10000
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
+  seir_out <- ode(unlist(init_cond[[j]]), times[[j]], age_struct_seir_ode_test,  
                   params, method = rk45) # , rtol = 1e-08, hmax = 0.02
   
   # checks -----------------------------------------------------------
@@ -666,7 +666,8 @@ for (j in 1:n_bp) {
   # -----------------------------------------------------------------
   
   # update initial conditions for next time window
-  init_cond[[j+1]] <- tail(out[[j]],1)[-c(1:2)]
+  init_cond[[j+1]] <- tail(out[[j]],1)[-1]
+  
   # ------------------------------------------------------------------  
   
 } # end of for loop over breakpoints
