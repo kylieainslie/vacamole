@@ -429,7 +429,7 @@ df_breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.cs
          time = as.numeric(date - date[1])) %>%
   select(date, time, variant, contact_matrix)
 
-bp_for_fit <- df_breakpoints[1:5,]
+bp_for_fit <- df_breakpoints#[1:5,]
 n_bp <- dim(bp_for_fit)[1] - 1
 
 # specify initial values and bounds for fitted parameters -----------
@@ -632,7 +632,7 @@ for (j in 1:n_bp) {
   }
   
   # check population size
-  if(!all.equal(sum(tail(seir_out,1)[-1]),sum(params$N))){
+  if(!all.equal(sum(unlist(tail(seir_out,1)[-c(1:2)])),sum(params$N))){
     stop("Number of individuals in compartments does not sum to population size")
   }
   # store outputs ----------------------------------------------------
@@ -667,7 +667,6 @@ for (j in 1:n_bp) {
   
   # update initial conditions for next time window
   init_cond[[j+1]] <- tail(out[[j]],1)[-c(1:2)]
-
   # ------------------------------------------------------------------  
   
 } # end of for loop over breakpoints
