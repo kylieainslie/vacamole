@@ -45,15 +45,18 @@ n_vec <- n * age_dist
 #   - 3 months (92 days) or
 #   - 8 months (244 days)
 
-# we need to solve the following equation for lambda
-Fk <- function(lambda, tau){
+# we need to solve the following equation for lambda (waning rate)
+# tau = time since recovery
+# p = probability still immune
+Fk <- function(lambda, tau, p){
   exp(-tau * lambda) * (6 + (6 * tau * lambda) + (3 * tau^2 * lambda^2) 
-                        + (tau^3 * lambda^3)) - 0.24
+                        + (tau^3 * lambda^3)) - (p * 6)
 }
 
-wane_3months <- uniroot(Fk, c(0,1), tau = 92)$root
-wane_8months <- uniroot(Fk, c(0,1), tau = 244)$root
-
+wane_3months <- uniroot(Fk, c(0,1), tau = 92, p = 0.6)$root
+wane_8months <- uniroot(Fk, c(0,1), tau = 244, p = 0.6)$root
+# 50% reduction after 6 months (used for model fits)
+wane_6months <- uniroot(Fk, c(0,1), tau = 182, p = 0.5)$root
 # contact matrices --------------------------------------------------
 #path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
 path <- "inst/extdata/inputs/contact_matrices/converted/"
