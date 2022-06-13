@@ -641,16 +641,16 @@ for (j in 1:n_bp) {
   
   # run model for each beta draw (with different contact matrix) ----
   #ci_out[[j]] <- list()
-  ci_cases[[j]] <- list()
-  for(i in 1:200){
-    params$beta <- beta_draws[[j]][i,1]
-    params$contact_mat <- contact_matrix[[i]]
-    seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
-                       params, method = rk45, rtol = 1e-08, hmax = 0.02)
-    seir_out_ci1 <- as.data.frame(seir_out_ci) 
-    ci_cases[[j]][[i]] <-  rowSums(params$sigma * seir_out_ci1[c(paste0("E",1:9))] * params$p_report)
-  }
-  ci_out[[j]] <- do.call("rbind", ci_cases[[j]])
+  # ci_cases[[j]] <- list()
+  # for(i in 1:200){
+  #   params$beta <- beta_draws[[j]][i,1]
+  #   params$contact_mat <- contact_matrix[[i]]
+  #   seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
+  #                      params, method = rk45, rtol = 1e-08, hmax = 0.02)
+  #   seir_out_ci1 <- as.data.frame(seir_out_ci) 
+  #   ci_cases[[j]][[i]] <-  rowSums(params$sigma * seir_out_ci1[c(paste0("E",1:9))] * params$p_report)
+  # }
+  # ci_out[[j]] <- do.call("rbind", ci_cases[[j]])
   # -----------------------------------------------------------------
   
   # update initial conditions for next time window
@@ -666,15 +666,16 @@ for (j in 1:n_bp) {
 
 # Plot output -------------------------------------------------------
 # plot all cases with confidence bounds
-ci_out_wide <- do.call("cbind", ci_out)
-bounds <- apply(ci_out_wide, 2, quantile, probs = c(0.025, 0.975)) # get quantiles
+# ci_out_wide <- do.call("cbind", ci_out)
+# bounds <- apply(ci_out_wide, 2, quantile, probs = c(0.025, 0.975)) # get quantiles
 
 df_model_fit <- data.frame(time = x_axis, 
                            date = params$calendar_start_date + x_axis,
                            obs = case_data$inc[x_axis + 1], 
-                           mle = unlist(cases), 
-                           lower = bounds[1,], 
-                           upper = bounds[2,])
+                           mle = unlist(cases)#, 
+                           # lower = bounds[1,], 
+                           # upper = bounds[2,]
+                           )
 
 path_out <- "inst/extdata/results/model_fits/"
 saveRDS(df_model_fit,
@@ -684,7 +685,7 @@ saveRDS(df_model_fit,
 p <- ggplot(data = df_model_fit, aes(x = date, y = mle, linetype="solid")) +
   geom_point(data = df_model_fit, aes(x = date, y = obs, color = "Osiris notifications")) +
   geom_line() +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = "95% Confidence bounds"), alpha = 0.3) +
+  #geom_ribbon(aes(ymin = lower, ymax = upper, fill = "95% Confidence bounds"), alpha = 0.3) +
   scale_color_manual(values = c("red"),
                      labels = c("Osiris notifications")) +
   scale_fill_manual(values = c("grey70")) +
