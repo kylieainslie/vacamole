@@ -16,7 +16,7 @@ source("R/calc_waning.R")
 # Define model -----------------------------------------------------
 age_struct_seir_ode_test <- function(times, init, params) {
   with(as.list(c(params, init)), {
-    print(t)
+    # print(t)
     # define initial state vectors from input ----------------------
     # susceptible
     S <- c(S1, S2, S3, S4, S5, S6, S7, S8, S9)     
@@ -112,7 +112,7 @@ age_struct_seir_ode_test <- function(times, init, params) {
     Rv_5d_3w <- c(Rv_5d_3w1, Rv_5d_3w2, Rv_5d_3w3, Rv_5d_3w4, Rv_5d_3w5, Rv_5d_3w6, Rv_5d_3w7, Rv_5d_3w8, Rv_5d_3w9)
     
     # define vaccination parameters ---------------------------------
-    index <- floor(t) + 1              # use floor of time point + 1 to index df
+    index <- floor(times) + 1              # use floor of time point + 1 to index df
     # daily vac rate
     alpha1 <- params$alpha1[index, -1] # remove date column
     alpha2 <- params$alpha2[index, -1]
@@ -402,9 +402,9 @@ raw_vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5t
 # read in xlsx file with VEs (there is 1 sheet for each variant)
 # we'll only use wildtype values for now
 wt_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "wildtype") 
-# alpha_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "alpha") 
-# delta_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "delta") 
-# omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron") 
+# alpha_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "alpha")
+# delta_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "delta")
+# omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron")
 
 # convert vaccination schedule for input into model
 vac_rates_wt <- convert_vac_schedule_debug(
@@ -541,7 +541,7 @@ out_long <- out %>%
   summarise(total = sum(value)) %>%
   ungroup()
 
-p <- ggplot(out_long %>% filter(grepl('Rv', state)), 
+p <- ggplot(out_long %>% filter(grepl('Ev_1d', state)), 
             aes(x = time, y = total, color = state)) +
   geom_line()
 p
