@@ -613,6 +613,16 @@ for (j in 1:n_bp) {
   seir_out <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
                   params, method = rk45) # , rtol = 1e-08, hmax = 0.02
   
+  # checks -----------------------------------------------------------
+  # output error message if negative compartment values
+  if(any(tail(out[[j]],1) < 0)){
+    stop("Negative compartment values")
+  }
+  
+  # check population size
+  if(!all.equal(sum(tail(out[[j]],1)[-1]),sum(params$N))){
+    stop("Number of individuals in compartments does not sum to population size")
+  }
   # store outputs ----------------------------------------------------
   out[[j]] <- as.data.frame(seir_out) 
   cases[[j]] <-  rowSums(params$sigma * out[[j]][c(paste0("E",1:9))] * params$p_report)
@@ -645,16 +655,6 @@ for (j in 1:n_bp) {
   
   # update initial conditions for next time window
   init_cond[[j+1]] <- tail(out[[j]],1)[-c(1:2)]
-  
-  # output error message if negative compartment values
-  if(any(init_cond[[j+1]] < 0)){
-    stop("Negative compartment values")
-  }
-  
-  # check population size
-  if(!all.equal(sum(init_cond[[j+1]][-1]),sum(params$N))){
-    stop("Number of individuals in compartments does not sum to population size")
-  }
 
   # ------------------------------------------------------------------  
   
