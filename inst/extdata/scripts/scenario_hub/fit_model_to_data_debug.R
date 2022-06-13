@@ -29,7 +29,7 @@ options(dplyr.summarise.inform = FALSE)
 # Define model -----------------------------------------------------
 age_struct_seir_ode_test <- function(times, init, params) {
   with(as.list(c(params, init)), {
-    print(t)
+    #print(t)
     # define initial state vectors from input ----------------------
     # susceptible
     S <- c(S1, S2, S3, S4, S5, S6, S7, S8, S9)     
@@ -126,8 +126,8 @@ age_struct_seir_ode_test <- function(times, init, params) {
     
     # define vaccination parameters ---------------------------------
     # don't index parameters when there's no vaccination, it's faster!
-    if(no_vac == TRUE){ 
-    index <- floor(t) + 1              # use floor of time point + 1 to index df
+    #if(no_vac == TRUE){ 
+    index <- floor(times) + 1              # use floor of time point + 1 to index df
     # daily vac rate
     alpha1 <- params$alpha1[index, -1] # remove date column
     alpha2 <- params$alpha2[index, -1]
@@ -162,13 +162,13 @@ age_struct_seir_ode_test <- function(times, init, params) {
     eta_trans3   <- as.numeric(params$eta_trans3[index, -1])
     eta_trans4   <- as.numeric(params$eta_trans4[index, -1])
     eta_trans5   <- as.numeric(params$eta_trans5[index, -1])
-    } else{
-      alpha1 <- c(rep(0,9)); alpha2 <- c(rep(0,9)); alpha3 <- c(rep(0,9)); alpha4 <- c(rep(0,9)); alpha5 <- c(rep(0,9))
-      delay1 <- c(rep(1,9)); delay2 <- c(rep(1,9)); delay3 <- c(rep(1,9)); delay4 <- c(rep(1,9)); delay5 <- c(rep(0,9))
-      eta1   <- c(rep(1,9)); eta2   <- c(rep(1,9)); eta3   <- c(rep(1,9)); eta4   <- c(rep(1,9)); eta5   <- c(rep(1,9))
-      eta_hosp1 <- c(rep(1,9)); eta_hosp2 <- c(rep(1,9)); eta_hosp3 <- c(rep(1,9)); eta_hosp4 <- c(rep(1,9)); eta_hosp5 <- c(rep(1,9))
-      eta_trans1 <- c(rep(1,9)); eta_trans2 <- c(rep(1,9)); eta_trans3 <- c(rep(1,9)); eta_trans4 <- c(rep(1,9)); eta_trans5 <- c(rep(1,9))
-    }
+    # } else{
+    #   alpha1 <- c(rep(0,9)); alpha2 <- c(rep(0,9)); alpha3 <- c(rep(0,9)); alpha4 <- c(rep(0,9)); alpha5 <- c(rep(0,9))
+    #   delay1 <- c(rep(1,9)); delay2 <- c(rep(1,9)); delay3 <- c(rep(1,9)); delay4 <- c(rep(1,9)); delay5 <- c(rep(0,9))
+    #   eta1   <- c(rep(1,9)); eta2   <- c(rep(1,9)); eta3   <- c(rep(1,9)); eta4   <- c(rep(1,9)); eta5   <- c(rep(1,9))
+    #   eta_hosp1 <- c(rep(1,9)); eta_hosp2 <- c(rep(1,9)); eta_hosp3 <- c(rep(1,9)); eta_hosp4 <- c(rep(1,9)); eta_hosp5 <- c(rep(1,9))
+    #   eta_trans1 <- c(rep(1,9)); eta_trans2 <- c(rep(1,9)); eta_trans3 <- c(rep(1,9)); eta_trans4 <- c(rep(1,9)); eta_trans5 <- c(rep(1,9))
+    # }
     # ---------------------------------------------------------------
     
     # determine force of infection ----------------------------------
@@ -293,7 +293,7 @@ inf_seed_vec[seed_age_group] <- 1
 s_vec   <- n_vec - inf_seed_vec; sv1_vec <- empty_state; sv2_vec <- empty_state; sv3_vec <- empty_state; sv4_vec <- empty_state; sv5_vec <- empty_state
 shold1_vec <- empty_state; shold2_vec <- empty_state; shold3_vec <- empty_state; shold4_vec <- empty_state; shold5_vec <- empty_state
 e_vec <- empty_state; ev1_vec <- empty_state; ev2_vec <- empty_state; ev3_vec <- empty_state; ev4_vec <- empty_state; ev5_vec <- empty_state
-i_vec <- empty_state; iv1_vec <- empty_state; iv2_vec <- empty_state; iv3_vec <- empty_state; iv4_vec <- empty_state; iv5_vec <- empty_state
+i_vec <- inf_seed_vec; iv1_vec <- empty_state; iv2_vec <- empty_state; iv3_vec <- empty_state; iv4_vec <- empty_state; iv5_vec <- empty_state
 h_vec <- empty_state; hv1_vec <- empty_state; hv2_vec <- empty_state; hv3_vec <- empty_state; hv4_vec <- empty_state; hv5_vec <- empty_state
 ic_vec <- empty_state; icv1_vec <- empty_state; icv2_vec <- empty_state; icv3_vec <- empty_state; icv4_vec <- empty_state; icv5_vec <- empty_state
 hic_vec <- empty_state; hicv1_vec <- empty_state; hicv2_vec <- empty_state; hicv3_vec <- empty_state; hicv4_vec <- empty_state; hicv5_vec <- empty_state
@@ -403,10 +403,10 @@ likelihood_func_test <- function(x, t, data, params, init) {
   # run model with current parameter values
   params$beta <- x[1]/10000
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init, t, age_struct_seir_ode_test, params, method = rk45, 
-                  rtol = 1e-08, hmax = 0.02) 
+  seir_out <- ode(init, t, age_struct_seir_ode_test, params, method = rk45)  # , rtol = 1e-08, hmax = 0.02
   out <- as.data.frame(seir_out)
   
+  print(paste("Negative values?:", any(tail(seir_out, 1) < 0)))
   # modeled cases
   e_comps <- out %>% 
     select(starts_with("E"))
@@ -417,7 +417,7 @@ likelihood_func_test <- function(x, t, data, params, init) {
   # lik <- sum(dpois(x = inc_obs,lambda = incidence,log=TRUE))
   lik <- -sum(stats::dnbinom(x = inc_obs, mu = daily_cases, size = alpha, log = TRUE))
   
-  print(lik)
+  #print(lik)
   lik
 }
 # -------------------------------------------------------------------
@@ -435,7 +435,7 @@ n_bp <- dim(bp_for_fit)[1] - 1
 # specify initial values and bounds for fitted parameters -----------
 fit_params <- list(
   init_value = c(4, 1),
-  lower_bound = c(0.5, 0.0001),
+  lower_bound = c(0.5, 0.1),
   upper_bound = c(Inf, Inf)
 )
 
@@ -472,6 +472,9 @@ for (j in 1:n_bp) {
   } else if (bp_for_fit$contact_matrix[j+1] == "june_2021"){contact_matrix <- contact_matrices$june_2021 #; print("june_2021")
   } else {contact_matrix <- contact_matrices$november_2021} 
   
+  # has vaccination started? ----------------------------------------
+  #nv <- ifelse(bp_for_fit$date[j+1] >= as.Date("2021-01-04"), TRUE, FALSE)
+  
   # convert vaccination schedule for input into model ---------------
   if (bp_for_fit$variant[j+1] == "wildtype"){ve_params <- wt_ve
   } else if (bp_for_fit$variant[j+1] == "alpha"){ve_params <- alpha_ve
@@ -493,7 +496,7 @@ for (j in 1:n_bp) {
   
   # parameters must be in a named list
   params <- list(N = n_vec,
-                 beta = 0.0002531514,
+                 beta = 0.0004,
                  beta1 = 0.14,
                  sigma = 0.5,
                  gamma = i2r,
@@ -588,12 +591,10 @@ for (j in 1:n_bp) {
                    filter(dose == "d5", outcome == "transmission") %>%
                    select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
                  p_report = p_reported_by_age,
-                 contact_mat = cm,
-                 calendar_start_date = as.Date("2020-01-01")
+                 contact_mat = contact_matrix$mean,  # change contact matrix
+                 calendar_start_date = as.Date("2020-01-01")#,
+                 #no_vac = nv
   )
-  
-  # change contact matrix in params list ----------------------------
-  params$contact_mat <- contact_matrix$mean
   
   # set time sequence -----------------------------------------------
   times[[j]] <- seq(bp_for_fit$time[j], bp_for_fit$time[j+1], by = 1)
@@ -626,12 +627,12 @@ for (j in 1:n_bp) {
   
   # checks -----------------------------------------------------------
   # output error message if negative compartment values
-  if(any(tail(out[[j]],1) < 0)){
+  if(any(tail(seir_out,1) < 0)){
     stop("Negative compartment values")
   }
   
   # check population size
-  if(!all.equal(sum(tail(out[[j]],1)[-1]),sum(params$N))){
+  if(!all.equal(sum(tail(seir_out,1)[-1]),sum(params$N))){
     stop("Number of individuals in compartments does not sum to population size")
   }
   # store outputs ----------------------------------------------------
