@@ -17,6 +17,7 @@ library(readxl)
 library(readr)
 library(lubridate)
 library(ggplot2)
+library(stringr)
 
 source("R/convert_vac_schedule_debug.R")
 source("R/na_to_zero.R")
@@ -28,7 +29,7 @@ options(dplyr.summarise.inform = FALSE)
 # Define model -----------------------------------------------------
 age_struct_seir_ode_test <- function(times, init, params) {
   with(as.list(c(params, init)), {
-    # print(t)
+    print(t)
     # define initial state vectors from input ----------------------
     # susceptible
     S <- c(S1, S2, S3, S4, S5, S6, S7, S8, S9)     
@@ -124,6 +125,8 @@ age_struct_seir_ode_test <- function(times, init, params) {
     Rv_5d_3w <- c(Rv_5d_3w1, Rv_5d_3w2, Rv_5d_3w3, Rv_5d_3w4, Rv_5d_3w5, Rv_5d_3w6, Rv_5d_3w7, Rv_5d_3w8, Rv_5d_3w9)
     
     # define vaccination parameters ---------------------------------
+    # don't index parameters when there's no vaccination, it's faster!
+    if(no_vac == TRUE){ 
     index <- floor(t) + 1              # use floor of time point + 1 to index df
     # daily vac rate
     alpha1 <- params$alpha1[index, -1] # remove date column
@@ -159,6 +162,13 @@ age_struct_seir_ode_test <- function(times, init, params) {
     eta_trans3   <- as.numeric(params$eta_trans3[index, -1])
     eta_trans4   <- as.numeric(params$eta_trans4[index, -1])
     eta_trans5   <- as.numeric(params$eta_trans5[index, -1])
+    } else{
+      alpha1 <- c(rep(0,9)); alpha2 <- c(rep(0,9)); alpha3 <- c(rep(0,9)); alpha4 <- c(rep(0,9)); alpha5 <- c(rep(0,9))
+      delay1 <- c(rep(1,9)); delay2 <- c(rep(1,9)); delay3 <- c(rep(1,9)); delay4 <- c(rep(1,9)); delay5 <- c(rep(0,9))
+      eta1   <- c(rep(1,9)); eta2   <- c(rep(1,9)); eta3   <- c(rep(1,9)); eta4   <- c(rep(1,9)); eta5   <- c(rep(1,9))
+      eta_hosp1 <- c(rep(1,9)); eta_hosp2 <- c(rep(1,9)); eta_hosp3 <- c(rep(1,9)); eta_hosp4 <- c(rep(1,9)); eta_hosp5 <- c(rep(1,9))
+      eta_trans1 <- c(rep(1,9)); eta_trans2 <- c(rep(1,9)); eta_trans3 <- c(rep(1,9)); eta_trans4 <- c(rep(1,9)); eta_trans5 <- c(rep(1,9))
+    }
     # ---------------------------------------------------------------
     
     # determine force of infection ----------------------------------
@@ -386,7 +396,7 @@ likelihood_func_test <- function(x, t, data, params, init) {
   # parameters to be estimated
   beta <- x[1]
   alpha <- x[2]
-  
+  print(x)
   # observed daily cases
   inc_obs <- data$inc
   
@@ -398,15 +408,16 @@ likelihood_func_test <- function(x, t, data, params, init) {
   out <- as.data.frame(seir_out)
   
   # modeled cases
-  daily_cases <- rowSums(params$sigma * out[,c(paste0("E",1:9))] * params$p_report)
+  e_comps <- out %>% 
+    select(starts_with("E"))
+  daily_cases <- rowSums(params$sigma * e_comps * params$p_report)
   daily_cases <- ifelse(daily_cases == 0, 0.0001, daily_cases) # prevent likelihood function function from being Inf
   
   # log-likelihood function
   # lik <- sum(dpois(x = inc_obs,lambda = incidence,log=TRUE))
   lik <- -sum(stats::dnbinom(x = inc_obs, mu = daily_cases, size = alpha, log = TRUE))
   
-  # print(x)
-  # print(lik)
+  print(lik)
   lik
 }
 # -------------------------------------------------------------------
