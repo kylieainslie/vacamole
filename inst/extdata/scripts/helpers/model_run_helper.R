@@ -83,16 +83,21 @@ K <- (1 / g) * beta * S %*% april_2017
 as.numeric(eigs(K, 1)$values) # this should be r0
 
 # define state transition rates ------------------------------------
-h <- p_infection2admission / time_symptom2admission
-i1 <- p_admission2IC / time_admission2IC
-i2 <- p_IC2hospital / time_IC2hospital
-d <- p_admission2death / time_admission2death
-d_ic <- p_IC2death / time_IC2death
-d_hic <- p_hospital2death / time_hospital2death
-r <- (1 - p_admission2death) / time_admission2discharge
-r_ic <- (1 - p_IC2death) / time_hospital2discharge
+gamma <- (1-p_infection2admission) / 2                 # I -> R
+h <- p_infection2admission / time_symptom2admission    # I -> H
 
-transition_rates <- list(h = h,
+i1 <- p_admission2IC / time_admission2IC               # H -> IC
+d <- p_admission2death / time_admission2death          # H -> D
+r <- (1 - (p_admission2IC + p_admission2death)) / time_admission2discharge# H -> R
+
+i2 <- p_IC2hospital / time_IC2hospital                 # IC -> H_IC
+d_ic <- p_IC2death / time_IC2death                     # IC -> D
+
+d_hic <- p_hospital2death / time_hospital2death        # H_IC -> D
+r_ic <- (1 - p_hospital2death) / time_hospital2discharge # H_IC -> R
+
+transition_rates <- list(gamma = gamma,
+                         h = h,
                          i1 = i1,
                          i2 = i2,
                          d = d,
@@ -100,7 +105,7 @@ transition_rates <- list(h = h,
                          d_hic = d_hic,
                          r = r,
                          r_ic = r_ic)
-#saveRDS(transition_rates, "inst/extdata/inputs/transition_rates.rds")
+saveRDS(transition_rates, "inst/extdata/inputs/transition_rates.rds")
 # vaccinations params ----------------------------------------------
 delays <- list(
   pfizer = c(14, 7, 7),

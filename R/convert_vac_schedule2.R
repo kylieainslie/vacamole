@@ -447,26 +447,26 @@ convert_vac_schedule2 <- function(vac_schedule,
     frac_mo_dose1 * delay$moderna[1] +
     frac_az_dose1 * delay$astrazeneca[1] +
     frac_ja_dose1 * delay$jansen[1]
-  delay_dose1 <- ifelse(delay_dose1 == 0, 1, delay_dose1) # this prevents from dividing by 0 in the ODEs
+  #delay_dose1 <- ifelse(delay_dose1 == 0, 1, delay_dose1) # this prevents from dividing by 0 in the ODEs
   colnames(delay_dose1) <- paste0("delay", name_suffix_d1)
   
   delay_dose2 <- frac_pf_dose2 * delay$pfizer[2] +
     frac_mo_dose2 * delay$moderna[2] +
     frac_az_dose2 * delay$astrazeneca[2] +
     frac_ja_dose2 * delay$jansen[2]
-  delay_dose2 <- ifelse(delay_dose2 == 0, 1, delay_dose2) # this prevents from dividing by 0 in the ODEs
+  #delay_dose2 <- ifelse(delay_dose2 == 0, 1, delay_dose2) # this prevents from dividing by 0 in the ODEs
   colnames(delay_dose2) <- paste0("delay", name_suffix_d2)
   
   delay_dose3 <- frac_pf_dose3 * delay$pfizer[3] + frac_mo_dose3 * delay$moderna[3]
-  delay_dose3 <- ifelse(delay_dose3 == 0, 1, delay_dose3) # this prevents from dividing by 0 in the ODEs
+  #delay_dose3 <- ifelse(delay_dose3 == 0, 1, delay_dose3) # this prevents from dividing by 0 in the ODEs
   colnames(delay_dose3) <- paste0("delay", name_suffix_d3)
   
   delay_dose4 <- frac_pf_dose4 * delay$pfizer[4] + frac_mo_dose4 * delay$moderna[4]
-  delay_dose4 <- ifelse(delay_dose4 == 0, 1, delay_dose4) # this prevents from dividing by 0 in the ODEs
+  #delay_dose4 <- ifelse(delay_dose4 == 0, 1, delay_dose4) # this prevents from dividing by 0 in the ODEs
   colnames(delay_dose4) <- paste0("delay", name_suffix_d4)
   
   delay_dose5 <- frac_pf_dose5 * delay$pfizer[5] + frac_mo_dose5 * delay$moderna[5]
-  delay_dose5 <- ifelse(delay_dose5 == 0, 1, delay_dose5) # this prevents from dividing by 0 in the ODEs
+  #delay_dose5 <- ifelse(delay_dose5 == 0, 1, delay_dose5) # this prevents from dividing by 0 in the ODEs
   colnames(delay_dose5) <- paste0("delay", name_suffix_d5)
   
  # output

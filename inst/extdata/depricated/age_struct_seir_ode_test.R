@@ -27,39 +27,34 @@ age_struct_seir_ode_test <- function(times, init, params) {
     # recovered
     R <- c(R1, R2, R3, R4, R5, R6, R7, R8, R9)
     # extra recovered compartments so that waning immunity is not exponential
-    # R_1w <- c(R_1w1, R_1w2, R_1w3, R_1w4, R_1w5, R_1w6, R_1w7, R_1w8, R_1w9)
-    # R_2w <- c(R_2w1, R_2w2, R_2w3, R_2w4, R_2w5, R_2w6, R_2w7, R_2w8, R_2w9)
-    # R_3w <- c(R_3w1, R_3w2, R_3w3, R_3w4, R_3w5, R_3w6, R_3w7, R_3w8, R_3w9)
+    R_1w <- c(R_1w1, R_1w2, R_1w3, R_1w4, R_1w5, R_1w6, R_1w7, R_1w8, R_1w9)
+    R_2w <- c(R_2w1, R_2w2, R_2w3, R_2w4, R_2w5, R_2w6, R_2w7, R_2w8, R_2w9)
+    R_3w <- c(R_3w1, R_3w2, R_3w3, R_3w4, R_3w5, R_3w6, R_3w7, R_3w8, R_3w9)
 
     
     # determine force of infection ----------------------------------
     calendar_day <- lubridate::yday(as.Date(times, origin = calendar_start_date))
     beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) # incorporate seasonality in transmission rate
-    lambda <- beta_t * (c_start %*% I)
+    lambda <- beta_t * (contact_mat %*% I)
     # lambda <- ifelse(lambda < 0, 0, lambda)
     # print(beta_t)
     # ---------------------------------------------------------------
     
     ################################################################
     # ODEs:
-    dS    <- -lambda * S + (omega * R)
+    dS    <- -lambda * S + (omega * 4 * R_3w)
     dE    <- lambda * S - sigma * E + epsilon 
     dI    <- sigma * E - gamma * I - h * I
     dH    <- (h * I) - (i1 * H) - (d * H) - (r * H)
     dIC   <- (i1 * H) - (i2 * IC) - (d_ic * IC)
     dH_IC <- (i2 * IC) - (r_ic * H_IC) - (d_hic * H_IC)
     dD    <- (d * H) + (d_ic * IC) + (d_hic * H_IC)
-    dR    <- (gamma * I) - (omega * R) + (r * H) + (r_ic * H_IC)
-    # dR_1w     <- (omega*4) * R - (omega*4) * R_1w
-    # dR_2w     <- (omega*4) * R_1w - (omega*4) * R_2w
-    # dR_3w     <- (omega*4) * R_2w - (omega*4) * R_3w
+    dR    <- (gamma * I) + (r * H) + (r_ic * H_IC) - (omega * 4 * R)
+    dR_1w     <- (omega*4) * R - (omega*4) * R_1w
+    dR_2w     <- (omega*4) * R_1w - (omega*4) * R_2w
+    dR_3w     <- (omega*4) * R_2w - (omega*4) * R_3w
     ################################################################
     # dt <- 1
-    list(c(
-      dt, dS, dE, dI, 
-      dH, dIC, dH_IC, dD, 
-      dR #, 
-      # dR_1w, dR_2w, dR_3w
-    ))
+    list(c(dt, dS, dE, dI, dH, dIC, dH_IC, dD, dR, dR_1w, dR_2w, dR_3w))
   })
 }

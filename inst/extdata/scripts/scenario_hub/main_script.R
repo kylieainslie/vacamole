@@ -27,7 +27,7 @@ library(vacamole)
 
 # Load data ---------------------------------------------------------
 # if off the server, read in from inst/extdata/data
-data_date <- "2022-03-12"
+data_date <- "2022-05-22"
 osiris1 <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rds"))
 
 # read in transition rates -----------------------------------------
@@ -39,6 +39,20 @@ age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707,
               0.04622194)
 n <- 17407585 # Dutch population size
 n_vec <- n * age_dist
+
+# determine waning rate from Erlang distribution --------------------
+# We want the rate that corresponds to a 60% reduction in immunity after 
+#   - 3 months (92 days) or
+#   - 8 months (244 days)
+
+# we need to solve the following equation for lambda
+Fk <- function(lambda, tau){
+  exp(-tau * lambda) * (6 + (6 * tau * lambda) + (3 * tau^2 * lambda^2) 
+                        + (tau^3 * lambda^3)) - 0.24
+}
+
+wane_3months <- uniroot(Fk, c(0,1), tau = 92)$root
+wane_8months <- uniroot(Fk, c(0,1), tau = 244)$root
 
 # contact matrices --------------------------------------------------
 #path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
