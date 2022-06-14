@@ -82,6 +82,32 @@ write.csv(vac_schedule,"inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose
 vac_schedule <- readRDS("~/vacamole/inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.rds")
 current_4d_prop <- vac_schedule %>% 
   tail(.,1) %>%
-  select(date, pf_d4_7:pf_d4_9)
-to_get_to_50 <- c(rep(0.5,3)) - current_4d_prop[-1]
-daily_prop <- to_get_to_50 / as.numeric(as.Date("2022-09-15") - current_4d_prop$date)
+  select(date, pf_d4_7:pf_d4_9, mo_d4_7:mo_d4_9) %>%
+  mutate(d4_7 = pf_d4_7 + mo_d4_7,
+         d4_8 = pf_d4_8 + mo_d4_8,
+         d4_9 = pf_d4_9 + mo_d4_9) %>%
+  select(date, d4_7:d4_9)
+to_get_to_50 <- as.numeric(c(rep(0.5,3)) - current_4d_prop[-1])
+daily_prop <- ifelse(to_get_to_50 < 0, 0, to_get_to_50) / (as.numeric(as.Date("2022-09-15") - current_4d_prop$date))
+
+# check 3rd dose > 50%
+current_3d_prop <- vac_schedule %>% 
+  tail(.,1) %>%
+  select(date, pf_d3_7:pf_d3_9, mo_d3_7:mo_d3_9) %>%
+  mutate(d3_7 = pf_d3_7 + mo_d3_7,
+         d3_8 = pf_d3_8 + mo_d3_8,
+         d3_9 = pf_d3_9 + mo_d3_9) %>%
+  select(date, d3_7:d3_9)
+
+# add 4th dose vaccinations to get to 50% by 15 September 2022
+extra_start_date <- tail(vac_schedule$date,1) + 1
+extra_end_date <- as.Date("2022-09-15")
+extra_dates <- seq.Date(from = as.Date(extra_start_date), 
+                        to = as.Date(extra_end_date), by = 1)
+extra_dat <- data.frame(date = extra_dates) %>%
+  full_join(vac_schedule, ., by = "date") %>%
+  mutate_at(vars(-.data$date), na_to_zero)
+# sequence of increasing vac coverage
+vac_cov_vec <- seq(from = tail(vac_schedule$pf_d4_7,1) + daily_prop[1], to = 0.5, by = daily_prop[1])
+extra_dat$pf_d4_7[which(extra_dat$date %in% extra_start_date:extra_end_date)] <- vac_cov_vec
+vac_schedule_new <- bind_rows(vac_schedule, extra_dat)
