@@ -85,29 +85,46 @@ current_4d_prop <- vac_schedule %>%
   select(date, pf_d4_7:pf_d4_9, mo_d4_7:mo_d4_9) %>%
   mutate(d4_7 = pf_d4_7 + mo_d4_7,
          d4_8 = pf_d4_8 + mo_d4_8,
-         d4_9 = pf_d4_9 + mo_d4_9) %>%
-  select(date, d4_7:d4_9)
-to_get_to_50 <- as.numeric(c(rep(0.5,3)) - current_4d_prop[-1])
-daily_prop <- ifelse(to_get_to_50 < 0, 0, to_get_to_50) / (as.numeric(as.Date("2022-09-15") - current_4d_prop$date))
-
-# check 3rd dose > 50%
-current_3d_prop <- vac_schedule %>% 
-  tail(.,1) %>%
-  select(date, pf_d3_7:pf_d3_9, mo_d3_7:mo_d3_9) %>%
-  mutate(d3_7 = pf_d3_7 + mo_d3_7,
-         d3_8 = pf_d3_8 + mo_d3_8,
-         d3_9 = pf_d3_9 + mo_d3_9) %>%
-  select(date, d3_7:d3_9)
+         d4_9 = pf_d4_9 + mo_d4_9) 
+to_get_to_50 <- as.numeric(c(rep(0.5,3)) - current_4d_prop[c("d4_7", "d4_8", "d4_9")])
+n_days <- as.Date("2022-09-15") - current_4d_prop$date
+daily_prop <- ifelse(to_get_to_50 < 0, 0, to_get_to_50) / (as.numeric(n_days))
+end_mo_prop <- 0.5 - (current_4d_prop$mo_d4_7 + current_4d_prop$pf_d4_7)
+# sequence of increasing vac coverage
+vac_cov_vec <- seq(from = tail(vac_schedule$mo_d4_7,1) + daily_prop[1], to = end_mo_prop, length.out = n_days)
 
 # add 4th dose vaccinations to get to 50% by 15 September 2022
+# assume all 4th doses are moderna
 extra_start_date <- tail(vac_schedule$date,1) + 1
 extra_end_date <- as.Date("2022-09-15")
 extra_dates <- seq.Date(from = as.Date(extra_start_date), 
                         to = as.Date(extra_end_date), by = 1)
-extra_dat <- data.frame(date = extra_dates) %>%
+vac_schedule_4d <- data.frame(date = extra_dates) %>%
   full_join(vac_schedule, ., by = "date") %>%
   mutate_at(vars(-.data$date), na_to_zero)
-# sequence of increasing vac coverage
-vac_cov_vec <- seq(from = tail(vac_schedule$pf_d4_7,1) + daily_prop[1], to = 0.5, by = daily_prop[1])
-extra_dat$pf_d4_7[which(extra_dat$date %in% extra_start_date:extra_end_date)] <- vac_cov_vec
-vac_schedule_new <- bind_rows(vac_schedule, extra_dat)
+vac_schedule_4d$mo_d4_7[which(vac_schedule_4d$date %in% extra_start_date:extra_end_date)] <- vac_cov_vec
+
+# add 5th doses 
+# assume 5th doses distribution is 25% pfizer and 75% moderna (up to 50% coverage)
+# 5th doses start 15 September and end 15 December
+n_days_5d <- as.numeric(as.Date("2022-12-15") - as.Date("2022-09-15"))
+vac_cov_vec_pf_5d <- seq(from = 0, to = (0.5*0.25), length.out = n_days_5d)
+vac_cov_vec_mo_5d <- seq(from = 0, to = (0.5*0.75), length.out = n_days_5d)
+
+extra_start_date_5d <- tail(vac_schedule_4d$date,1) + 1
+extra_end_date_5d <- as.Date("2022-12-15")
+extra_dates_5d <- seq.Date(from = as.Date(extra_start_date_5d), 
+                        to = as.Date(extra_end_date_5d), by = 1)
+vac_schedule_5d <- data.frame(date = extra_dates_5d) %>%
+  full_join(vac_schedule_4d, ., by = "date") %>%
+  mutate_at(vars(-.data$date), na_to_zero)
+# moderna 5th doses
+vac_schedule_5d$mo_d5_7[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_mo_5d
+vac_schedule_5d$mo_d5_8[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_mo_5d
+vac_schedule_5d$mo_d5_9[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_mo_5d
+# pfizer 5th doses
+vac_schedule_5d$pf_d5_7[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_pf_5d
+vac_schedule_5d$pf_d5_8[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_pf_5d
+vac_schedule_5d$pf_d5_9[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_pf_5d
+
+saveRDS(vac_schedule_5d, "inst/extdata/inputs/vac_schedule_scenario_hub_round1.rds")
