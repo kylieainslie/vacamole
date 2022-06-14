@@ -231,7 +231,6 @@ init <- c(
   Rv_5d_3w = empty_state
 )
 
-
 # Model fit ---------------------------------------------------------
 # read in csv with breakpoints
 df_breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.csv") %>%
@@ -296,3 +295,4 @@ lines(infected ~ times, col = "red")
 
 plot((susceptibles + exposed + infected + recovered +
          hospitalised + ic + hosp_after_ic) ~ times, type = "l", lty = "dashed")
+

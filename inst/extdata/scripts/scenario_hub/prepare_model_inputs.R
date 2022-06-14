@@ -38,129 +38,11 @@ cutoff_date <- as.Date("2022-03-12")
 osiris1 <- osiris_tally %>%
   filter(date <= cutoff_date)
 
-# vaccinations params ----------------------------------------------------------
-# delay to protection ----------------------------------------------------------
-delays <- list(
-  pfizer = c(14, 7, 7, 7, 7),
-  moderna = c(14, 7, 7, 7, 7), 
-  astrazeneca = c(14, 7),
-  jansen = c(14, 7)
-)
-
-# VE against infection by dose and vaccine -------------------------------------
-ve_inf_list <- list(
-  wildtype = list(
-    pfizer = c(0.926, 0.948, c(rep(0.948, 3))), # from clinical trial
-    moderna = c(0.896, 0.941, c(rep(0.948, 3))), # from clinical trial
-    astrazeneca = c(0.583, 0.621), # from clinical trial
-    jansen = c(0.661, 0.661) # from clinical trial
-  ),
-  alpha = list(
-    pfizer = c(0.66, 0.8, c(rep(0.8, 3))), # from Pritchard et al. 2021 Nature
-    moderna = c(0.66, 0.8, c(rep(0.8, 3))), # assumed to be the same as pfizer
-    astrazeneca = c(0.61, 0.79), # from Pritchard et al. 2021 Nature 
-    jansen = c(0.767, 0.767) # from Corchado-Garcia et al. 2021 medRxiv (need to check if this is against alpha!)
-  ),
-  delta = list( # from Dutch data sources
-    pfizer = c(0.57, 0.69, 0.93, 0.93, 0.93), 
-    moderna = c(0.66, 0.82, 0.93, 0.93, 0.93), 
-    astrazeneca = c(0.41, 0.54), 
-    jansen = c(0.5, 0.5)
-  ),
-  omicron = list( # from https://www.medrxiv.org/content/10.1101/2022.02.06.22270457v2
-    pfizer = c(0, 0.33, 0.68, 0.65, 0.65),  # Grewal et al. 2022 (4th dose) - assuming same for 5th dose
-    moderna = c(0, 0.33, 0.68, 0.65, 0.65), # Grewal et al. 2022 (4th dose) - assuming same for 5th dose
-    astrazeneca = c(0, 0.33), 
-    jansen = c(0, 0.33)
-  )
-)
-
-# VE against transmission (for vaccine failures) by dose and vaccine -----------
-ve_trans_list <- list(
-  wildtype = list( # same as alpha !!!
-    pfizer = c(0.26, 0.70, c(rep(0.70, 3))),      
-    moderna = c(0.51, 0.88, c(rep(0.88, 3))),     
-    astrazeneca = c(0.15, 0.58),
-    jansen = c(0.77, 0.77)
-  ),
-  alpha = list(  # de Gier et al.
-    pfizer = c(0.26, 0.70, c(rep(0.70, 3))),      
-    moderna = c(0.51, 0.88, c(rep(0.88, 3))),     
-    astrazeneca = c(0.15, 0.58),
-    jansen = c(0.77, 0.77)
-  ),
-  delta = list( # de Gier et al. (updated)
-    pfizer = c(0.46, 0.52, c(rep(0.52, 3))),      
-    moderna = c(0.66, 0.24, c(rep(0.24, 3))),     
-    astrazeneca = c(0, 0.25),
-    jansen = c(0.42, 0.42) 
-  ),
-  omicron = list( # MADE-UP VALUES
-    pfizer = c(0.25, 0.33, 0.4, 0.4, 0.4),      
-    moderna = c(0.25, 0.33, 0.4, 0.4, 0.4),     
-    astrazeneca = c(0, 0.25),
-    jansen = c(0.25, 0.33) 
-  )
-)
-
-# VE against hospitalisation (for vaccine failures) by dose and vaccine --------
-ve_hosp_list <- list(
-  wildtype = list( # same as alpha variant!!!
-    pfizer = c(0.81, 0.95, 0.95, 0.95, 0.95),      # Dutch data
-    moderna = c(0.81, 0.95, 0.95, 0.95, 0.95),     # assumed same as pfizer because Dutch estimates were weird
-    astrazeneca = c(0.83, 0.95), # Dutch data
-    jansen = c(0.85, 0.85)             # from RIVM website: https://www.rivm.nl/en/covid-19-vaccination/vaccines/efficacy-and-protection
-  ),
-  alpha = list(
-    pfizer = c(0.81, 0.95, 0.95, 0.95, 0.95),      # Dutch data
-    moderna = c(0.81, 0.95, 0.95, 0.95, 0.95),     # assumed same as pfizer because Dutch estimates were weird
-    astrazeneca = c(0.83, 0.95), # Dutch data
-    jansen = c(0.85, 0.85)             # from RIVM website: https://www.rivm.nl/en/covid-19-vaccination/vaccines/efficacy-and-protection
-  ),
-  delta = list(
-    pfizer = c(0.89, 0.96, 0.98, 0.98, 0.98),      # from Brechje (pre-print)
-    moderna = c(0.95, 0.85, 0.98, 0.98, 0.98),     # from Brechje (pre-print)
-    astrazeneca = c(0.88, 0.94),       # from Brechje (pre-print)
-    jansen = c(0.92, 0.92)                   # from Brechje (pre-print)
-  ),
-  omicron = list( # from https://www.rivm.nl/documenten/effectiviteit-van-covid-19-vaccinatie-tegen-ziekenhuis-en-intensive-care-opname-in-8
-    pfizer = c(0, 0.56, 0.88, 0.92, 0.92),   # Grewal et al. 2022 (4th dose) - assuming same for 5th dose
-    moderna = c(0, 0.49, 0.82, 0.92, 0.92),  # Grewal et al. 2022 (4th dose) - assuming same for 5th dose
-    astrazeneca = c(0, 0.39),
-    jansen = c(0.73, 0.73)
-  )
-)
-
-# hospitalisations multiplier
-# calculated as (1-ve_hosp)/(1-ve_inf)
-calc_mult_fun <- function(ve_hosp,ve_inf){
-  h_multiplier <- list()
-  
-  for (i in 1:length(ve_hosp)){
-    h_multiplier[[i]] <- list(
-      pfizer = (1-ve_hosp[[i]]$pfizer)/(1-ve_inf[[i]]$pfizer),
-      moderna = (1-ve_hosp[[i]]$moderna)/(1-ve_inf[[i]]$moderna),
-      astrazeneca = (1-ve_hosp[[i]]$astrazeneca)/(1-ve_inf[[i]]$astrazeneca),
-      jansen = (1-ve_hosp[[i]]$jansen)/(1-ve_inf[[i]]$jansen)
-    )
-  }
-  names(h_multiplier) <- names(ve_hosp)
-  return(h_multiplier)
-}
-
-h_mult_list <- calc_mult_fun(ve_hosp = ve_hosp_list, ve_inf = ve_inf_list)
-
-# create list of vaccine params and save as RDS file ---------------------------
-ve_list <- list(delays = delays,
-                ve_inf = ve_inf_list, 
-                ve_hosp = h_mult_list,
-                ve_trans = ve_trans_list)
-saveRDS(ve_list, "inst/extdata/inputs/ve_params.rds")
-
 # Vaccination schedule ---------------------------------------------------------
+# Use the following code on the file direct from Pieter
 # Read in file and change column names for booster doses
 # vac_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/manuscripts/impact_vac/data/vaccination_scenarios/"
-vac_path <- "/rivm/s/ainsliek/data/"
+vac_path <- "/rivm/s/ainsliek/inputs/"
 
 vac_sched <- read_csv(paste0(vac_path,"Cum_upt20220503.csv")) %>%
   rename_with(~ gsub("B1", "d3", .x, fixed = TRUE)) %>%
@@ -189,4 +71,60 @@ vac_schedule <- bind_rows(my_df, vac_sched1)
 
 # write out to directory
 write.csv(vac_schedule,"inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv")
+# ------------------------------------------------------------------------------
 
+# Update vac schedule for Round 1 ----------------------------------------------
+# 1) increase vaccination of 4th dose to achieve 50% coverage by 15 September
+# 2) begin 5th dose administration on 15 September and reach 50% coverage by 
+# 15 December
+
+# 1)
+vac_schedule <- readRDS("~/vacamole/inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.rds")
+current_4d_prop <- vac_schedule %>% 
+  tail(.,1) %>%
+  select(date, pf_d4_7:pf_d4_9, mo_d4_7:mo_d4_9) %>%
+  mutate(d4_7 = pf_d4_7 + mo_d4_7,
+         d4_8 = pf_d4_8 + mo_d4_8,
+         d4_9 = pf_d4_9 + mo_d4_9) 
+to_get_to_50 <- as.numeric(c(rep(0.5,3)) - current_4d_prop[c("d4_7", "d4_8", "d4_9")])
+n_days <- as.Date("2022-09-15") - current_4d_prop$date
+daily_prop <- ifelse(to_get_to_50 < 0, 0, to_get_to_50) / (as.numeric(n_days))
+end_mo_prop <- 0.5 - (current_4d_prop$mo_d4_7 + current_4d_prop$pf_d4_7)
+# sequence of increasing vac coverage
+vac_cov_vec <- seq(from = tail(vac_schedule$mo_d4_7,1) + daily_prop[1], to = end_mo_prop, length.out = n_days)
+
+# add 4th dose vaccinations to get to 50% by 15 September 2022
+# assume all 4th doses are moderna
+extra_start_date <- tail(vac_schedule$date,1) + 1
+extra_end_date <- as.Date("2022-09-15")
+extra_dates <- seq.Date(from = as.Date(extra_start_date), 
+                        to = as.Date(extra_end_date), by = 1)
+vac_schedule_4d <- data.frame(date = extra_dates) %>%
+  full_join(vac_schedule, ., by = "date") %>%
+  mutate_at(vars(-.data$date), na_to_zero)
+vac_schedule_4d$mo_d4_7[which(vac_schedule_4d$date %in% extra_start_date:extra_end_date)] <- vac_cov_vec
+
+# add 5th doses 
+# assume 5th doses distribution is 25% pfizer and 75% moderna (up to 50% coverage)
+# 5th doses start 15 September and end 15 December
+n_days_5d <- as.numeric(as.Date("2022-12-15") - as.Date("2022-09-15"))
+vac_cov_vec_pf_5d <- seq(from = 0, to = (0.5*0.25), length.out = n_days_5d)
+vac_cov_vec_mo_5d <- seq(from = 0, to = (0.5*0.75), length.out = n_days_5d)
+
+extra_start_date_5d <- tail(vac_schedule_4d$date,1) + 1
+extra_end_date_5d <- as.Date("2022-12-15")
+extra_dates_5d <- seq.Date(from = as.Date(extra_start_date_5d), 
+                        to = as.Date(extra_end_date_5d), by = 1)
+vac_schedule_5d <- data.frame(date = extra_dates_5d) %>%
+  full_join(vac_schedule_4d, ., by = "date") %>%
+  mutate_at(vars(-.data$date), na_to_zero)
+# moderna 5th doses
+vac_schedule_5d$mo_d5_7[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_mo_5d
+vac_schedule_5d$mo_d5_8[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_mo_5d
+vac_schedule_5d$mo_d5_9[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_mo_5d
+# pfizer 5th doses
+vac_schedule_5d$pf_d5_7[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_pf_5d
+vac_schedule_5d$pf_d5_8[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_pf_5d
+vac_schedule_5d$pf_d5_9[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_pf_5d
+
+saveRDS(vac_schedule_5d, "inst/extdata/inputs/vac_schedule_scenario_hub_round1.rds")
