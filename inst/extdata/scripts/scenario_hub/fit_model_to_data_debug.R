@@ -618,7 +618,7 @@ for (j in 1:n_bp) {
   # store MLE --------------------------------------------------------
   mles[[j]] <- c(beta = res$par[1]/10000, alpha = res$par[2])
   print(mles[[j]])
-  
+  saveRDS(mles, "inst/extdata/results/model_fits/mle_list.rds")
   # Run model --------------------------------------------------------
   params$beta <- res$par[1]/10000
   rk45 <- rkMethod("rk45dp7")
@@ -638,7 +638,7 @@ for (j in 1:n_bp) {
   # store outputs ----------------------------------------------------
   out[[j]] <- as.data.frame(seir_out) 
   cases[[j]] <-  rowSums(params$sigma * out[[j]][c(paste0("E",1:9))] * params$p_report)
- 
+  saveRDS(cases, "inst/extdata/results/model_fits/modelled_daily_cases.rds")
   # plot for quick check of fit --------------------------------------
   plot(case_data_sub$inc ~ times[[j]], pch = 16, col = "red", 
        ylim = c(0, max(case_data_sub$inc,cases[[j]])))
@@ -650,7 +650,7 @@ for (j in 1:n_bp) {
   parameter_draws <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
   beta_draws[[j]] <- data.frame(beta = (parameter_draws[,1]/10000)) %>%
     mutate(index = 1:200)
-  
+  saveRDS(beta_draws, "inst/extdata/results/model_fits/bveta_draws.rds")
   # run model for each beta draw (with different contact matrix) ----
   #ci_out[[j]] <- list()
   # ci_cases[[j]] <- list()
@@ -667,7 +667,7 @@ for (j in 1:n_bp) {
   
   # update initial conditions for next time window
   init_cond[[j+1]] <- tail(out[[j]],1)[-1]
-  
+  saveRDS(init_cond, "inst/extdata/results/model_fits/initial_conditions.rds")
   # ------------------------------------------------------------------  
   
 } # end of for loop over breakpoints
