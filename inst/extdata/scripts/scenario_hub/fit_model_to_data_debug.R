@@ -425,7 +425,7 @@ likelihood_func_test <- function(x, t, data, params, init) {
 
 # define fit windows ------------------------------------------------
 df_breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.csv") %>%
-  mutate(date = as.Date(date, format = "%d-%m-%Y"),
+  mutate(date = as.Date(date, format = "%d/%m/%Y"),
          time = as.numeric(date - date[1])) %>%
   select(date, time, variant, contact_matrix)
 
@@ -457,6 +457,9 @@ case_data <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rd
 # -------------------------------------------------------------------
 # Fit model to data -------------------------------------------------
 init_cond[[1]] <- init_t0
+
+# read in initial conditions if not starting at iteration 1
+init_cond <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
 
 # loop over time windows --------------------------------------------
 for (j in 1:n_bp) {
@@ -603,7 +606,7 @@ for (j in 1:n_bp) {
   case_data_sub <- case_data[times[[j]] + 1, ]
   
   # run optimization procedure --------------------------------------
-  res <- optim(par = fit_params$init_value, 
+  res <- optim(par = fit_params$init_value,
                fn = likelihood_func_test,
                method = "L-BFGS-B",
                lower = fit_params$lower_bound,
@@ -614,6 +617,16 @@ for (j in 1:n_bp) {
                init = unlist(init_cond[[j]]),
                hessian = TRUE
   )
+  
+  # res <- nlm(f = likelihood_func_test,
+  #            p = fit_params$init_value,
+  #            t = times[[j]],
+  #            data = case_data_sub,
+  #            params = params,
+  #            init = unlist(init_cond[[j]]),
+  #            hessian = TRUE,
+  #            steptol=1e-4,
+  #            gradtol=1e-4)
   
   # store MLE --------------------------------------------------------
   mles[[j]] <- c(beta = res$par[1]/10000, alpha = res$par[2])
@@ -668,6 +681,8 @@ for (j in 1:n_bp) {
   # update initial conditions for next time window
   init_cond[[j+1]] <- tail(out[[j]],1)[-1]
   saveRDS(init_cond, "inst/extdata/results/model_fits/initial_conditions.rds")
+  # update initial parameter values
+  fit_params$init_value <- res$par
   # ------------------------------------------------------------------  
   
 } # end of for loop over breakpoints
