@@ -404,8 +404,8 @@ likelihood_func_test <- function(x, t, data, params, init) {
   
   # run model with current parameter values
   params$beta <- x[1]/10000
-  rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init, t, age_struct_seir_ode_test, params, method = rk45)  # , rtol = 1e-08, hmax = 0.02
+  rk45 <- deSolve::rkMethod("rk45dp7")
+  seir_out <- deSolve::ode(init, t, age_struct_seir_ode_test, params, method = rk45)  # , rtol = 1e-08, hmax = 0.02
   out <- as.data.frame(seir_out)
   
   print(paste("Negative values?:", any(tail(seir_out, 1) < 0)))
@@ -467,7 +467,7 @@ init_cond <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
 n_cores <- detectCores()
 cl <- makeCluster(n_cores)     # set the number of processor cores
 setDefaultCluster(cl=cl) # set 'cl' as default cluster
-
+clusterExport(cl = cl, c("age_struct_seir_ode_test"))
 # loop over time windows --------------------------------------------
 for (j in 18:n_bp) {
   
