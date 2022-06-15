@@ -1,0 +1,271 @@
+# Script for running scenarios for the Eupropean Scenario Hub
+# URL: https://github.com/covid19-forecast-hub-europe/covid19-scenario-hub-europe#readme
+
+# preamble ---------------------------------------------------------
+# This script will load necessary packages, data sources, fit the model to data,
+# and then run scenarios.
+# All scenarios will be using Dutch data
+# TODO: generalize to other European countries
+# TODO: break up code into work chunks
+# ------------------------------------------------------------------
+
+# Load required packages/functions ---------------------------------
+library(deSolve)
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(readxl)
+library(rARPACK)
+library(readr)
+library(lubridate)
+
+devtools::load_all() # load vacamole
+library(vacamole)
+# -------------------------------------------------------------------
+# Define population size --------------------------------------------
+age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 
+              0.13083463,0.14514332, 0.12092904, 0.08807406, 
+              0.04622194)
+n <- 17407585 # Dutch population size
+n_vec <- n * age_dist
+
+# probabilities -------------------------------------------------------
+dons_probs <- read_xlsx("inst/extdata/inputs/ProbabilitiesDelays_20210107.xlsx")
+p_infection2admission <- dons_probs$P_infection2admission
+p_admission2death <- dons_probs$P_admission2death
+p_admission2IC <- dons_probs$P_admission2IC
+p_IC2hospital <- dons_probs$P_IC2hospital
+p_hospital2death <- c(rep(0, 5), 0.01, 0.04, 0.12, 0.29) # (after ICU)
+p_reported_by_age <- c(0.29, 0.363, 0.381, 0.545, 0.645, 0.564, 0.365, 0.33, 0.409) # from Jantien
+
+# delays --------------------------------------------------------------
+time_symptom2admission <- c(2.29, 5.51, 5.05, 5.66, 6.55, 5.88, 5.69, 5.09, 4.33) # assume same as infectious2admission
+time_admission2discharge <- 7.9
+time_admission2IC <- 2.28
+time_IC2hospital <- 15.6
+time_hospital2discharge <- 10.1 # (after ICU)
+time_admission2death <- 7
+time_IC2death <- 19
+time_hospital2death <- 10 # (after ICU)
+
+# define transition rates ---------------------------------------------
+i2r    <- (1-p_infection2admission) / 2                    # I -> R
+i2h    <- p_infection2admission / time_symptom2admission   # I -> H
+
+h2ic   <- p_admission2IC / time_admission2IC               # H -> IC
+h2d    <- p_admission2death / time_admission2death         # H -> D
+h2r    <- (1 - (p_admission2IC + p_admission2death)) / time_admission2discharge
+# H -> R
+
+ic2hic <- p_IC2hospital / time_IC2hospital                 # IC -> H_IC
+ic2d   <- (1 - p_IC2hospital) / time_IC2death              # IC -> D
+
+hic2d  <- p_hospital2death / time_hospital2death           # H_IC -> D
+hic2r  <- (1 - p_hospital2death) / time_hospital2discharge # H_IC -> R
+
+# determine waning rate from Erlang distribution --------------------
+# We want the rate that corresponds to a 60% reduction in immunity after 
+#   - 3 months (92 days) or
+#   - 8 months (244 days)
+
+# we need to solve the following equation for lambda (waning rate)
+# tau = time since recovery
+# p = probability still immune
+Fk <- function(lambda, tau, p){
+  exp(-tau * lambda) * (6 + (6 * tau * lambda) + (3 * tau^2 * lambda^2) 
+                        + (tau^3 * lambda^3)) - (p * 6)
+}
+
+wane_3months <- uniroot(Fk, c(0,1), tau = 92, p = 0.6)$root
+wane_8months <- uniroot(Fk, c(0,1), tau = 244, p = 0.6)$root
+# 50% reduction after 6 months (used for model fits)
+wane_6months <- uniroot(Fk, c(0,1), tau = 182, p = 0.5)$root
+# contact matrices --------------------------------------------------
+path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
+# path <- "inst/extdata/inputs/contact_matrices/converted/"
+april_2017     <- readRDS(paste0(path,"transmission_matrix_april_2017.rds"))
+april_2020     <- readRDS(paste0(path,"transmission_matrix_april_2020.rds"))
+june_2020      <- readRDS(paste0(path,"transmission_matrix_june_2020.rds"))
+september_2020 <- readRDS(paste0(path,"transmission_matrix_september_2020.rds"))
+february_2021  <- readRDS(paste0(path,"transmission_matrix_february_2021.rds"))
+june_2021      <- readRDS(paste0(path,"transmission_matrix_june_2021.rds"))
+november_2021  <- readRDS(paste0(path,"transmission_matrix_november_2021.rds"))
+
+# put contact matrices into a list for input into fit_to_data_func()
+cm_list <- list(
+  april_2017 = april_2017,
+  april_2020 = april_2020,
+  june_2020 = june_2020,
+  september_2020 = september_2020,
+  february_2021 = february_2021,
+  june_2021 = june_2021,
+  november_2021 = november_2021
+)
+
+# vaccination schedule ----------------------------------------------
+# read in vaccination schedule
+raw_vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv") #%>%
+raw_vac_schedule <- raw_vac_schedule[,-1] # remove first column
+
+# read in xlsx file with VEs (there is 1 sheet for each variant)
+omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron")
+
+# specify initial model parameters ---------------------------------
+# parameters must be in a named list
+vac_rates <- convert_vac_schedule_debug(
+  vac_schedule = raw_vac_schedule,
+  ve_pars = omicron_ve,
+  wane = TRUE)
+
+# data wrangle for model input
+df_input <- pivot_wider(vac_rates %>% 
+                          filter(param != "comp_ve") %>%
+                          mutate(param = ifelse(param == "comp_delay", "delay", param)), 
+                        names_from = c("param", "age_group"), 
+                        names_sep = "", values_from = "value")
+
+# parameters must be in a named list
+params <- list(N = n_vec,
+               beta = 0.0004,
+               beta1 = 0.14,
+               sigma = 0.5,
+               gamma = i2r,
+               h = i2h,
+               i1 = h2ic,
+               d = h2d,
+               r = h2r,
+               i2 = ic2hic,
+               d_ic = ic2d,
+               d_hic = hic2d,
+               r_ic = hic2r,
+               epsilon = 0.00,
+               omega = 0.02017514,
+               # daily vaccination rate
+               alpha1 = df_input %>% 
+                 filter(dose == "d1", outcome == "infection") %>% 
+                 select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+               alpha2 = df_input %>% 
+                 filter(dose == "d2", outcome == "infection") %>% 
+                 select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+               alpha3 = df_input %>% 
+                 filter(dose == "d3", outcome == "infection") %>% 
+                 select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+               alpha4 = df_input %>%
+                 filter(dose == "d4", outcome == "infection") %>%
+                 select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+               alpha5 = df_input %>%
+                 filter(dose == "d5", outcome == "infection") %>%
+                 select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+               # delay to protection
+               delay1 = df_input %>% 
+                 filter(dose == "d1", outcome == "infection") %>% 
+                 select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+               delay2 = df_input %>% 
+                 filter(dose == "d2", outcome == "infection") %>% 
+                 select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+               delay3 = df_input %>% 
+                 filter(dose == "d3", outcome == "infection") %>% 
+                 select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+               delay4 = df_input %>%
+                 filter(dose == "d4", outcome == "infection") %>%
+                 select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+               delay5 = df_input %>%
+                 filter(dose == "d5", outcome == "infection") %>%
+                 select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+               # protection against infection
+               eta1 = df_input %>% 
+                 filter(dose == "d1", outcome == "infection") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta2 = df_input %>% 
+                 filter(dose == "d2", outcome == "infection") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta3 = df_input %>% 
+                 filter(dose == "d3", outcome == "infection") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta4 = df_input %>%
+                 filter(dose == "d4", outcome == "infection") %>%
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta5 = df_input %>%
+                 filter(dose == "d5", outcome == "infection") %>%
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               # protection from hospitalisation
+               eta_hosp1 = df_input %>% 
+                 filter(dose == "d1", outcome == "hospitalisation") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta_hosp2 = df_input %>% 
+                 filter(dose == "d2", outcome == "hospitalisation") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta_hosp3 = df_input %>% 
+                 filter(dose == "d3", outcome == "hospitalisation") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta_hosp4 = df_input %>%
+                 filter(dose == "d4", outcome == "hospitalisation") %>%
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta_hosp5 = df_input %>%
+                 filter(dose == "d5", outcome == "hospitalisation") %>%
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               # protection from transmission
+               eta_trans1 = df_input %>% 
+                 filter(dose == "d1", outcome == "transmission") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta_trans2 = df_input %>% 
+                 filter(dose == "d2", outcome == "transmission") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta_trans3 = df_input %>% 
+                 filter(dose == "d3", outcome == "transmission") %>% 
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta_trans4 = df_input %>%
+                 filter(dose == "d4", outcome == "transmission") %>%
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               eta_trans5 = df_input %>%
+                 filter(dose == "d5", outcome == "transmission") %>%
+                 select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+               p_report = p_reported_by_age,
+               contact_mat = contact_matrix,#$mean,  # change contact matrix
+               calendar_start_date = as.Date("2020-01-01")#,
+               #no_vac = nv
+)
+
+# Specify initial conditions --------------------------------------
+init_cond_list <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
+init_cond <- init_cond_list[[length(init_cond_list)]]
+
+# Run forward simulations --------------------------------------------
+times <- seq(init_cond[1], init_cond[1] + 365, by = 1)
+
+# Scenario A
+
+# Scenario B
+
+# Scenario C
+
+# Scenario D
+seir_out <- lsoda(init, times, age_struct_seir_ode2, params)
+seir_out <- as.data.frame(seir_out)
+out <- postprocess_age_struct_model_output2(seir_out)
+
+susceptibles <- rowSums(out$S)
+exposed <- rowSums(out$E)
+infected <- rowSums(out$I)
+hospitalised <- rowSums(out$H)
+ic <- rowSums(out$IC)
+hosp_after_ic <- rowSums(out$H_IC)
+deaths <- rowSums(out$D)
+recovered <- rowSums(out$R) + rowSums(out$R_1w) + rowSums(out$R_2w) + rowSums(out$R_3w) 
+#cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d + out$Ev_3d + out$Ev_4d + out$Ev_5d) * params$p_report
+
+plot(susceptibles ~ times, type = "l") #, ylim = c(0, sum(params$N))
+abline(h = sum(params$N), lty = "dashed")
+
+plot(recovered ~ times, type = "l", col = "blue", ylim = c(0,max(recovered)))
+lines(exposed ~ times, col = "green")
+lines(infected ~ times, col = "red")
+# lines(hospitalised ~ times, col = "orange")
+# lines(ic ~ times, col = "pink")
+# lines(hosp_after_ic ~ times, col = "purple")
+
+plot((susceptibles + exposed + infected + recovered +
+         hospitalised + ic + hosp_after_ic) ~ times, type = "l", lty = "dashed")
+
