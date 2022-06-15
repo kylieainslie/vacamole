@@ -21,8 +21,10 @@ library(rARPACK)
 library(readr)
 library(lubridate)
 
-devtools::load_all() # load vacamole
-library(vacamole)
+source("R/convert_vac_schedule2.R")
+source("R/na_to_zero.R")
+source("R/calc_waning.R")
+source("R/age_struct_seir_ode2.R")
 # -------------------------------------------------------------------
 # Define population size --------------------------------------------
 age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 
