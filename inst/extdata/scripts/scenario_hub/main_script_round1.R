@@ -236,9 +236,23 @@ init_cond <- init_cond_list[[length(init_cond_list)]]
 
 # Run forward simulations --------------------------------------------
 times <- seq(init_cond[1], init_cond[1] + 365, by = 1)
-
+betas <- readRDS(beta_draws, "inst/extdata/results/model_fits/beta_draws.rds")
+# sample 100 betas from last time window
+betas100 <- sample(100, betas[[length(betas)]])
 # Scenario A
 
+# run model for each beta draw (with different contact matrix) ----
+# ci_out[[j]] <- list()
+# ci_cases[[j]] <- list()
+# for(i in 1:200){
+#   params$beta <- beta_draws[[j]][i,1]
+#   params$contact_mat <- contact_matrix[[i]]
+#   seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
+#                      params, method = rk45, rtol = 1e-08, hmax = 0.02)
+#   seir_out_ci1 <- as.data.frame(seir_out_ci) 
+#   ci_cases[[j]][[i]] <-  rowSums(params$sigma * seir_out_ci1[c(paste0("E",1:9))] * params$p_report)
+# }
+# ci_out[[j]] <- do.call("rbind", ci_cases[[j]])
 # Scenario B
 
 # Scenario C
