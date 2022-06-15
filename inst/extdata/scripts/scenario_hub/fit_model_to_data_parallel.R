@@ -18,6 +18,7 @@ library(readr)
 library(lubridate)
 library(ggplot2)
 library(stringr)
+library(optimParallel)
 
 source("R/convert_vac_schedule_debug.R")
 source("R/na_to_zero.R")
@@ -461,6 +462,12 @@ init_cond[[1]] <- init_t0
 
 # read in initial conditions if not starting at iteration 1
 init_cond <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
+
+# make cluster to run optim in parallel
+n_cores <- detectCores()
+cl <- makeCluster(n_cores)     # set the number of processor cores
+setDefaultCluster(cl=cl) # set 'cl' as default cluster
+
 # loop over time windows --------------------------------------------
 for (j in 18:n_bp) {
   
@@ -606,16 +613,17 @@ for (j in 18:n_bp) {
   case_data_sub <- case_data[times[[j]] + 1, ]
   
   # run optimization procedure --------------------------------------
-  res <- optim(par = fit_params$init_value, 
-               fn = likelihood_func_test,
-               method = "L-BFGS-B",
-               lower = fit_params$lower_bound,
-               upper = fit_params$upper_bound,
-               t = times[[j]],
-               data = case_data_sub,
-               params = params,
-               init = unlist(init_cond[[j]]),
-               hessian = TRUE
+  res <- optimParallel(
+    par = fit_params$init_value, 
+    fn = likelihood_func_test,
+    method = "L-BFGS-B",
+    lower = fit_params$lower_bound,
+    upper = fit_params$upper_bound,
+    t = times[[j]],
+    data = case_data_sub,
+    params = params,
+    init = unlist(init_cond[[j]]),
+    hessian = TRUE
   )
   
   # store MLE --------------------------------------------------------
