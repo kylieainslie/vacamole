@@ -109,28 +109,41 @@ cm_list <- list(
 
 # vaccination schedule ----------------------------------------------
 # read in vaccination schedule
-raw_vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv") #%>%
-raw_vac_schedule <- raw_vac_schedule[,-1] # remove first column
+vac_scheduleAC <- readRDS("inst/extdata/inputs/vac_schedule_scenario_hub_round1_AC.rds") 
+vac_scheduleBD <- readRDS("inst/extdata/inputs/vac_schedule_scenario_hub_round1_BD.rds") 
 
 # read in xlsx file with VEs (there is 1 sheet for each variant)
 omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron")
 
 # specify initial model parameters ---------------------------------
 # parameters must be in a named list
-vac_rates <- convert_vac_schedule_debug(
-  vac_schedule = raw_vac_schedule,
+vac_ratesAC <- convert_vac_schedule_debug(
+  vac_schedule = vac_scheduleAC,
+  ve_pars = omicron_ve,
+  wane = TRUE)
+
+vac_ratesBD <- convert_vac_schedule_debug(
+  vac_schedule = vac_scheduleAC,
   ve_pars = omicron_ve,
   wane = TRUE)
 
 # data wrangle for model input
-df_input <- pivot_wider(vac_rates %>% 
+df_inputAC <- pivot_wider(vac_ratesAC %>% 
                           filter(param != "comp_ve") %>%
                           mutate(param = ifelse(param == "comp_delay", "delay", param)), 
                         names_from = c("param", "age_group"), 
                         names_sep = "", values_from = "value")
 
+df_inputBD <- pivot_wider(vac_ratesBD %>% 
+                            filter(param != "comp_ve") %>%
+                            mutate(param = ifelse(param == "comp_delay", "delay", param)), 
+                          names_from = c("param", "age_group"), 
+                          names_sep = "", values_from = "value")
+
+
 # parameters must be in a named list
-params <- list(N = n_vec,
+# scenarios A & C
+paramsAC <- list(N = n_vec,
                beta = 0.0004,
                beta1 = 0.14,
                sigma = 0.5,
@@ -146,89 +159,191 @@ params <- list(N = n_vec,
                epsilon = 0.00,
                omega = 0.02017514,
                # daily vaccination rate
-               alpha1 = df_input %>% 
+               alpha1 = df_inputAC %>% 
                  filter(dose == "d1", outcome == "infection") %>% 
                  select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-               alpha2 = df_input %>% 
+               alpha2 = df_inputAC %>% 
                  filter(dose == "d2", outcome == "infection") %>% 
                  select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-               alpha3 = df_input %>% 
+               alpha3 = df_inputAC %>% 
                  filter(dose == "d3", outcome == "infection") %>% 
                  select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-               alpha4 = df_input %>%
+               alpha4 = df_inputAC %>%
                  filter(dose == "d4", outcome == "infection") %>%
                  select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-               alpha5 = df_input %>%
+               alpha5 = df_inputAC %>%
                  filter(dose == "d5", outcome == "infection") %>%
                  select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
                # delay to protection
-               delay1 = df_input %>% 
+               delay1 = df_inputAC %>% 
                  filter(dose == "d1", outcome == "infection") %>% 
                  select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-               delay2 = df_input %>% 
+               delay2 = df_inputAC %>% 
                  filter(dose == "d2", outcome == "infection") %>% 
                  select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-               delay3 = df_input %>% 
+               delay3 = df_inputAC %>% 
                  filter(dose == "d3", outcome == "infection") %>% 
                  select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-               delay4 = df_input %>%
+               delay4 = df_inputAC %>%
                  filter(dose == "d4", outcome == "infection") %>%
                  select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-               delay5 = df_input %>%
+               delay5 = df_inputAC %>%
                  filter(dose == "d5", outcome == "infection") %>%
                  select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
                # protection against infection
-               eta1 = df_input %>% 
+               eta1 = df_inputAC %>% 
                  filter(dose == "d1", outcome == "infection") %>% 
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta2 = df_input %>% 
+               eta2 = df_inputAC %>% 
                  filter(dose == "d2", outcome == "infection") %>% 
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta3 = df_input %>% 
+               eta3 = df_inputAC %>% 
                  filter(dose == "d3", outcome == "infection") %>% 
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta4 = df_input %>%
+               eta4 = df_inputAC %>%
                  filter(dose == "d4", outcome == "infection") %>%
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta5 = df_input %>%
+               eta5 = df_inputAC %>%
                  filter(dose == "d5", outcome == "infection") %>%
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
                # protection from hospitalisation
-               eta_hosp1 = df_input %>% 
+               eta_hosp1 = df_inputAC %>% 
                  filter(dose == "d1", outcome == "hospitalisation") %>% 
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta_hosp2 = df_input %>% 
+               eta_hosp2 = df_inputAC %>% 
                  filter(dose == "d2", outcome == "hospitalisation") %>% 
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta_hosp3 = df_input %>% 
+               eta_hosp3 = df_inputAC %>% 
                  filter(dose == "d3", outcome == "hospitalisation") %>% 
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta_hosp4 = df_input %>%
+               eta_hosp4 = df_inputAC %>%
                  filter(dose == "d4", outcome == "hospitalisation") %>%
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta_hosp5 = df_input %>%
+               eta_hosp5 = df_inputAC %>%
                  filter(dose == "d5", outcome == "hospitalisation") %>%
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
                # protection from transmission
-               eta_trans1 = df_input %>% 
+               eta_trans1 = df_inputAC %>% 
                  filter(dose == "d1", outcome == "transmission") %>% 
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta_trans2 = df_input %>% 
+               eta_trans2 = df_inputAC %>% 
                  filter(dose == "d2", outcome == "transmission") %>% 
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta_trans3 = df_input %>% 
+               eta_trans3 = df_inputAC %>% 
                  filter(dose == "d3", outcome == "transmission") %>% 
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta_trans4 = df_input %>%
+               eta_trans4 = df_inputAC %>%
                  filter(dose == "d4", outcome == "transmission") %>%
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-               eta_trans5 = df_input %>%
+               eta_trans5 = df_inputAC %>%
                  filter(dose == "d5", outcome == "transmission") %>%
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
                p_report = p_reported_by_age,
                contact_mat = contact_matrix,#$mean,  # change contact matrix
                calendar_start_date = as.Date("2020-01-01")#,
                #no_vac = nv
+)
+
+# scenarios B & D
+paramsBD <- list(N = n_vec,
+                 beta = 0.0004,
+                 beta1 = 0.14,
+                 sigma = 0.5,
+                 gamma = i2r,
+                 h = i2h,
+                 i1 = h2ic,
+                 d = h2d,
+                 r = h2r,
+                 i2 = ic2hic,
+                 d_ic = ic2d,
+                 d_hic = hic2d,
+                 r_ic = hic2r,
+                 epsilon = 0.00,
+                 omega = 0.02017514,
+                 # daily vaccination rate
+                 alpha1 = df_inputBD %>% 
+                   filter(dose == "d1", outcome == "infection") %>% 
+                   select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+                 alpha2 = df_inputBD %>% 
+                   filter(dose == "d2", outcome == "infection") %>% 
+                   select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+                 alpha3 = df_inputBD %>% 
+                   filter(dose == "d3", outcome == "infection") %>% 
+                   select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+                 alpha4 = df_inputBD %>%
+                   filter(dose == "d4", outcome == "infection") %>%
+                   select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+                 alpha5 = df_inputBD %>%
+                   filter(dose == "d5", outcome == "infection") %>%
+                   select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+                 # delay to protection
+                 delay1 = df_inputBD %>% 
+                   filter(dose == "d1", outcome == "infection") %>% 
+                   select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+                 delay2 = df_inputBD %>% 
+                   filter(dose == "d2", outcome == "infection") %>% 
+                   select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+                 delay3 = df_inputBD %>% 
+                   filter(dose == "d3", outcome == "infection") %>% 
+                   select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+                 delay4 = df_inputBD %>%
+                   filter(dose == "d4", outcome == "infection") %>%
+                   select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+                 delay5 = df_inputBD %>%
+                   filter(dose == "d5", outcome == "infection") %>%
+                   select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+                 # protection against infection
+                 eta1 = df_inputBD %>% 
+                   filter(dose == "d1", outcome == "infection") %>% 
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 eta2 = df_inputBD %>% 
+                   filter(dose == "d2", outcome == "infection") %>% 
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 eta3 = df_inputBD %>% 
+                   filter(dose == "d3", outcome == "infection") %>% 
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 eta4 = df_inputBD %>%
+                   filter(dose == "d4", outcome == "infection") %>%
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 eta5 = df_inputBD %>%
+                   filter(dose == "d5", outcome == "infection") %>%
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 # protection from hospitalisation
+                 eta_hosp1 = df_inputBD %>% 
+                   filter(dose == "d1", outcome == "hospitalisation") %>% 
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 eta_hosp2 = df_inputBD %>% 
+                   filter(dose == "d2", outcome == "hospitalisation") %>% 
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 eta_hosp3 = df_inputBD %>% 
+                   filter(dose == "d3", outcome == "hospitalisation") %>% 
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 eta_hosp4 = df_inputBD %>%
+                   filter(dose == "d4", outcome == "hospitalisation") %>%
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 eta_hosp5 = df_inputBD %>%
+                   filter(dose == "d5", outcome == "hospitalisation") %>%
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 # protection from transmission
+                 eta_trans1 = df_inputBD %>% 
+                   filter(dose == "d1", outcome == "transmission") %>% 
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 eta_trans2 = df_inputBD %>% 
+                   filter(dose == "d2", outcome == "transmission") %>% 
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 eta_trans3 = df_inputBD %>% 
+                   filter(dose == "d3", outcome == "transmission") %>% 
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 eta_trans4 = df_inputBD %>%
+                   filter(dose == "d4", outcome == "transmission") %>%
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 eta_trans5 = df_inputBD %>%
+                   filter(dose == "d5", outcome == "transmission") %>%
+                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+                 p_report = p_reported_by_age,
+                 contact_mat = contact_matrix,#$mean,  # change contact matrix
+                 calendar_start_date = as.Date("2020-01-01")#,
+                 #no_vac = nv
 )
 
 # Specify initial conditions ---------------------------------------------------
@@ -243,20 +358,43 @@ betas100 <- sample(100, betas[[length(betas)]])
 # Scenario A
 # Slow waning, Summer booster campaign (increase coverage 4th dose)
 scenarioA <- foreach(i = 1:100){
-  params$beta <- betas100[i]
-  params$contact_mat <- cm$april_2017[[i]]
-  params$omega <- wane_8months
+  paramsAC$beta <- betas100[i]
+  paramsAC$contact_mat <- cm$april_2017[[i]]
+  paramsAC$omega <- wane_8months
   
-  seir_out <- ode(init_cond, times, age_struct_seir_ode2, params, method = rk45)
+  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
   as.data.frame(seir_out)
 }
 
 # Scenario B
 # Slow waning, autumn booster campaign (5th dose)
+scenarioB <- foreach(i = 1:100){
+  paramsBD$beta <- betas100[i]
+  paramsBD$contact_mat <- cm$april_2017[[i]]
+  paramsBD$omega <- wane_8months
+  
+  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
+  as.data.frame(seir_out)
+}
 
 # Scenario C
 # Fast waning, summer booster campaign (increase coverage of 4th dose)
-
+scenarioC <- foreach(i = 1:100){
+  paramsAC$beta <- betas100[i]
+  paramsAC$contact_mat <- cm$april_2017[[i]]
+  paramsAC$omega <- wane_3months
+  
+  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
+  as.data.frame(seir_out)
+}
 # Scenario D
 # Fast waning, autumn booster campaign (5th dose)
+scenarioD <- foreach(i = 1:100){
+  paramsBD$beta <- betas100[i]
+  paramsBD$contact_mat <- cm$april_2017[[i]]
+  paramsBD$omega <- wane_3months
+  
+  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
+  as.data.frame(seir_out)
+}
 #-------------------------------------------------------------------------------
