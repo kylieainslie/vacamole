@@ -20,6 +20,7 @@ library(readxl)
 library(rARPACK)
 library(readr)
 library(lubridate)
+library(foreach)
 
 source("R/convert_vac_schedule2.R")
 source("R/na_to_zero.R")
@@ -230,58 +231,32 @@ params <- list(N = n_vec,
                #no_vac = nv
 )
 
-# Specify initial conditions --------------------------------------
+# Specify initial conditions ---------------------------------------------------
 init_cond_list <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
 init_cond <- init_cond_list[[length(init_cond_list)]]
 
-# Run forward simulations --------------------------------------------
+# Run forward simulations ------------------------------------------------------
 times <- seq(init_cond[1], init_cond[1] + 365, by = 1)
 betas <- readRDS(beta_draws, "inst/extdata/results/model_fits/beta_draws.rds")
 # sample 100 betas from last time window
 betas100 <- sample(100, betas[[length(betas)]])
 # Scenario A
+# Slow waning, Summer booster campaign (increase coverage 4th dose)
+scenarioA <- foreach(i = 1:100){
+  params$beta <- betas100[i]
+  params$contact_mat <- cm$april_2017[[i]]
+  params$omega <- wane_8months
+  
+  seir_out <- ode(init_cond, times, age_struct_seir_ode2, params, method = rk45)
+  as.data.frame(seir_out)
+}
 
-# run model for each beta draw (with different contact matrix) ----
-# ci_out[[j]] <- list()
-# ci_cases[[j]] <- list()
-# for(i in 1:200){
-#   params$beta <- beta_draws[[j]][i,1]
-#   params$contact_mat <- contact_matrix[[i]]
-#   seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
-#                      params, method = rk45, rtol = 1e-08, hmax = 0.02)
-#   seir_out_ci1 <- as.data.frame(seir_out_ci) 
-#   ci_cases[[j]][[i]] <-  rowSums(params$sigma * seir_out_ci1[c(paste0("E",1:9))] * params$p_report)
-# }
-# ci_out[[j]] <- do.call("rbind", ci_cases[[j]])
 # Scenario B
+# Slow waning, autumn booster campaign (5th dose)
 
 # Scenario C
+# Fast waning, summer booster campaign (increase coverage of 4th dose)
 
 # Scenario D
-seir_out <- lsoda(init, times, age_struct_seir_ode2, params)
-seir_out <- as.data.frame(seir_out)
-out <- postprocess_age_struct_model_output2(seir_out)
-
-susceptibles <- rowSums(out$S)
-exposed <- rowSums(out$E)
-infected <- rowSums(out$I)
-hospitalised <- rowSums(out$H)
-ic <- rowSums(out$IC)
-hosp_after_ic <- rowSums(out$H_IC)
-deaths <- rowSums(out$D)
-recovered <- rowSums(out$R) + rowSums(out$R_1w) + rowSums(out$R_2w) + rowSums(out$R_3w) 
-#cases <- params$sigma * rowSums(out$E + out$Ev_1d + out$Ev_2d + out$Ev_3d + out$Ev_4d + out$Ev_5d) * params$p_report
-
-plot(susceptibles ~ times, type = "l") #, ylim = c(0, sum(params$N))
-abline(h = sum(params$N), lty = "dashed")
-
-plot(recovered ~ times, type = "l", col = "blue", ylim = c(0,max(recovered)))
-lines(exposed ~ times, col = "green")
-lines(infected ~ times, col = "red")
-# lines(hospitalised ~ times, col = "orange")
-# lines(ic ~ times, col = "pink")
-# lines(hosp_after_ic ~ times, col = "purple")
-
-plot((susceptibles + exposed + infected + recovered +
-         hospitalised + ic + hosp_after_ic) ~ times, type = "l", lty = "dashed")
-
+# Fast waning, autumn booster campaign (5th dose)
+#-------------------------------------------------------------------------------
