@@ -398,3 +398,15 @@ scenarioD <- foreach(i = 1:100){
   as.data.frame(seir_out)
 }
 #-------------------------------------------------------------------------------
+
+# Post-process scenario runs ---------------------------------------------------
+# Results must be in a csv file that containa only the following columns (in any
+# order). No additional columns are allowed.
+# - origin_date (date):	Date as YYYY-MM-DD, last day (Monday) of submission window
+# - scenario_id	(string):	A specified "scenario ID"
+# - target_variable	(string):	"inc case", "inc death", "inc hosp", "inc icu", "inc infection"
+# - horizon	(string):	The time horizon for the projection relative to the origin_date (e.g., X wk)
+# - target_end_date	(date):	Date as YYYY-MM-DD, the last day (Saturday) of the target week
+# - location (string): An ISO-2 country code or "H0" ("NL" for the Netherlands)
+# - sample	(numeric):	A integer corresponding to the sample index (used to plot trajectories)
+# - value	(numeric):	The projected count, a non-negative integer number of new cases or deaths in the epidemiological week
