@@ -465,7 +465,7 @@ init_cond[[1]] <- init_t0
 init_cond <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
 
 # loop over time windows --------------------------------------------
-for (j in 19:n_bp) {
+for (j in 32:n_bp) {
   
   print(paste(paste0(j,")"),"Fitting from", bp_for_fit$date[j], "to", bp_for_fit$date[j+1]))
   
@@ -621,7 +621,7 @@ for (j in 19:n_bp) {
   ## return log information
   options(optimParallel.loginfo=TRUE)
   ## stop if change of f(x) is smaller than 0.01
-  control <- list(factr=.01/.Machine$double.eps)
+  control <- list(factr=.001/.Machine$double.eps)
   
   # run optimization procedure --------------------------------------
   res <- optimParallel(
