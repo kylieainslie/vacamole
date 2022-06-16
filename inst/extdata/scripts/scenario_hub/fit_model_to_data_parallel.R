@@ -395,6 +395,7 @@ omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron")
 # we're fitting the transmission probability (beta) and an
 # over-dispersion parameter (alpha)
 likelihood_func_test <- function(x, t, data, params, init) {
+  library(tidyr)
   # parameters to be estimated
   beta <- x[1]
   alpha <- x[2]
@@ -411,12 +412,12 @@ likelihood_func_test <- function(x, t, data, params, init) {
   print(paste("Negative values?:", any(tail(seir_out, 1) < 0)))
   # modeled cases
   e_comps <- out %>% 
-    select(starts_with("E"))
+    dplyr::select(starts_with("E"))
   daily_cases <- rowSums(params$sigma * e_comps * params$p_report)
   daily_cases <- ifelse(daily_cases == 0, 0.0001, daily_cases) # prevent likelihood function function from being Inf
   
   # log-likelihood function
-  # lik <- sum(dpois(x = inc_obs,lambda = incidence,log=TRUE))
+  # lik <- sum(dpois(x = inc_obs,lambda = daily_cases,log=TRUE))
   lik <- -sum(stats::dnbinom(x = inc_obs, mu = daily_cases, size = alpha, log = TRUE))
   
   #print(lik)
@@ -463,13 +464,8 @@ init_cond[[1]] <- init_t0
 # read in initial conditions if not starting at iteration 1
 init_cond <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
 
-# make cluster to run optim in parallel
-n_cores <- detectCores()
-cl <- makeCluster(n_cores)     # set the number of processor cores
-setDefaultCluster(cl=cl) # set 'cl' as default cluster
-clusterExport(cl = cl, c("age_struct_seir_ode_test"))
 # loop over time windows --------------------------------------------
-for (j in 18:n_bp) {
+for (j in 19:n_bp) {
   
   print(paste(paste0(j,")"),"Fitting from", bp_for_fit$date[j], "to", bp_for_fit$date[j+1]))
   
@@ -612,6 +608,21 @@ for (j in 18:n_bp) {
   # subset data for time window -------------------------------------
   case_data_sub <- case_data[times[[j]] + 1, ]
   
+  # Start cluster
+  ## - use all avilable processor cores
+  ## - return cat() output to R prompt
+  ## (may have issues on Windows)
+  if(tolower(.Platform$OS.type) != "windows"){
+    cl <- makeCluster(spec=detectCores(), type="FORK", outfile="")
+  } else
+    cl <- makeCluster(spec=detectCores(), outfile="")
+  setDefaultCluster(cl=cl)
+  clusterExport(cl = cl, c("age_struct_seir_ode_test"))
+  ## return log information
+  options(optimParallel.loginfo=TRUE)
+  ## stop if change of f(x) is smaller than 0.01
+  control <- list(factr=.01/.Machine$double.eps)
+  
   # run optimization procedure --------------------------------------
   res <- optimParallel(
     par = fit_params$init_value, 
@@ -623,9 +634,11 @@ for (j in 18:n_bp) {
     data = case_data_sub,
     params = params,
     init = unlist(init_cond[[j]]),
-    hessian = TRUE
+    hessian = TRUE,
+    control = control
   )
   
+  setDefaultCluster(cl=NULL); stopCluster(cl)
   # store MLE --------------------------------------------------------
   mles[[j]] <- c(beta = res$par[1]/10000, alpha = res$par[2])
   print(mles[[j]])
@@ -663,7 +676,7 @@ for (j in 18:n_bp) {
     mutate(index = 1:200)
   saveRDS(beta_draws, "inst/extdata/results/model_fits/beta_draws.rds")
   # run model for each beta draw (with different contact matrix) ----
-  #ci_out[[j]] <- list()
+  # ci_out[[j]] <- list()
   # ci_cases[[j]] <- list()
   # for(i in 1:200){
   #   params$beta <- beta_draws[[j]][i,1]
@@ -727,3 +740,9 @@ p <- ggplot(data = df_model_fit, aes(x = date, y = mle, linetype="solid")) +
         axis.title=element_text(size=14))
 p
 # --------------------------------------------------------------------
+
+start_time <- Sys.time()
+seir_out <- ode(unlist(init_cond[[j]]), times[[j]], age_struct_seir_ode_test,  
+                params, method = rk45) # , rtol = 1e-08, hmax = 0.02
+end_time <- Sys.time()
+end_time - start_time
