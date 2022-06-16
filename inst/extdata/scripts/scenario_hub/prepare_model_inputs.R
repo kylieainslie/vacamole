@@ -103,6 +103,14 @@ vac_schedule_4d <- data.frame(date = extra_dates) %>%
   full_join(vac_schedule, ., by = "date") %>%
   mutate_at(vars(-.data$date), na_to_zero)
 vac_schedule_4d$mo_d4_7[which(vac_schedule_4d$date %in% extra_start_date:extra_end_date)] <- vac_cov_vec
+# add more extra dates
+extra_dates2 <- seq.Date(from = as.Date(extra_end_date)+1, 
+                         to = as.Date("2023-05-20"), by = 1)
+vac_schedule_4da <- data.frame(date = extra_dates2) %>%
+  full_join(vac_schedule_4d, ., by = "date") %>%
+  mutate_at(vars(-.data$date), na_to_zero)
+
+saveRDS(vac_schedule_4da, "inst/extdata/inputs/vac_schedule_scenario_hub_round1_AC.rds")
 
 # add 5th doses 
 # assume 5th doses distribution is 25% pfizer and 75% moderna (up to 50% coverage)
@@ -126,5 +134,11 @@ vac_schedule_5d$mo_d5_9[which(vac_schedule_5d$date %in% extra_start_date_5d:extr
 vac_schedule_5d$pf_d5_7[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_pf_5d
 vac_schedule_5d$pf_d5_8[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_pf_5d
 vac_schedule_5d$pf_d5_9[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_pf_5d
+# add more extra dates
+extra_dates_5d2 <- seq.Date(from = as.Date(extra_end_date_5d)+1, 
+                         to = as.Date("2023-05-20"), by = 1)
+vac_schedule_5da <- data.frame(date = extra_dates_5d2) %>%
+  full_join(vac_schedule_5d, ., by = "date") %>%
+  mutate_at(vars(-.data$date), na_to_zero)
 
-saveRDS(vac_schedule_5d, "inst/extdata/inputs/vac_schedule_scenario_hub_round1.rds")
+saveRDS(vac_schedule_5da, "inst/extdata/inputs/vac_schedule_scenario_hub_round1_BD.rds")
