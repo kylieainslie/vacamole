@@ -661,8 +661,9 @@ for (j in 32:n_bp) {
   }
   # store outputs ----------------------------------------------------
   out[[j]] <- as.data.frame(seir_out) 
-  cases[[j]] <-  rowSums(params$sigma * out[[j]][c(paste0("E",1:9))] * params$p_report)
-  saveRDS(cases, "inst/extdata/results/model_fits/modelled_daily_cases.rds")
+  e_comps <- out[[j]] %>% dplyr::select(starts_with("E"))
+  cases[[j]] <- rowSums(params$sigma * e_comps * params$p_report)
+  #saveRDS(cases, "inst/extdata/results/model_fits/modelled_daily_cases.rds")
   # plot for quick check of fit --------------------------------------
   plot(case_data_sub$inc ~ times[[j]], pch = 16, col = "red", 
        ylim = c(0, max(case_data_sub$inc,cases[[j]])))
