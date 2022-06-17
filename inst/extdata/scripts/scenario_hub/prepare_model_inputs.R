@@ -79,7 +79,7 @@ write.csv(vac_schedule,"inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose
 # 15 December
 
 # 1)
-vac_schedule <- readRDS("~/vacamole/inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.rds")
+vac_schedule <- readRDS("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.rds")
 current_4d_prop <- vac_schedule %>% 
   tail(.,1) %>%
   select(date, pf_d4_7:pf_d4_9, mo_d4_7:mo_d4_9) %>%
@@ -101,14 +101,15 @@ extra_dates <- seq.Date(from = as.Date(extra_start_date),
                         to = as.Date(extra_end_date), by = 1)
 vac_schedule_4d <- data.frame(date = extra_dates) %>%
   full_join(vac_schedule, ., by = "date") %>%
-  mutate_at(vars(-.data$date), na_to_zero)
+  fill(-.data$date)
+
 vac_schedule_4d$mo_d4_7[which(vac_schedule_4d$date %in% extra_start_date:extra_end_date)] <- vac_cov_vec
 # add more extra dates
 extra_dates2 <- seq.Date(from = as.Date(extra_end_date)+1, 
                          to = as.Date("2023-05-20"), by = 1)
 vac_schedule_4da <- data.frame(date = extra_dates2) %>%
   full_join(vac_schedule_4d, ., by = "date") %>%
-  mutate_at(vars(-.data$date), na_to_zero)
+  fill(-.data$date)
 
 saveRDS(vac_schedule_4da, "inst/extdata/inputs/vac_schedule_scenario_hub_round1_AC.rds")
 
@@ -125,7 +126,7 @@ extra_dates_5d <- seq.Date(from = as.Date(extra_start_date_5d),
                         to = as.Date(extra_end_date_5d), by = 1)
 vac_schedule_5d <- data.frame(date = extra_dates_5d) %>%
   full_join(vac_schedule_4d, ., by = "date") %>%
-  mutate_at(vars(-.data$date), na_to_zero)
+  fill(-.data$date)
 # moderna 5th doses
 vac_schedule_5d$mo_d5_7[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_mo_5d
 vac_schedule_5d$mo_d5_8[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_mo_5d
@@ -139,6 +140,6 @@ extra_dates_5d2 <- seq.Date(from = as.Date(extra_end_date_5d)+1,
                          to = as.Date("2023-05-20"), by = 1)
 vac_schedule_5da <- data.frame(date = extra_dates_5d2) %>%
   full_join(vac_schedule_5d, ., by = "date") %>%
-  mutate_at(vars(-.data$date), na_to_zero)
+  fill(-.data$date)
 
 saveRDS(vac_schedule_5da, "inst/extdata/inputs/vac_schedule_scenario_hub_round1_BD.rds")
