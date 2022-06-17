@@ -358,7 +358,7 @@ betas <- readRDS("inst/extdata/results/model_fits/beta_draws.rds")
 betas100 <- sample(betas[[length(betas)]]$beta, 100)
 
 # register parallel backend
-registerDoParallel(cores=4)
+registerDoParallel(cores=10)
 
 # Scenario A
 # Slow waning, Summer booster campaign (increase coverage 4th dose)
@@ -371,42 +371,47 @@ scenarioA <- foreach(i = 1:100) %dopar% {
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
   as.data.frame(seir_out)
 }
-
+saveRDS(scenarioA, "inst/extdata/results/scenario_hub/round1/scenarioA.rds")
 # Scenario B
 # Slow waning, autumn booster campaign (5th dose)
-scenarioB <- foreach(i = 1:100){
+scenarioB <- foreach(i = 1:100) %dopar% {
   paramsBD$beta <- betas100[i]
-  paramsBD$contact_mat <- cm$april_2017[[i]]
+  paramsBD$contact_mat <- april_2017[[i]]
   paramsBD$omega <- wane_8months
   
+  rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
   as.data.frame(seir_out)
 }
-
+saveRDS(scenarioB, "inst/extdata/results/scenario_hub/round1/scenarioB.rds")
 # Scenario C
 # Fast waning, summer booster campaign (increase coverage of 4th dose)
-scenarioC <- foreach(i = 1:100){
+scenarioC <- foreach(i = 1:100) %dopar% {
   paramsAC$beta <- betas100[i]
-  paramsAC$contact_mat <- cm$april_2017[[i]]
+  paramsAC$contact_mat <- april_2017[[i]]
   paramsAC$omega <- wane_3months
   
+  rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
   as.data.frame(seir_out)
 }
+saveRDS(scenarioC, "inst/extdata/results/scenario_hub/round1/scenarioC.rds")
 # Scenario D
 # Fast waning, autumn booster campaign (5th dose)
-scenarioD <- foreach(i = 1:100){
+scenarioD <- foreach(i = 1:100) %dopar% {
   paramsBD$beta <- betas100[i]
-  paramsBD$contact_mat <- cm$april_2017[[i]]
+  paramsBD$contact_mat <- april_2017[[i]]
   paramsBD$omega <- wane_3months
   
+  rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
   as.data.frame(seir_out)
 }
+saveRDS(scenarioD, "inst/extdata/results/scenario_hub/round1/scenarioD.rds")
 #-------------------------------------------------------------------------------
 
 # Post-process scenario runs ---------------------------------------------------
-# Results must be in a csv file that containa only the following columns (in any
+# Results must be in a csv file that contains only the following columns (in any
 # order). No additional columns are allowed.
 # - origin_date (date):	Date as YYYY-MM-DD, last day (Monday) of submission window
 # - scenario_id	(string):	A specified "scenario ID"
