@@ -30,10 +30,11 @@
 #' @export
 convert_vac_schedule2 <- function(vac_schedule,
                                   ve_pars,
-                                  wane = FALSE,
-                                  add_extra_dates = FALSE,
-                                  extra_start_date,
-                                  extra_end_date){
+                                  wane = FALSE#,
+                                  # add_extra_dates = FALSE,
+                                  # extra_start_date,
+                                  # extra_end_date
+                                  ){
   
   # check if there are 9 age groups or 10 age groups ---------------------------
   # extract age group part of each relevant column name of vac_schedule
@@ -112,14 +113,20 @@ convert_vac_schedule2 <- function(vac_schedule,
     select(date, everything()) # move date column to first position
   
   # add extra rows for dates further in the future -----------------------------
-  if (add_extra_dates) {
-    extra_dates <- seq.Date(from = as.Date(extra_start_date), 
-                            to = as.Date(extra_end_date), by = 1)
-    extra_dat <- data.frame(date = extra_dates) %>%
-      full_join(vac_schedule_rate, extra_dates, by = "date") %>%
-      mutate_at(vars(-.data$date), na_to_zero)
-    vac_schedule_rate <- extra_dat
-  } 
+  # if (add_extra_dates) {
+  #   extra_dates <- seq.Date(from = as.Date(extra_start_date), 
+  #                           to = as.Date(extra_end_date), by = 1)
+  #   extra_dat1 <- data.frame(date = extra_dates) %>%
+  #     full_join(vac_schedule_rate, ., by = "date") %>%
+  #     mutate_at(vars(-.data$date), na_to_zero)
+  #   
+  #   extra_dat2 <- data.frame(date = extra_dates) %>%
+  #     full_join(vac_schedule_daily, ., by = "date") %>%
+  #     mutate_at(vars(-.data$date), na_to_zero)
+  #   
+  #   vac_schedule_rate <- extra_dat1
+  #   vac_schedule_daily <- extra_dat2
+  # } 
   
   # daily vaccination rate for each dose ---------------------------------------
   # first transform data frame to long format
