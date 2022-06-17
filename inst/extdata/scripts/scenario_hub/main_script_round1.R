@@ -117,12 +117,12 @@ omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron")
 
 # specify initial model parameters ---------------------------------
 # parameters must be in a named list
-vac_ratesAC <- convert_vac_schedule_debug(
+vac_ratesAC <- convert_vac_schedule2(
   vac_schedule = vac_scheduleAC,
   ve_pars = omicron_ve,
   wane = TRUE)
 
-vac_ratesBD <- convert_vac_schedule_debug(
+vac_ratesBD <- convert_vac_schedule2(
   vac_schedule = vac_scheduleAC,
   ve_pars = omicron_ve,
   wane = TRUE)
@@ -357,7 +357,7 @@ betas <- readRDS(beta_draws, "inst/extdata/results/model_fits/beta_draws.rds")
 betas100 <- sample(100, betas[[length(betas)]])
 # Scenario A
 # Slow waning, Summer booster campaign (increase coverage 4th dose)
-scenarioA <- foreach(i = 1:100){
+scenarioA <- foreach(i = 1:5){
   paramsAC$beta <- betas100[i]
   paramsAC$contact_mat <- cm$april_2017[[i]]
   paramsAC$omega <- wane_8months
@@ -410,3 +410,8 @@ scenarioD <- foreach(i = 1:100){
 # - location (string): An ISO-2 country code or "H0" ("NL" for the Netherlands)
 # - sample	(numeric):	A integer corresponding to the sample index (used to plot trajectories)
 # - value	(numeric):	The projected count, a non-negative integer number of new cases or deaths in the epidemiological week
+
+# wrangle Scenario A output ----------------------------------------------------
+dfA <- bind_rows(scenarioA, .id = "sample")
+
+#write_csv(df_round1, "/inst/extdata/results/scenario_hub/2021-05-22-rivm-vacamole.csv")
