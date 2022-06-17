@@ -20,7 +20,7 @@ library(ggplot2)
 library(stringr)
 library(optimParallel)
 
-source("R/convert_vac_schedule_debug.R")
+source("R/convert_vac_schedule2.R")
 source("R/na_to_zero.R")
 source("R/calc_waning.R")
 
@@ -30,7 +30,7 @@ options(dplyr.summarise.inform = FALSE)
 # Define model -----------------------------------------------------
 age_struct_seir_ode_test <- function(times, init, params) {
   with(as.list(c(params, init)), {
-    #print(t)
+    #print(times)
     # define initial state vectors from input ----------------------
     # susceptible
     S <- c(S1, S2, S3, S4, S5, S6, S7, S8, S9)     
@@ -126,9 +126,8 @@ age_struct_seir_ode_test <- function(times, init, params) {
     Rv_5d_3w <- c(Rv_5d_3w1, Rv_5d_3w2, Rv_5d_3w3, Rv_5d_3w4, Rv_5d_3w5, Rv_5d_3w6, Rv_5d_3w7, Rv_5d_3w8, Rv_5d_3w9)
     
     # define vaccination parameters ---------------------------------
-    # don't index parameters when there's no vaccination, it's faster!
-    #if(no_vac == TRUE){ 
     index <- floor(times) + 1              # use floor of time point + 1 to index df
+    
     # daily vac rate
     alpha1 <- params$alpha1[index, -1] # remove date column
     alpha2 <- params$alpha2[index, -1]
@@ -163,13 +162,6 @@ age_struct_seir_ode_test <- function(times, init, params) {
     eta_trans3   <- as.numeric(params$eta_trans3[index, -1])
     eta_trans4   <- as.numeric(params$eta_trans4[index, -1])
     eta_trans5   <- as.numeric(params$eta_trans5[index, -1])
-    # } else{
-    #   alpha1 <- c(rep(0,9)); alpha2 <- c(rep(0,9)); alpha3 <- c(rep(0,9)); alpha4 <- c(rep(0,9)); alpha5 <- c(rep(0,9))
-    #   delay1 <- c(rep(1,9)); delay2 <- c(rep(1,9)); delay3 <- c(rep(1,9)); delay4 <- c(rep(1,9)); delay5 <- c(rep(0,9))
-    #   eta1   <- c(rep(1,9)); eta2   <- c(rep(1,9)); eta3   <- c(rep(1,9)); eta4   <- c(rep(1,9)); eta5   <- c(rep(1,9))
-    #   eta_hosp1 <- c(rep(1,9)); eta_hosp2 <- c(rep(1,9)); eta_hosp3 <- c(rep(1,9)); eta_hosp4 <- c(rep(1,9)); eta_hosp5 <- c(rep(1,9))
-    #   eta_trans1 <- c(rep(1,9)); eta_trans2 <- c(rep(1,9)); eta_trans3 <- c(rep(1,9)); eta_trans4 <- c(rep(1,9)); eta_trans5 <- c(rep(1,9))
-    # }
     # ---------------------------------------------------------------
     
     # determine force of infection ----------------------------------
@@ -382,6 +374,14 @@ hic2r  <- (1 - p_hospital2death) / time_hospital2discharge # H_IC -> R
 raw_vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv") #%>%
   # select(-X1)
 raw_vac_schedule <- raw_vac_schedule[,-1]
+# add extra rows
+extra_start_date <- tail(raw_vac_schedule$date,1) + 1
+extra_end_date <- as.Date("2022-05-25")
+extra_dates <- seq.Date(from = as.Date(extra_start_date), 
+                           to = as.Date(extra_end_date), by = 1)
+vac_schedule_extra <- data.frame(date = extra_dates) %>%
+  full_join(raw_vac_schedule, ., by = "date") %>%
+  fill(-.data$date)
 
 # read in xlsx file with VEs (there is 1 sheet for each variant)
 # we'll only use wildtype values for now
@@ -403,6 +403,7 @@ likelihood_func_test <- function(x, t, data, params, init) {
   # observed daily cases
   inc_obs <- data$inc
   
+  #print(init)
   # run model with current parameter values
   params$beta <- x[1]/10000
   rk45 <- deSolve::rkMethod("rk45dp7")
@@ -415,7 +416,7 @@ likelihood_func_test <- function(x, t, data, params, init) {
     dplyr::select(starts_with("E"))
   daily_cases <- rowSums(params$sigma * e_comps * params$p_report)
   daily_cases <- ifelse(daily_cases == 0, 0.0001, daily_cases) # prevent likelihood function function from being Inf
-  
+
   # log-likelihood function
   # lik <- sum(dpois(x = inc_obs,lambda = daily_cases,log=TRUE))
   lik <- -sum(stats::dnbinom(x = inc_obs, mu = daily_cases, size = alpha, log = TRUE))
@@ -465,7 +466,7 @@ init_cond[[1]] <- init_t0
 init_cond <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
 
 # loop over time windows --------------------------------------------
-for (j in 32:n_bp) {
+for (j in 45:n_bp) {
   
   print(paste(paste0(j,")"),"Fitting from", bp_for_fit$date[j], "to", bp_for_fit$date[j+1]))
   
@@ -488,8 +489,8 @@ for (j in 32:n_bp) {
   } else if (bp_for_fit$variant[j+1] == "omicron"){ve_params <- omicron_ve
   } 
   
-  vac_rates <- convert_vac_schedule_debug(
-    vac_schedule = raw_vac_schedule,
+  vac_rates <- convert_vac_schedule2(
+    vac_schedule = vac_schedule_extra,
     ve_pars = ve_params,
     wane = TRUE)
   
@@ -624,7 +625,7 @@ for (j in 32:n_bp) {
   control <- list(factr=.001/.Machine$double.eps)
   
   # run optimization procedure --------------------------------------
-  res <- optimParallel(
+  res <- optimParallel( 
     par = fit_params$init_value, 
     fn = likelihood_func_test,
     method = "L-BFGS-B",
