@@ -21,6 +21,7 @@ library(rARPACK)
 library(readr)
 library(lubridate)
 library(foreach)
+library(doParallel)
 
 source("R/convert_vac_schedule2.R")
 source("R/na_to_zero.R")
@@ -89,23 +90,23 @@ wane_6months <- uniroot(Fk, c(0,1), tau = 182, p = 0.5)$root
 path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
 # path <- "inst/extdata/inputs/contact_matrices/converted/"
 april_2017     <- readRDS(paste0(path,"transmission_matrix_april_2017.rds"))
-april_2020     <- readRDS(paste0(path,"transmission_matrix_april_2020.rds"))
-june_2020      <- readRDS(paste0(path,"transmission_matrix_june_2020.rds"))
-september_2020 <- readRDS(paste0(path,"transmission_matrix_september_2020.rds"))
-february_2021  <- readRDS(paste0(path,"transmission_matrix_february_2021.rds"))
-june_2021      <- readRDS(paste0(path,"transmission_matrix_june_2021.rds"))
-november_2021  <- readRDS(paste0(path,"transmission_matrix_november_2021.rds"))
+# april_2020     <- readRDS(paste0(path,"transmission_matrix_april_2020.rds"))
+# june_2020      <- readRDS(paste0(path,"transmission_matrix_june_2020.rds"))
+# september_2020 <- readRDS(paste0(path,"transmission_matrix_september_2020.rds"))
+# february_2021  <- readRDS(paste0(path,"transmission_matrix_february_2021.rds"))
+# june_2021      <- readRDS(paste0(path,"transmission_matrix_june_2021.rds"))
+# november_2021  <- readRDS(paste0(path,"transmission_matrix_november_2021.rds"))
 
 # put contact matrices into a list for input into fit_to_data_func()
-cm_list <- list(
-  april_2017 = april_2017,
-  april_2020 = april_2020,
-  june_2020 = june_2020,
-  september_2020 = september_2020,
-  february_2021 = february_2021,
-  june_2021 = june_2021,
-  november_2021 = november_2021
-)
+# cm_list <- list(
+#   april_2017 = april_2017,
+#   april_2020 = april_2020,
+#   june_2020 = june_2020,
+#   september_2020 = september_2020,
+#   february_2021 = february_2021,
+#   june_2021 = june_2021,
+#   november_2021 = november_2021
+# )
 
 # vaccination schedule ----------------------------------------------
 # read in vaccination schedule
@@ -239,9 +240,8 @@ paramsAC <- list(N = n_vec,
                  filter(dose == "d5", outcome == "transmission") %>%
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
                p_report = p_reported_by_age,
-               contact_mat = contact_matrix,#$mean,  # change contact matrix
-               calendar_start_date = as.Date("2020-01-01")#,
-               #no_vac = nv
+               contact_mat = april_2017,
+               calendar_start_date = as.Date("2020-01-01")
 )
 
 # scenarios B & D
@@ -341,27 +341,33 @@ paramsBD <- list(N = n_vec,
                    filter(dose == "d5", outcome == "transmission") %>%
                    select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
                  p_report = p_reported_by_age,
-                 contact_mat = contact_matrix,#$mean,  # change contact matrix
-                 calendar_start_date = as.Date("2020-01-01")#,
-                 #no_vac = nv
+                 contact_mat = april_2017,
+                 calendar_start_date = as.Date("2020-01-01")
 )
 
 # Specify initial conditions ---------------------------------------------------
 init_cond_list <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
-init_cond <- init_cond_list[[length(init_cond_list)]]
-
+init_cond <- unlist(init_cond_list[[length(init_cond_list)]])
+init_cond[1] <- 872
 # Run forward simulations ------------------------------------------------------
-times <- seq(init_cond[1], init_cond[1] + 365, by = 1)
-betas <- readRDS(beta_draws, "inst/extdata/results/model_fits/beta_draws.rds")
+t_start <- init_cond[1]
+t_end <- t_start + 365
+times <- seq(t_start, t_end, by = 1)
+betas <- readRDS("inst/extdata/results/model_fits/beta_draws.rds")
 # sample 100 betas from last time window
-betas100 <- sample(100, betas[[length(betas)]])
+betas100 <- sample(betas[[length(betas)]]$beta, 100)
+
+# register parallel backend
+registerDoParallel(cores=4)
+
 # Scenario A
 # Slow waning, Summer booster campaign (increase coverage 4th dose)
-scenarioA <- foreach(i = 1:5){
+scenarioA <- foreach(i = 1:100) %dopar% {
   paramsAC$beta <- betas100[i]
-  paramsAC$contact_mat <- cm$april_2017[[i]]
+  paramsAC$contact_mat <- april_2017[[i]]
   paramsAC$omega <- wane_8months
   
+  rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
   as.data.frame(seir_out)
 }
@@ -412,6 +418,9 @@ scenarioD <- foreach(i = 1:100){
 # - value	(numeric):	The projected count, a non-negative integer number of new cases or deaths in the epidemiological week
 
 # wrangle Scenario A output ----------------------------------------------------
-dfA <- bind_rows(scenarioA, .id = "sample")
+dfA <- bind_rows(scenarioA, .id = "sample") %>%
+  mutate(date = time + as.Date("2020-01-01"),
+         origin_date = as.Date("2022-05-22"),
+         scenario_id = "A-2022-05-22")
 
 #write_csv(df_round1, "/inst/extdata/results/scenario_hub/2021-05-22-rivm-vacamole.csv")
