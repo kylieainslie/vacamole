@@ -87,8 +87,8 @@ wane_8months <- uniroot(Fk, c(0,1), tau = 244, p = 0.6)$root
 # 50% reduction after 6 months (used for model fits)
 wane_6months <- uniroot(Fk, c(0,1), tau = 182, p = 0.5)$root
 # contact matrices --------------------------------------------------
-path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
-# path <- "inst/extdata/inputs/contact_matrices/converted/"
+# path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
+path <- "inst/extdata/inputs/contact_matrices/converted/"
 april_2017     <- readRDS(paste0(path,"transmission_matrix_april_2017.rds"))
 # april_2020     <- readRDS(paste0(path,"transmission_matrix_april_2020.rds"))
 # june_2020      <- readRDS(paste0(path,"transmission_matrix_june_2020.rds"))
@@ -358,7 +358,7 @@ betas <- readRDS("inst/extdata/results/model_fits/beta_draws.rds")
 betas100 <- sample(betas[[length(betas)]]$beta, 100)
 
 # register parallel backend
-registerDoParallel(cores=10)
+registerDoParallel(cores=4)
 
 # Scenario A
 # Slow waning, Summer booster campaign (increase coverage 4th dose)
@@ -371,19 +371,18 @@ scenarioA <- foreach(i = 1:100) %dopar% {
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
   as.data.frame(seir_out)
 }
-saveRDS(scenarioA, "inst/extdata/results/scenario_hub/round1/scenarioA.rds")
+saveRDS(scenarioA, "/rivm/s/results/scenario_hub/round1/scenarioA.rds")
 # Scenario B
 # Slow waning, autumn booster campaign (5th dose)
 scenarioB <- foreach(i = 1:100) %dopar% {
   paramsBD$beta <- betas100[i]
-  paramsBD$contact_mat <- april_2017[[i]]
+  paramsBD$contact_mat <- cm$april_2017[[i]]
   paramsBD$omega <- wane_8months
   
-  rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
   as.data.frame(seir_out)
 }
-saveRDS(scenarioB, "inst/extdata/results/scenario_hub/round1/scenarioB.rds")
+saveRDS(scenarioB, "/rivm/s/results/scenario_hub/round1/scenarioB.rds")
 # Scenario C
 # Fast waning, summer booster campaign (increase coverage of 4th dose)
 scenarioC <- foreach(i = 1:100) %dopar% {
@@ -391,7 +390,6 @@ scenarioC <- foreach(i = 1:100) %dopar% {
   paramsAC$contact_mat <- april_2017[[i]]
   paramsAC$omega <- wane_3months
   
-  rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
   as.data.frame(seir_out)
 }
@@ -403,7 +401,6 @@ scenarioD <- foreach(i = 1:100) %dopar% {
   paramsBD$contact_mat <- april_2017[[i]]
   paramsBD$omega <- wane_3months
   
-  rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
   as.data.frame(seir_out)
 }
@@ -411,7 +408,7 @@ saveRDS(scenarioD, "/rivm/s/results/scenario_hub/round1/scenarioD.rds")
 #-------------------------------------------------------------------------------
 
 # Post-process scenario runs ---------------------------------------------------
-# Results must be in a csv file that contains only the following columns (in any
+# Results must be in a csv file that containa only the following columns (in any
 # order). No additional columns are allowed.
 # - origin_date (date):	Date as YYYY-MM-DD, last day (Monday) of submission window
 # - scenario_id	(string):	A specified "scenario ID"
@@ -423,9 +420,36 @@ saveRDS(scenarioD, "/rivm/s/results/scenario_hub/round1/scenarioD.rds")
 # - value	(numeric):	The projected count, a non-negative integer number of new cases or deaths in the epidemiological week
 
 # wrangle Scenario A output ----------------------------------------------------
-dfA <- bind_rows(scenarioA, .id = "sample") %>%
-  mutate(date = time + as.Date("2020-01-01"),
-         origin_date = as.Date("2022-05-22"),
-         scenario_id = "A-2022-05-22")
+# only going to report cases for round 1
+test <- readRDS("inst/extdata/results/scenario_hub/test_output.rds")
+
+p_report_vec <- c(rep(as.numeric(paramsAC$p_report),6))
+
+dfA <- bind_rows(test, .id = "sample") %>%
+  mutate(date = time + as.Date("2020-01-01")) %>%
+  select(sample,date, E1:Ev_5d9)
+dfA1 <- sweep(dfA[,-c(1:2)], 2, paramsAC$sigma * p_report_vec, FUN="*")
+dfA2 <- cbind(dfA[,c(1:2)], dfA1)
+df_scenarioA <- dfA2 %>%
+  mutate(inc_case = rowSums(select(., E1:Ev_5d9)),
+         epiweek = lubridate::epiweek(date)) %>%
+  filter(date < as.Date("2023-05-21")) %>%
+  select(sample, date, epiweek, inc_case) %>%
+  group_by(sample,epiweek) %>%
+  summarise_at(.vars = 'inc_case', sum) %>%
+  mutate(origin_date = as.Date("2022-05-22"),
+         scenario_id = "A-2022-05-22",
+         target_end_date = "2023-05-20",
+         horizon = 52,
+         location = "NL",
+         target_variable = "inc case") %>%
+  rename(value = inc_case)
+
+write_csv(df_scenarioA, "inst/extdata/results/scenario_hub/round1/df_scenarioA.rds")
+#,
+# I_all = rowSums(select(.,I1:Iv_5d9)),
+# H_all = rowSums(select(.,H1:Hv_5d9)),
+# IC_all = rowSums(select(.,IC1:ICv_5d9)),
+# H_IC_all = rowSums(select(.,H_IC1:H_ICv_5d9)),
 
 #write_csv(df_round1, "/inst/extdata/results/scenario_hub/2021-05-22-rivm-vacamole.csv")
