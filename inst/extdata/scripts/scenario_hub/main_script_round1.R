@@ -420,22 +420,26 @@ saveRDS(scenarioD, "/rivm/s/ainsliek/results/scenario_hub/round1/scenarioD.rds")
 # - value	(numeric):	The projected count, a non-negative integer number of new cases or deaths in the epidemiological week
 
 # wrangle Scenario A output ----------------------------------------------------
-# only going to report cases for round 1
-test <- readRDS("inst/extdata/results/scenario_hub/test_output.rds")
-
 p_report_vec <- c(rep(as.numeric(paramsAC$p_report),6))
 
-dfA <- bind_rows(test, .id = "sample") %>%
+# only going to report cases for round 1
+#test <- readRDS("inst/extdata/results/scenario_hub/test_output.rds")
+# read in saved output from model runs
+df_scenA <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round1/scenarioA.rds")
+# wrangle to determine number of cases by EpiWeek
+dfA <- bind_rows(df_scenA, .id = "sample") %>%
   mutate(date = time + as.Date("2020-01-01")) %>%
   select(sample,date, E1:Ev_5d9)
 dfA1 <- sweep(dfA[,-c(1:2)], 2, paramsAC$sigma * p_report_vec, FUN="*")
 dfA2 <- cbind(dfA[,c(1:2)], dfA1)
+
 df_scenarioA <- dfA2 %>%
   mutate(inc_case = rowSums(select(., E1:Ev_5d9)),
-         epiweek = lubridate::epiweek(date)) %>%
+         epiweek = lubridate::epiweek(date),
+         year = lubridate::epiyear(date)) %>%
   filter(date < as.Date("2023-05-21")) %>%
-  select(sample, date, epiweek, inc_case) %>%
-  group_by(sample,epiweek) %>%
+  select(sample, date, year, epiweek, inc_case) %>%
+  group_by(sample, year, epiweek) %>%
   summarise_at(.vars = 'inc_case', sum) %>%
   mutate(origin_date = as.Date("2022-05-22"),
          scenario_id = "A-2022-05-22",
@@ -443,13 +447,95 @@ df_scenarioA <- dfA2 %>%
          horizon = 52,
          location = "NL",
          target_variable = "inc case") %>%
-  rename(value = inc_case)
+  rename(value = inc_case) #%>%
+  #select(-year) # drop year variable (only used for ordering weeks)
 
-write_csv(df_scenarioA, "inst/extdata/results/scenario_hub/round1/df_scenarioA.rds")
-#,
-# I_all = rowSums(select(.,I1:Iv_5d9)),
-# H_all = rowSums(select(.,H1:Hv_5d9)),
-# IC_all = rowSums(select(.,IC1:ICv_5d9)),
-# H_IC_all = rowSums(select(.,H_IC1:H_ICv_5d9)),
+# wrangle Scenario B output ----------------------------------------------------
+# read in saved output from model runs
+df_scenB <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round1/scenarioB.rds")
+# wrangle to determine number of cases by EpiWeek
+dfB <- bind_rows(df_scenB, .id = "sample") %>%
+  mutate(date = time + as.Date("2020-01-01")) %>%
+  select(sample,date, E1:Ev_5d9)
+dfB1 <- sweep(dfB[,-c(1:2)], 2, paramsBD$sigma * p_report_vec, FUN="*")
+dfB2 <- cbind(dfB[,c(1:2)], dfB1)
 
-#write_csv(df_round1, "/inst/extdata/results/scenario_hub/2021-05-22-rivm-vacamole.csv")
+df_scenarioB <- dfB2 %>%
+  mutate(inc_case = rowSums(select(., E1:Ev_5d9)),
+         epiweek = lubridate::epiweek(date),
+         year = lubridate::epiyear(date)) %>%
+  filter(date < as.Date("2023-05-21")) %>%
+  select(sample, date, year, epiweek, inc_case) %>%
+  group_by(sample, year, epiweek) %>%
+  summarise_at(.vars = 'inc_case', sum) %>%
+  mutate(origin_date = as.Date("2022-05-22"),
+         scenario_id = "B-2022-05-22",
+         target_end_date = "2023-05-20",
+         horizon = 52,
+         location = "NL",
+         target_variable = "inc case") %>%
+  rename(value = inc_case) #%>%
+#select(-year) # drop year variable (only used for ordering weeks)
+
+# wrangle Scenario C output ----------------------------------------------------
+# read in saved output from model runs
+df_scenC <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round1/scenarioC.rds")
+# wrangle to determine number of cases by EpiWeek
+dfC <- bind_rows(df_scenC, .id = "sample") %>%
+  mutate(date = time + as.Date("2020-01-01")) %>%
+  select(sample,date, E1:Ev_5d9)
+dfC1 <- sweep(dfC[,-c(1:2)], 2, paramsAC$sigma * p_report_vec, FUN="*")
+dfC2 <- cbind(dfC[,c(1:2)], dfC1)
+
+df_scenarioC <- dfC2 %>%
+  mutate(inc_case = rowSums(select(., E1:Ev_5d9)),
+         epiweek = lubridate::epiweek(date),
+         year = lubridate::epiyear(date)) %>%
+  filter(date < as.Date("2023-05-21")) %>%
+  select(sample, date, year, epiweek, inc_case) %>%
+  group_by(sample, year, epiweek) %>%
+  summarise_at(.vars = 'inc_case', sum) %>%
+  mutate(origin_date = as.Date("2022-05-22"),
+         scenario_id = "C-2022-05-22",
+         target_end_date = "2023-05-20",
+         horizon = 52,
+         location = "NL",
+         target_variable = "inc case") %>%
+  rename(value = inc_case) #%>%
+#select(-year) # drop year variable (only used for ordering weeks)
+
+# wrangle Scenario D output ----------------------------------------------------
+# read in saved output from model runs
+df_scenD <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round1/scenarioD.rds")
+# wrangle to determine number of cases by EpiWeek
+dfD <- bind_rows(df_scenD, .id = "sample") %>%
+  mutate(date = time + as.Date("2020-01-01")) %>%
+  select(sample,date, E1:Ev_5d9)
+dfD1 <- sweep(dfD[,-c(1:2)], 2, paramsBD$sigma * p_report_vec, FUN="*")
+dfD2 <- cbind(dfD[,c(1:2)], dfD1)
+
+df_scenarioD <- dfD2 %>%
+  mutate(inc_case = rowSums(select(., E1:Ev_5d9)),
+         epiweek = lubridate::epiweek(date),
+         year = lubridate::epiyear(date)) %>%
+  filter(date < as.Date("2023-05-21")) %>%
+  select(sample, date, year, epiweek, inc_case) %>%
+  group_by(sample, year, epiweek) %>%
+  summarise_at(.vars = 'inc_case', sum) %>%
+  mutate(origin_date = as.Date("2022-05-22"),
+         scenario_id = "D-2022-05-22",
+         target_end_date = "2023-05-20",
+         horizon = 52,
+         location = "NL",
+         target_variable = "inc case") %>%
+  rename(value = inc_case) #%>%
+#select(-year) # drop year variable (only used for ordering weeks)
+
+# put all scenarios together into single data frame
+df_round1 <- bind_rows(df_scenarioA, df_scenarioB, df_scenarioC, df_scenarioD) %>%
+  ungroup() %>%
+  select(-year)
+# output for submission to scenario hub
+write_csv(df_round1, "inst/extdata/results/scenario_hub/2021-05-22-rivm-vacamole.csv")
+# output for plotting
+saveRDS(df_round1, "inst/extdata/results/scenario_hub/2021-05-22-rivm-vacamole.rds")
