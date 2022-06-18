@@ -15,9 +15,13 @@ df_plot <- df_round1 %>%
   mutate(epiweek = factor(epiweek, levels = c(21:52,1:20))) %>%
   # get mean and CI of samples
   group_by(scenario_id, epiweek) %>%
-  summarise(mean = mean(value), 
+  summarise(med = median(value), 
             q025 = quantile(value, probs = 0.025),
             q975 = quantile(value, probs = 0.975))
 
 # plot -------------------------------------------------------------------------
-
+p <- ggplot(data = df_plot, aes(x = epiweek, y = med, color = scenario_id)) +
+  geom_point() #+
+  #geom_errorbar(aes(ymin=q025, ymax=q975), width=.1)
+  #geom_ribbon(aes(ymin = q025, ymax = q975))
+p
