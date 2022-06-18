@@ -87,8 +87,8 @@ wane_8months <- uniroot(Fk, c(0,1), tau = 244, p = 0.6)$root
 # 50% reduction after 6 months (used for model fits)
 wane_6months <- uniroot(Fk, c(0,1), tau = 182, p = 0.5)$root
 # contact matrices --------------------------------------------------
-# path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
-path <- "inst/extdata/inputs/contact_matrices/converted/"
+path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
+# path <- "inst/extdata/inputs/contact_matrices/converted/"
 april_2017     <- readRDS(paste0(path,"transmission_matrix_april_2017.rds"))
 # april_2020     <- readRDS(paste0(path,"transmission_matrix_april_2020.rds"))
 # june_2020      <- readRDS(paste0(path,"transmission_matrix_june_2020.rds"))
@@ -358,7 +358,7 @@ betas <- readRDS("inst/extdata/results/model_fits/beta_draws.rds")
 betas100 <- sample(betas[[length(betas)]]$beta, 100)
 
 # register parallel backend
-registerDoParallel(cores=4)
+registerDoParallel(cores=15)
 
 # Scenario A
 # Slow waning, Summer booster campaign (increase coverage 4th dose)
@@ -376,9 +376,10 @@ saveRDS(scenarioA, "/rivm/s/ainsliek/results/scenario_hub/round1/scenarioA.rds")
 # Slow waning, autumn booster campaign (5th dose)
 scenarioB <- foreach(i = 1:100) %dopar% {
   paramsBD$beta <- betas100[i]
-  paramsBD$contact_mat <- cm$april_2017[[i]]
+  paramsBD$contact_mat <- april_2017[[i]]
   paramsBD$omega <- wane_8months
   
+  rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
   as.data.frame(seir_out)
 }
@@ -390,6 +391,7 @@ scenarioC <- foreach(i = 1:100) %dopar% {
   paramsAC$contact_mat <- april_2017[[i]]
   paramsAC$omega <- wane_3months
   
+  rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
   as.data.frame(seir_out)
 }
@@ -401,6 +403,7 @@ scenarioD <- foreach(i = 1:100) %dopar% {
   paramsBD$contact_mat <- april_2017[[i]]
   paramsBD$omega <- wane_3months
   
+  rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
   as.data.frame(seir_out)
 }
