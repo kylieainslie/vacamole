@@ -371,7 +371,7 @@ scenarioA <- foreach(i = 1:100) %dopar% {
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
   as.data.frame(seir_out)
 }
-saveRDS(scenarioA, "/rivm/s/results/scenario_hub/round1/scenarioA.rds")
+saveRDS(scenarioA, "/rivm/s/ainsliek/results/scenario_hub/round1/scenarioA.rds")
 # Scenario B
 # Slow waning, autumn booster campaign (5th dose)
 scenarioB <- foreach(i = 1:100) %dopar% {
@@ -382,7 +382,7 @@ scenarioB <- foreach(i = 1:100) %dopar% {
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
   as.data.frame(seir_out)
 }
-saveRDS(scenarioB, "/rivm/s/results/scenario_hub/round1/scenarioB.rds")
+saveRDS(scenarioB, "/rivm/s/ainsliek/results/scenario_hub/round1/scenarioB.rds")
 # Scenario C
 # Fast waning, summer booster campaign (increase coverage of 4th dose)
 scenarioC <- foreach(i = 1:100) %dopar% {
@@ -393,7 +393,7 @@ scenarioC <- foreach(i = 1:100) %dopar% {
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
   as.data.frame(seir_out)
 }
-saveRDS(scenarioC, "/rivm/s/results/scenario_hub/round1/scenarioC.rds")
+saveRDS(scenarioC, "/rivm/s/ainsliek/results/scenario_hub/round1/scenarioC.rds")
 # Scenario D
 # Fast waning, autumn booster campaign (5th dose)
 scenarioD <- foreach(i = 1:100) %dopar% {
@@ -404,7 +404,7 @@ scenarioD <- foreach(i = 1:100) %dopar% {
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
   as.data.frame(seir_out)
 }
-saveRDS(scenarioD, "/rivm/s/results/scenario_hub/round1/scenarioD.rds")
+saveRDS(scenarioD, "/rivm/s/ainsliek/results/scenario_hub/round1/scenarioD.rds")
 #-------------------------------------------------------------------------------
 
 # Post-process scenario runs ---------------------------------------------------
