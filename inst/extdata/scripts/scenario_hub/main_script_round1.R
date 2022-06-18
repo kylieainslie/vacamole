@@ -124,7 +124,7 @@ vac_ratesAC <- convert_vac_schedule2(
   wane = TRUE)
 
 vac_ratesBD <- convert_vac_schedule2(
-  vac_schedule = vac_scheduleAC,
+  vac_schedule = vac_scheduleBD,
   ve_pars = omicron_ve,
   wane = TRUE)
 
