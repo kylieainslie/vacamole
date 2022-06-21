@@ -517,6 +517,6 @@ df_round1 <- bind_rows(dfA, dfB, dfC, dfD) %>%
   mutate(value = round(value))
 
 # output for submission to scenario hub
-write_csv(df_round1, "inst/extdata/results/scenario_hub/2021-05-22-rivm-vacamole.csv")
+write_csv(df_round1, "inst/extdata/results/scenario_hub/2022-05-22-rivm-vacamole.csv")
 # output for plotting
-saveRDS(df_round1, "inst/extdata/results/scenario_hub/2021-05-22-rivm-vacamole.rds")
+saveRDS(df_round1, "inst/extdata/results/scenario_hub/2022-05-22-rivm-vacamole.rds")
