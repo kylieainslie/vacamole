@@ -514,7 +514,11 @@ df_round1 <- bind_rows(dfA, dfB, dfC, dfD) %>%
   group_by(scenario_id, sample, epiweek, target_variable) %>%
   summarise_at(.vars = "value", .funs = "sum") %>%
   ungroup() %>%
-  mutate(value = round(value))
+  mutate(value = round(value),
+         origin_date = as.Date("2022-05-22"),
+         target_end_date = "2023-05-20",
+         horizon = 52,
+         location = "NL")
 
 # output for submission to scenario hub
 write_csv(df_round1, "inst/extdata/results/scenario_hub/2022-05-22-rivm-vacamole.csv")
