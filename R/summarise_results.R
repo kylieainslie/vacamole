@@ -1,5 +1,5 @@
 #' Summarise output from SEIR model for plotting
-#' @param seir_output list of dataframes from postprocessing
+#' @param seir_output list of dataframes from post-processing
 #' @param params list of parameter values
 #' @param start_date calendar date of start of simulation
 #' @param times vector of time points
@@ -8,36 +8,23 @@
 #' @keywords vacamole
 #' @export
 
-summarise_results <- function(seir_output, params, start_date, times, vac_inputs) {
-  alpha_dose1 <- vac_inputs$alpha_dose1[times, ]
-  alpha_dose2 <- vac_inputs$alpha_dose2[times, ]
-  eta_dose1 <- vac_inputs$eta_dose1[times, ]
-  eta_dose2 <- vac_inputs$eta_dose2[times, ]
-  delay_dose1 <- vac_inputs$delay_dose1[times, ]
-  delay_dose2 <- vac_inputs$delay_dose2[times, ]
-  eta_hosp_dose1 <- vac_inputs$eta_hosp_dose1[times, ]
-  eta_hosp_dose2 <- vac_inputs$eta_hosp_dose2[times, ]
-  eta_trans_dose1 <- vac_inputs$eta_trans_dose1[times, ]
-  eta_trans_dose2 <- vac_inputs$eta_trans_dose2[times, ]
-
-  vac_inputs_new <- list(
-    alpha_dose1 = alpha_dose1,
-    alpha_dose2 = alpha_dose2,
-    eta_dose1 = eta_dose1,
-    eta_dose2 = eta_dose2,
-    delay_dose1 = delay_dose1,
-    delay_dose2 = delay_dose2,
-    eta_hosp_dose1 = eta_hosp_dose1,
-    eta_hosp_dose2 = eta_hosp_dose2,
-    eta_trans_dose1 = eta_trans_dose1,
-    eta_trans_dose2 = eta_trans_dose2
-  )
-
-  lambda_est <- get_foi(dat = seir_output, params = params, vac_inputs = vac_inputs_new)
-
-  lambda_est1 <- lambda_est$lambda %>%
-    pivot_wider(names_from = .data$age_group, names_prefix = "age_group_", values_from = .data$foi)
-
+summarise_results <- function(seir_output, params) {
+  
+  # get time vector ------------------------------------------------------------
+  times <- seir_out$time
+  # get force of infection (lambda) --------------------------------------------
+  calendar_day <- lubridate::yday(as.Date(times, origin = params$calendar_start_date))
+  beta_t <- params$beta * (1 + params$beta1 * cos(2 * pi * calendar_day / 365.24)) 
+  lambda <- get_foi(x = seir_out, 
+                    y1 = params$eta_trans1[times,-1], 
+                    y2 = params$eta_trans2[times,-1], 
+                    y3 = params$eta_trans3[times,-1], 
+                    y4 = params$eta_trans4[times,-1], 
+                    y5 = params$eta_trans5[times,-1],
+                    beta = beta_t, 
+                    contact_mat = params$contact_mat,
+                    times = times)
+  
   # infections
   new_infections <- (seir_output$S + seir_output$Shold_1d +
     (eta_dose1[, -1] * (seir_output$Sv_1d + seir_output$Shold_2d)) +
