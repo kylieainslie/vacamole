@@ -48,6 +48,10 @@ summarise_results <- function(seir_output, params) {
     params$eta_hosp5[times,-1] * seir_output$Iv_5d,
     2, params$h, "*")
   
+  # calculate IC admissions ----------------------------------------------------
+  ic_admissions <- sweep(seir_output$H + seir_output$Hv_1d + seir_output$Hv_2d + 
+    seir_output$Hv_3d + seir_output$Hv_4d + seir_output$Hv_5d, 2, params$i1, "*")
+  
   
   hosp_admissions <- sweep(infectious, 2, params$h, "*")
   hosp_occ <- (seir_output$H + seir_output$Hv_1d + seir_output$Hv_2d)
