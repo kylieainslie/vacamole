@@ -105,7 +105,6 @@ age_struct_seir_ode2 <- function(times, init, params) {
     
     # define vaccination parameters ---------------------------------
     # don't index parameters when there's no vaccination, it's faster!
-    #if(no_vac == TRUE){ 
     index <- floor(times) + 1              # use floor of time point + 1 to index df
     # daily vac rate
     alpha1 <- params$alpha1[index, -1] # remove date column
@@ -141,13 +140,6 @@ age_struct_seir_ode2 <- function(times, init, params) {
     eta_trans3   <- as.numeric(params$eta_trans3[index, -1])
     eta_trans4   <- as.numeric(params$eta_trans4[index, -1])
     eta_trans5   <- as.numeric(params$eta_trans5[index, -1])
-    # } else{
-    #   alpha1 <- c(rep(0,9)); alpha2 <- c(rep(0,9)); alpha3 <- c(rep(0,9)); alpha4 <- c(rep(0,9)); alpha5 <- c(rep(0,9))
-    #   delay1 <- c(rep(1,9)); delay2 <- c(rep(1,9)); delay3 <- c(rep(1,9)); delay4 <- c(rep(1,9)); delay5 <- c(rep(0,9))
-    #   eta1   <- c(rep(1,9)); eta2   <- c(rep(1,9)); eta3   <- c(rep(1,9)); eta4   <- c(rep(1,9)); eta5   <- c(rep(1,9))
-    #   eta_hosp1 <- c(rep(1,9)); eta_hosp2 <- c(rep(1,9)); eta_hosp3 <- c(rep(1,9)); eta_hosp4 <- c(rep(1,9)); eta_hosp5 <- c(rep(1,9))
-    #   eta_trans1 <- c(rep(1,9)); eta_trans2 <- c(rep(1,9)); eta_trans3 <- c(rep(1,9)); eta_trans4 <- c(rep(1,9)); eta_trans5 <- c(rep(1,9))
-    # }
     # ---------------------------------------------------------------
     
     # determine force of infection ----------------------------------
