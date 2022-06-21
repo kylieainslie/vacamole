@@ -52,18 +52,21 @@ summarise_results <- function(seir_output, params) {
   ic_admissions <- sweep(seir_output$H + seir_output$Hv_1d + seir_output$Hv_2d + 
     seir_output$Hv_3d + seir_output$Hv_4d + seir_output$Hv_5d, 2, params$i1, "*")
   
+  # calculate deaths -----------------------------------------------------------
+  new_deaths <- 
+    # from hospital compartment
+    sweep(seir_output$H + seir_output$Hv_1d + seir_output$Hv_2d + 
+          seir_output$Hv_3d + seir_output$Hv_4d + seir_output$Hv_5d, 2, params$d,
+          "*") +
+    # from IC compartment
+    sweep(seir_output$IC + seir_output$ICv_1d + seir_output$ICv_2d + 
+          seir_output$ICv_3d + seir_output$ICv_4d + seir_output$ICv_5d, 2, 
+          params$d_ic, "*") + 
+    # from hospital after IC
+    sweep(seir_output$H_IC + seir_output$H_ICv_1d + seir_output$H_ICv_2d + 
+         seir_output$H_ICv_3d + seir_output$H_ICv_4d + seir_output$H_ICv_5d, 2,
+         params$d_hic, "*") 
   
-  hosp_admissions <- sweep(infectious, 2, params$h, "*")
-  hosp_occ <- (seir_output$H + seir_output$Hv_1d + seir_output$Hv_2d)
-  ic <- sweep(hosp_occ, 2, params$i1, "*")
-  ic_occ <- (seir_output$IC + seir_output$ICv_1d + seir_output$ICv_2d)
-  hosp_after_ic <- sweep(ic, 2, params$i2, "*")
-  hosp_after_ic_occ <- (seir_output$H_IC + seir_output$H_ICv_1d + seir_output$H_ICv_2d)
-  total_hosp_occ <- (seir_output$H + seir_output$Hv_1d + seir_output$Hv_2d) + (seir_output$H_IC + seir_output$H_ICv_1d + seir_output$H_ICv_2d)
-
-  # deaths
-  daily_deaths <- sweep(ic_occ, 2, params$d_ic, "*") + sweep(hosp_occ, 2, params$d, "*") + sweep(hosp_after_ic_occ, 2, params$d_hic, "*")
-
   # Create object for plotting ---------------------------------------
   # convert from wide to long format
 
