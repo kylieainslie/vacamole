@@ -87,8 +87,8 @@ wane_8months <- uniroot(Fk, c(0,1), tau = 244, p = 0.6)$root
 # 50% reduction after 6 months (used for model fits)
 wane_6months <- uniroot(Fk, c(0,1), tau = 182, p = 0.5)$root
 # contact matrices --------------------------------------------------
-path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
-# path <- "inst/extdata/inputs/contact_matrices/converted/"
+# path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
+path <- "inst/extdata/inputs/contact_matrices/converted/"
 april_2017     <- readRDS(paste0(path,"transmission_matrix_april_2017.rds"))
 # april_2020     <- readRDS(paste0(path,"transmission_matrix_april_2020.rds"))
 # june_2020      <- readRDS(paste0(path,"transmission_matrix_june_2020.rds"))
@@ -425,119 +425,97 @@ saveRDS(scenarioD, "/rivm/s/ainsliek/results/scenario_hub/round1/scenarioD.rds")
 # wrangle Scenario A output ----------------------------------------------------
 p_report_vec <- c(rep(as.numeric(paramsAC$p_report),6))
 
-# only going to report cases for round 1
-#test <- readRDS("inst/extdata/results/scenario_hub/test_output.rds")
 # read in saved output from model runs
-df_scenA <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round1/scenarioA.rds")
-# wrangle to determine number of cases by EpiWeek
-dfA <- bind_rows(df_scenA, .id = "sample") %>%
-  mutate(date = time + as.Date("2020-01-01")) %>%
-  select(sample,date, E1:Ev_5d9)
-dfA1 <- sweep(dfA[,-c(1:2)], 2, paramsAC$sigma * p_report_vec, FUN="*")
-dfA2 <- cbind(dfA[,c(1:2)], dfA1)
-
-df_scenarioA <- dfA2 %>%
-  mutate(inc_case = rowSums(select(., E1:Ev_5d9)),
-         epiweek = lubridate::epiweek(date),
-         year = lubridate::epiyear(date)) %>%
-  filter(date < as.Date("2023-05-21")) %>%
-  select(sample, date, year, epiweek, inc_case) %>%
-  group_by(sample, year, epiweek) %>%
-  summarise_at(.vars = 'inc_case', sum) %>%
+# df_scenA <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round1/scenarioA.rds")
+df_scenA <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioA.rds")
+sim <- length(df_scenA)
+# loop over samples and summarise results
+outA <- list()
+for(s in 1:sim){
+  seir_output <- postprocess_age_struct_model_output2(df_scenA[[s]])
+  seir_outcomes <- summarise_results(seir_output, params = paramsAC, t_vec = times) %>%
+    mutate(sample = s)
+  outA[[s]] <- seir_outcomes
+}
+dfA <- bind_rows(outA) %>%
   mutate(origin_date = as.Date("2022-05-22"),
          scenario_id = "A-2022-05-22",
          target_end_date = "2023-05-20",
          horizon = 52,
-         location = "NL",
-         target_variable = "inc case") %>%
-  rename(value = inc_case) #%>%
-  #select(-year) # drop year variable (only used for ordering weeks)
+         location = "NL") %>%
+  filter(date <= as.Date("2023-05-20"))
 
 # wrangle Scenario B output ----------------------------------------------------
 # read in saved output from model runs
-df_scenB <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round1/scenarioB.rds")
-# wrangle to determine number of cases by EpiWeek
-dfB <- bind_rows(df_scenB, .id = "sample") %>%
-  mutate(date = time + as.Date("2020-01-01")) %>%
-  select(sample,date, E1:Ev_5d9)
-dfB1 <- sweep(dfB[,-c(1:2)], 2, paramsBD$sigma * p_report_vec, FUN="*")
-dfB2 <- cbind(dfB[,c(1:2)], dfB1)
-
-df_scenarioB <- dfB2 %>%
-  mutate(inc_case = rowSums(select(., E1:Ev_5d9)),
-         epiweek = lubridate::epiweek(date),
-         year = lubridate::epiyear(date)) %>%
-  filter(date < as.Date("2023-05-21")) %>%
-  select(sample, date, year, epiweek, inc_case) %>%
-  group_by(sample, year, epiweek) %>%
-  summarise_at(.vars = 'inc_case', sum) %>%
+# df_scenB <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round1/scenarioB.rds")
+df_scenB <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioB.rds")
+sim <- length(df_scenB)
+# loop over samples and summarise results
+outB <- list()
+for(s in 1:sim){
+  seir_output <- postprocess_age_struct_model_output2(df_scenB[[s]])
+  seir_outcomes <- summarise_results(seir_output, params = paramsBD, t_vec = times) %>%
+    mutate(sample = s)
+  outB[[s]] <- seir_outcomes
+}
+dfB <- bind_rows(outB) %>%
   mutate(origin_date = as.Date("2022-05-22"),
          scenario_id = "B-2022-05-22",
          target_end_date = "2023-05-20",
          horizon = 52,
-         location = "NL",
-         target_variable = "inc case") %>%
-  rename(value = inc_case) #%>%
-#select(-year) # drop year variable (only used for ordering weeks)
+         location = "NL") %>%
+  filter(date <= as.Date("2023-05-20"))
 
 # wrangle Scenario C output ----------------------------------------------------
 # read in saved output from model runs
-df_scenC <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round1/scenarioC.rds")
-# wrangle to determine number of cases by EpiWeek
-dfC <- bind_rows(df_scenC, .id = "sample") %>%
-  mutate(date = time + as.Date("2020-01-01")) %>%
-  select(sample,date, E1:Ev_5d9)
-dfC1 <- sweep(dfC[,-c(1:2)], 2, paramsAC$sigma * p_report_vec, FUN="*")
-dfC2 <- cbind(dfC[,c(1:2)], dfC1)
-
-df_scenarioC <- dfC2 %>%
-  mutate(inc_case = rowSums(select(., E1:Ev_5d9)),
-         epiweek = lubridate::epiweek(date),
-         year = lubridate::epiyear(date)) %>%
-  filter(date < as.Date("2023-05-21")) %>%
-  select(sample, date, year, epiweek, inc_case) %>%
-  group_by(sample, year, epiweek) %>%
-  summarise_at(.vars = 'inc_case', sum) %>%
+# df_scenC <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round1/scenarioC.rds")
+df_scenC <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioC.rds")
+sim <- length(df_scenC)
+# loop over samples and summarise results
+outC <- list()
+for(s in 1:sim){
+  seir_output <- postprocess_age_struct_model_output2(df_scenC[[s]])
+  seir_outcomes <- summarise_results(seir_output, params = paramsAC, t_vec = times) %>%
+    mutate(sample = s)
+  outC[[s]] <- seir_outcomes
+}
+dfC <- bind_rows(outC) %>%
   mutate(origin_date = as.Date("2022-05-22"),
          scenario_id = "C-2022-05-22",
          target_end_date = "2023-05-20",
          horizon = 52,
-         location = "NL",
-         target_variable = "inc case") %>%
-  rename(value = inc_case) #%>%
-#select(-year) # drop year variable (only used for ordering weeks)
+         location = "NL") %>%
+  filter(date <= as.Date("2023-05-20"))
 
 # wrangle Scenario D output ----------------------------------------------------
 # read in saved output from model runs
-df_scenD <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round1/scenarioD.rds")
-# wrangle to determine number of cases by EpiWeek
-dfD <- bind_rows(df_scenD, .id = "sample") %>%
-  mutate(date = time + as.Date("2020-01-01")) %>%
-  select(sample,date, E1:Ev_5d9)
-dfD1 <- sweep(dfD[,-c(1:2)], 2, paramsBD$sigma * p_report_vec, FUN="*")
-dfD2 <- cbind(dfD[,c(1:2)], dfD1)
-
-df_scenarioD <- dfD2 %>%
-  mutate(inc_case = rowSums(select(., E1:Ev_5d9)),
-         epiweek = lubridate::epiweek(date),
-         year = lubridate::epiyear(date)) %>%
-  filter(date < as.Date("2023-05-21")) %>%
-  select(sample, date, year, epiweek, inc_case) %>%
-  group_by(sample, year, epiweek) %>%
-  summarise_at(.vars = 'inc_case', sum) %>%
+# df_scenD <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round1/scenarioD.rds")
+df_scenD <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioD.rds")
+sim <- length(df_scenD)
+# loop over samples and summarise results
+outD <- list()
+for(s in 1:sim){
+  seir_output <- postprocess_age_struct_model_output2(df_scenD[[s]])
+  seir_outcomes <- summarise_results(seir_output, params = paramsBD, t_vec = times) %>%
+    mutate(sample = s)
+  outD[[s]] <- seir_outcomes
+}
+dfD <- bind_rows(outD) %>%
   mutate(origin_date = as.Date("2022-05-22"),
          scenario_id = "D-2022-05-22",
          target_end_date = "2023-05-20",
          horizon = 52,
-         location = "NL",
-         target_variable = "inc case") %>%
-  rename(value = inc_case) #%>%
-#select(-year) # drop year variable (only used for ordering weeks)
+         location = "NL") %>%
+  filter(date <= as.Date("2023-05-20"))
 
-# put all scenarios together into single data frame
-df_round1 <- bind_rows(df_scenarioA, df_scenarioB, df_scenarioC, df_scenarioD) %>%
+# put all scenarios together into single data frame and sum over epiweek & 
+# age groups
+df_round1 <- bind_rows(dfA, dfB, dfC, dfD) %>%
+  group_by(scenario_id, sample, epiweek, target_variable) %>%
+  summarise_at(.vars = "value", .funs = "sum") %>%
   ungroup() %>%
-  select(-year)
+  mutate(value = round(value))
+
 # output for submission to scenario hub
 write_csv(df_round1, "inst/extdata/results/scenario_hub/2021-05-22-rivm-vacamole.csv")
 # output for plotting
