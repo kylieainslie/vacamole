@@ -83,16 +83,21 @@ K <- (1 / g) * beta * S %*% april_2017
 as.numeric(eigs(K, 1)$values) # this should be r0
 
 # define state transition rates ------------------------------------
-h <- p_infection2admission / time_symptom2admission
-i1 <- p_admission2IC / time_admission2IC
-i2 <- p_IC2hospital / time_IC2hospital
-d <- p_admission2death / time_admission2death
-d_ic <- p_IC2death / time_IC2death
-d_hic <- p_hospital2death / time_hospital2death
-r <- (1 - p_admission2death) / time_admission2discharge
-r_ic <- (1 - p_IC2death) / time_hospital2discharge
+gamma <- (1-p_infection2admission) / 2                 # I -> R
+h <- p_infection2admission / time_symptom2admission    # I -> H
 
-transition_rates <- list(h = h,
+i1 <- p_admission2IC / time_admission2IC               # H -> IC
+d <- p_admission2death / time_admission2death          # H -> D
+r <- (1 - (p_admission2IC + p_admission2death)) / time_admission2discharge# H -> R
+
+i2 <- p_IC2hospital / time_IC2hospital                 # IC -> H_IC
+d_ic <- p_IC2death / time_IC2death                     # IC -> D
+
+d_hic <- p_hospital2death / time_hospital2death        # H_IC -> D
+r_ic <- (1 - p_hospital2death) / time_hospital2discharge # H_IC -> R
+
+transition_rates <- list(gamma = gamma,
+                         h = h,
                          i1 = i1,
                          i2 = i2,
                          d = d,
@@ -100,98 +105,135 @@ transition_rates <- list(h = h,
                          d_hic = d_hic,
                          r = r,
                          r_ic = r_ic)
-#saveRDS(transition_rates, "inst/extdata/inputs/transition_rates.rds")
+saveRDS(transition_rates, "inst/extdata/inputs/transition_rates.rds")
 # vaccinations params ----------------------------------------------
-ve <- list(
-  # wildtype = list(
-  #   pfizer = c(0.926, 0.948), # from clinical trial
-  #   moderna = c(0.896, 0.941), # from clinical trial
-  #   astrazeneca = c(0.583, 0.621), # from clinical trial
-  #   janssen = c(0.661) # from clinical trial
-  # ),
-  #alpha = list(
+delays <- list(
+  pfizer = c(14, 7, 7),
+  moderna = c(14, 7, 7), 
+  astrazeneca = c(14, 7),
+  jansen = c(14, 7)
+)
+
+ve_inf_list <- list(
+  wildtype = list(
+    pfizer = c(0.926, 0.948), # from clinical trial
+    moderna = c(0.896, 0.941), # from clinical trial
+    astrazeneca = c(0.583, 0.621), # from clinical trial
+    jansen = c(0.661, 0.661) # from clinical trial
+  ),
+  alpha = list(
     pfizer = c(0.66, 0.8), # from Pritchard et al. 2021 Nature
     moderna = c(0.66, 0.8), # assumed to be the same as pfizer
     astrazeneca = c(0.61, 0.79), # from Pritchard et al. 2021 Nature 
-    jansen = c(0.767) # from Corchado-Garcia et al. 2021 medRxiv (need to check if this is against alpha!)
-  #)
-)
-
-ve_delta <- list(
-    pfizer = c(0.57, 0.69), # from
-    moderna = c(0.66, 0.82), # from
-    astrazeneca = c(0.41, 0.54), # from
-    jansen = c(0.5) # from
+    jansen = c(0.767, 0.767) # from Corchado-Garcia et al. 2021 medRxiv (need to check if this is against alpha!)
+  ),
+  delta = list( # from Dutch data sources
+    pfizer = c(0.57, 0.69, 0.93), 
+    moderna = c(0.66, 0.82, 0.93), 
+    astrazeneca = c(0.41, 0.54), 
+    jansen = c(0.5, 0.5)
+  ),
+  omicron = list( # from https://www.medrxiv.org/content/10.1101/2022.02.06.22270457v2
+    pfizer = c(0, 0.33, 0.68, 0.65, 0.65),  # Grewal et al. 2022 (4th dose) - assuming same for 5th dose
+    moderna = c(0, 0.33, 0.68, 0.65, 0.65), # Grewal et al. 2022 (4th dose) - assuming same for 5th dose
+    astrazeneca = c(0, 0.33), 
+    jansen = c(0, 0.33)
   )
-
-delays <- list(
-  pfizer = c(14, 7),
-  moderna = c(14, 7), 
-  astrazeneca = c(14, 7),
-  jansen = c(14)
 )
 
-ve_trans <- list(
-  # alpha = list(
-  pfizer = c(0.26, 0.70),      # de Gier et al. # 0.3, 0.54 from Shah et al. 2021
-  moderna = c(0.51, 0.88),     # de Gier et al.
-  astrazeneca = c(0.15, 0.58), # de Gier et al.
-  jansen = c(0.77)             # de Gier et al.
-  # )
+
+ve_trans_list <- list(
+  wildtype = list( # same as alpha !!!
+    pfizer = c(0.26, 0.70),      
+    moderna = c(0.51, 0.88),     
+    astrazeneca = c(0.15, 0.58),
+    jansen = c(0.77)
+  ),
+  alpha = list(  # de Gier et al.
+    pfizer = c(0.26, 0.70),      
+    moderna = c(0.51, 0.88),     
+    astrazeneca = c(0.15, 0.58),
+    jansen = c(0.77)
+  ),
+  delta = list( # de Gier et al. (updated)
+    pfizer = c(0.46, 0.52),      
+    moderna = c(0.66, 0.24),     
+    astrazeneca = c(0, 0.25),
+    jansen = c(0.42) 
+  ),
+  omicron = list( # MADE-UP VALUES
+    pfizer = c(0.25, 0.33, 0.4, 0.4, 0.4),      
+    moderna = c(0.25, 0.33, 0.4, 0.4, 0.4),     
+    astrazeneca = c(0, 0.25),
+    jansen = c(0.25, 0.33) 
+  )
 )
 
-ve_trans_delta = list(
-  pfizer = c(0.46, 0.52),      # de Gier et al (updated)
-  moderna = c(0.66, 0.24),     # de Gier et al. (updated)
-  astrazeneca = c(0, 0.25),    # de Gier et al. (updated)
-  jansen = c(0.42)             # de Gier et al. (updated)
-)
 
-ve_hosp <- list(
-  # alpha = list(
-  pfizer = c(0.81, 0.95),      # Dutch data
-  moderna = c(0.81, 0.95),     # assumed same as pfizer because Dutch estimates were weird
-  astrazeneca = c(0.83, 0.95), # Dutch data
-  jansen = c(0.85)             # from RIVM website: https://www.rivm.nl/en/covid-19-vaccination/vaccines/efficacy-and-protection
-  #)
+ve_hosp_list <- list(
+  wildtype = list( # same as alpha variant!!!
+    pfizer = c(0.81, 0.95),      # Dutch data
+    moderna = c(0.81, 0.95),     # assumed same as pfizer because Dutch estimates were weird
+    astrazeneca = c(0.83, 0.95), # Dutch data
+    jansen = c(0.85)             # from RIVM website: https://www.rivm.nl/en/covid-19-vaccination/vaccines/efficacy-and-protection
+  ),
+  alpha = list(
+    pfizer = c(0.81, 0.95),      # Dutch data
+    moderna = c(0.81, 0.95),     # assumed same as pfizer because Dutch estimates were weird
+    astrazeneca = c(0.83, 0.95), # Dutch data
+    jansen = c(0.85)             # from RIVM website: https://www.rivm.nl/en/covid-19-vaccination/vaccines/efficacy-and-protection
+  ),
+  delta = list(
+   pfizer = c(0.89, 0.96, 0.98),      # from Brechje (pre-print)
+   moderna = c(0.95, 0.85, 0.98),     # from Brechje (pre-print)
+   astrazeneca = c(0.88, 0.94),       # from Brechje (pre-print)
+   jansen = c(0.92)                   # from Brechje (pre-print)
+  ),
+  omicron = list( # from https://www.rivm.nl/documenten/effectiviteit-van-covid-19-vaccinatie-tegen-ziekenhuis-en-intensive-care-opname-in-8
+    pfizer = c(0, 0.56, 0.88, 0.92, 0.92),   # Grewal et al. 2022 (4th dose) - assuming same for 5th dose
+    moderna = c(0, 0.49, 0.82, 0.92, 0.92),  # Grewal et al. 2022 (4th dose) - assuming same for 5th dose
+    astrazeneca = c(0, 0.39),
+    jansen = c(0.73, 0.73)
+  )
 )
-
-ve_hosp_delta = list(
-  pfizer = c(0.89, 0.96),      # from Brechje (pre-print)
-  moderna = c(0.95, 0.85),     # from Brechje (pre-print)
-  astrazeneca = c(0.88, 0.94), # from Brechje (pre-print)
-  jansen = c(0.92)             # from Brechje (pre-print)
-)
-
 # hospitalisations multiplier
-# calculated as (1-ve_hosp)/(1-ve)
-h_multiplier <- list(
-  pfizer = (1-ve_hosp$pfizer)/(1-ve$pfizer),
-  moderna = (1-ve_hosp$moderna)/(1-ve$moderna),
-  astrazeneca = (1-ve_hosp$astrazeneca)/(1-ve$astrazeneca),
-  jansen = (1-ve_hosp$jansen)/(1-ve$jansen)
-)
+# calculated as (1-ve_hosp)/(1-ve_inf)
+calc_mult_fun <- function(ve_hosp,ve_inf){
+  h_multiplier <- list()
+  
+  for (i in 1:length(ve_hosp)){
+    
+    h_multiplier[[i]] <- list(
+      pfizer = (1-ve_hosp[[i]]$pfizer)/(1-ve_inf[[i]]$pfizer),
+      moderna = (1-ve_hosp[[i]]$moderna)/(1-ve_inf[[i]]$moderna),
+      astrazeneca = (1-ve_hosp[[i]]$astrazeneca)/(1-ve_inf[[i]]$astrazeneca),
+      jansen = (1-ve_hosp[[i]]$jansen)/(1-ve_inf[[i]]$jansen)
+    )
+  }
+  names(h_multiplier) <- names(ve_hosp)
+  return(h_multiplier)
+}
 
-h_multiplier_delta <- list(
-  pfizer = (1-ve_hosp_delta$pfizer)/(1-ve_delta$pfizer),
-  moderna = (1-ve_hosp_delta$moderna)/(1-ve_delta$moderna),
-  astrazeneca = (1-ve_hosp_delta$astrazeneca)/(1-ve_delta$astrazeneca),
-  jansen = (1-ve_hosp_delta$jansen)/(1-ve_delta$jansen)
-)
+h_mult_list <- calc_mult_fun(ve_hosp = ve_hosp_list, ve_inf = ve_inf_list)
 
-ve_list <- list(ve_delta,delays,h_multiplier_delta,ve_trans_delta)
-#saveRDS(ve_list, "inst/extdata/inputs/ve_params.rds")
+ve_list <- list(delays = delays,
+                ve_inf = ve_inf_list, 
+                ve_hosp = h_mult_list,
+                ve_trans = ve_trans_list)
+saveRDS(ve_list, "inst/extdata/inputs/ve_params.rds")
 
 # read in vac schedules --------------------------------------------
 vac_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/manuscripts/impact_vac/data/vaccination_scenarios/"
-basis_12plus <- read_csv(paste0(vac_path,"vac_schedule_12plus.csv")) %>%
-  select(-starts_with("X"))
+# basis_12plus <- read_csv(paste0(vac_path,"vac_schedule_12plus.csv")) %>%
+#   select(-starts_with("X"))
 
 # basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cum_upt20210701 BASIS 75% in 18+ KA.csv") %>%
 #   select(-starts_with("X"))
 
-# no childhood vaccination, waning
-vac_sched <- basis_12plus
+vac_sched <- read_csv("inst/extdata/inputs/vac_schedule_real_w_booster.csv") %>%
+  rename_with(~ gsub("B1", "d3", .x, fixed = TRUE)) %>%
+  rename_with(~ gsub("B2", "d4", .x, fixed = TRUE)) %>%
+  select(-starts_with("X"))
 
 basis1 <- convert_vac_schedule(
   vac_schedule = vac_sched,

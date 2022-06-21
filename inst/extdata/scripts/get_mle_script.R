@@ -162,7 +162,14 @@ breakpoints <- list(
     as.Date("2021-09-25"),  # 32) 1.5 m distance no longer required, coronapass needed in horeca and events
     as.Date("2021-11-03"),  # 33) coronapass use expanded, work from home half the time, masks in public spaces
     as.Date("2021-11-13"),  # 34) non-essential shops close at 5pm, essential shops close at 8pm
-    as.Date(last_date_in_osiris)
+    as.Date("2021-11-28"),  # 35) stay at home advise, 1.5 m distance, work from home, self-tests advised before visiting other, masks in schools
+    as.Date("2021-12-19"),  # 36) 2 people in house per day, non-essential shops closed, non-medical contact professions closed,
+                            #     schools closed, all events banned
+    as.Date("2022-01-15"),  # 37) schools re-open, non-essential shops re-open until 5PM, face masks advised everywhere
+    as.Date("2022-01-26"),  # 38) shops can stay open until 10PM, max number visitors increased to 4 per day, catering,/theaters/museums re-open, quesrantine not required for people with booster
+    as.Date("2022-02-15"),  # 39) people can work from the office half the time, unlimited visitors at home
+    as.Date("2022-02-25"),  # 40) most measures lifted, except corona pass, masks on public transport, testing for large events
+    as.Date("2022-03-12")   # last date of fit.
   ),  
   contact_matrix = list( april_2017, 
                          april_2017, 
@@ -202,6 +209,7 @@ breakpoints <- list(
                          )
 )
 
+# TODO wrap this into function!!!
 n_bp <- length(breakpoints$date)
 mles <- matrix(rep(NA, 2*n_bp), nrow = n_bp)
 colnames(mles) <- c("beta", "alpha")
