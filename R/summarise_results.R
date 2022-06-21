@@ -15,7 +15,7 @@ summarise_results <- function(seir_output, params) {
   # get force of infection (lambda) --------------------------------------------
   calendar_day <- lubridate::yday(as.Date(times, origin = params$calendar_start_date))
   beta_t <- params$beta * (1 + params$beta1 * cos(2 * pi * calendar_day / 365.24)) 
-  lambda <- get_foi(x = seir_out, 
+  lambda <- get_foi(x  = seir_output, 
                     y1 = params$eta_trans1[times,-1], 
                     y2 = params$eta_trans2[times,-1], 
                     y3 = params$eta_trans3[times,-1], 
@@ -34,13 +34,11 @@ summarise_results <- function(seir_output, params) {
     (params$eta5[times,-1] * seir_output$Sv_5d)
   )
   
-  infections <- (seir_output$E + seir_output$Ev_1d + seir_output$Ev_2d)
-
-  # infectious/cases
-  new_infectious <- params$sigma * (seir_output$E + seir_output$Ev_1d + seir_output$Ev_2d)
+  # calculate cases ------------------------------------------------------------
+  new_infectious <- params$sigma * (seir_output$E + seir_output$Ev_1d + 
+                                    seir_output$Ev_2d + seir_output$Ev_3d +
+                                    seir_output$Ev_4d + seir_output$Ev_5d)
   new_cases <- sweep(new_infectious, 2, params$p_report, "*")
-  infectious <- (seir_output$I + seir_output$Iv_1d + seir_output$Iv_2d)
-  cases <- sweep(infectious, 2, params$p_report, "*")
 
   # hospitalisations/ic admissions
   hosp_admissions <- sweep(infectious, 2, params$h, "*")
