@@ -1,80 +1,30 @@
 #' Calculate force of infection
-#' @param dat data frame of states
-#' @param params list of parameter values
-#' @param vac_inputs vaccination inputs (output from convert_vac_schedule())
+#' @param x output from SEIR model with number of individuals in each compartment at each time point
+#' @param y1 data frame of protection against transmission due to vaccination from dose 1 at each time point
+#' @param y2 data frame of protection against transmission due to vaccination from dose 2 at each time point
+#' @param y3 data frame of protection against transmission due to vaccination from dose 3 at each time point
+#' @param y4 data frame of protection against transmission due to vaccination from dose 4 at each time point
+#' @param y5 data frame of protection against transmission due to vaccination from dose 5 at each time point
+#' @param beta vector of values of transmission rate for each time point
+#' @param contact_mat contact matrix
+#' @param times vector of time points that correspond to the rows of x
 #' @return matrix of force of infection in each age group (columns) at each
 #' time point (rows)
 #' @keywords vacamole
 #' @export
-get_foi <- function(dat, params, vac_inputs) {
-
-
-  # sum over different I states for each time step and age group
-  E_all <- as.matrix(dat$E + dat$Ev_1d + dat$Ev_2d)
-  I_all <- as.matrix(dat$I + (vac_inputs$eta_trans_dose1 * dat$Iv_1d) + (vac_inputs$eta_trans_dose2 * dat$Iv_2d))
-  H_all <- as.matrix(dat$H + dat$Hv_1d + dat$Hv_2d)
-
-
-  # calculate force of infection for each time point
-  time_vec <- 1:dim(E_all)[1]
-  ic_admin <- rep(0, length(time_vec))
-  cases <- rep(0, length(time_vec))
-  criteria <- rep(0, length(time_vec))
-  cm_check <- rep(NA, length(time_vec))
-  flag_relaxed <- 0
-  flag_very_relaxed <- 0
-  flag_normal <- 0
-
-  for (t in time_vec) {
-    ic_admin[t] <- sum(params$i1 * H_all[t, ])
-    cases[t] <- sum(params$sigma * E_all[t, ] * params$p_report)
-
-    criteria[t] <- (params$use_cases) * cases[t] + (!params$use_cases) * ic_admin[t]
-
-    tmp2 <- choose_contact_matrix(
-      params, t, criteria[t], flag_relaxed,
-      flag_very_relaxed, flag_normal
+get_foi <- function(x, y1, y2, y3, y4, y5, beta, contact_mat, times){
+  tmp <- list()
+  for(t in 1:length(times)){
+    tmp[[t]] <- t(beta[t] * (contact_mat %*% (unlist(x[t,c(paste0("I",1:9))]) + 
+                                                (unlist(y1[t,]) * unlist(x[t, c(paste0("Iv_1d",1:9))])) + 
+                                                (unlist(y2[t,]) * unlist(x[t, c(paste0("Iv_2d",1:9))])) + 
+                                                (unlist(y3[t,]) * unlist(x[t, c(paste0("Iv_3d",1:9))])) + 
+                                                (unlist(y4[t,]) * unlist(x[t, c(paste0("Iv_4d",1:9))])) + 
+                                                (unlist(y5[t,]) * unlist(x[t, c(paste0("Iv_5d",1:9))]))))
     )
-    contact_mat <- tmp2$contact_matrix
-    flag_relaxed <- tmp2$flag_relaxed
-    flag_very_relaxed <- tmp2$flag_very_relaxed
-    flag_normal <- tmp2$flag_normal
-
-    # determine force of infection ----------------------------------
-    calendar_day <- params$t_calendar_start + t
-
-    # lambda <- params$beta * (contact_mat %*% (I_all[t,]))
-    beta_t <- params$beta * (1 + params$beta1 * cos(2 * pi * calendar_day / 365.24))
-    lambda <- beta_t * (contact_mat %*% I_all[t, ])
-
-    # ---------------------------------------------------------------
-
-    # check for which contact metrix was selected -------------------
-    cm_check[t] <- ifelse(identical(contact_mat, params$c_lockdown), "c_lockdown",
-      ifelse(identical(contact_mat, params$c_relaxed), "c_relaxed",
-        ifelse(identical(contact_mat, params$c_very_relaxed), "c_very_relaxed", "c_normal")
-      )
-    )
-    # ---------------------------------------------------------------
-
-    if (t == 1) {
-      rtn <- data.frame(time = t - 1, age_group = 1:9, foi = lambda)
-    } else {
-      tmp <- data.frame(time = t - 1, age_group = 1:9, foi = lambda)
-      rtn <- bind_rows(rtn, tmp)
-    }
   }
-
-  rtn2 <- list(
-    check = data.frame(
-      time = time_vec - 1,
-      criteria = criteria,
-      new_cases = cases,
-      ic_admin = ic_admin,
-      cm_check = cm_check
-    ),
-    lambda = rtn
-  )
-
-  return(rtn2)
+  
+  rtn <- do.call(rbind, tmp)
+  return(rtn)
+  
 }
