@@ -1,5 +1,5 @@
 #' Calculate force of infection
-#' @param x output from SEIR model with number of individuals in each compartment at each time point
+#' @param x list of data frames for each state from SEIR model
 #' @param y1 data frame of protection against transmission due to vaccination from dose 1 at each time point
 #' @param y2 data frame of protection against transmission due to vaccination from dose 2 at each time point
 #' @param y3 data frame of protection against transmission due to vaccination from dose 3 at each time point
@@ -15,12 +15,12 @@
 get_foi <- function(x, y1, y2, y3, y4, y5, beta, contact_mat, times){
   tmp <- list()
   for(t in 1:length(times)){
-    tmp[[t]] <- t(beta[t] * (contact_mat %*% (unlist(x[t,c(paste0("I",1:9))]) + 
-                                                (unlist(y1[t,]) * unlist(x[t, c(paste0("Iv_1d",1:9))])) + 
-                                                (unlist(y2[t,]) * unlist(x[t, c(paste0("Iv_2d",1:9))])) + 
-                                                (unlist(y3[t,]) * unlist(x[t, c(paste0("Iv_3d",1:9))])) + 
-                                                (unlist(y4[t,]) * unlist(x[t, c(paste0("Iv_4d",1:9))])) + 
-                                                (unlist(y5[t,]) * unlist(x[t, c(paste0("Iv_5d",1:9))]))))
+    tmp[[t]] <- t(beta[t] * (contact_mat %*% (unlist(x$I) + 
+                                             (unlist(y1[t,]) * unlist(x$Iv_1d[t,])) + 
+                                             (unlist(y2[t,]) * unlist(x$Iv_2d[t,])) + 
+                                             (unlist(y3[t,]) * unlist(x$Iv_3d[t,])) + 
+                                             (unlist(y4[t,]) * unlist(x$Iv_4d[t,])) + 
+                                             (unlist(y5[t,]) * unlist(x$Iv_5d[t,]))))
     )
   }
   
