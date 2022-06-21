@@ -25,10 +25,15 @@ summarise_results <- function(seir_output, params) {
                     contact_mat = params$contact_mat,
                     times = times)
   
-  # infections
-  new_infections <- (seir_output$S + seir_output$Shold_1d +
-    (eta_dose1[, -1] * (seir_output$Sv_1d + seir_output$Shold_2d)) +
-    (eta_dose2[, -1] * seir_output$Sv_2d)) * lambda_est1[, -1]
+  # calculate infections -------------------------------------------------------
+  new_infections <- lambda * (seir_output$S + seir_output$Shold_1d +
+    (params$eta1[times,-1] * (seir_output$Sv_1d + seir_output$Shold_2d)) +
+    (params$eta2[times,-1] * (seir_output$Sv_2d + seir_output$Shold_3d)) +
+    (params$eta3[times,-1] * (seir_output$Sv_3d + seir_output$Shold_4d)) +
+    (params$eta4[times,-1] * (seir_output$Sv_4d + seir_output$Shold_5d)) +
+    (params$eta5[times,-1] * seir_output$Sv_5d)
+  )
+  
   infections <- (seir_output$E + seir_output$Ev_1d + seir_output$Ev_2d)
 
   # infectious/cases
