@@ -8,10 +8,8 @@
 #' @keywords vacamole
 #' @export
 
-summarise_results <- function(seir_output, params) {
+summarise_results <- function(seir_output, params, t_vec) {
   
-  # get time vector ------------------------------------------------------------
-  times <- seir_out$time
   # get force of infection (lambda) --------------------------------------------
   calendar_day <- lubridate::yday(as.Date(times, origin = params$calendar_start_date))
   beta_t <- params$beta * (1 + params$beta1 * cos(2 * pi * calendar_day / 365.24)) 
@@ -32,13 +30,28 @@ summarise_results <- function(seir_output, params) {
     (params$eta3[times,-1] * (seir_output$Sv_3d + seir_output$Shold_4d)) +
     (params$eta4[times,-1] * (seir_output$Sv_4d + seir_output$Shold_5d)) +
     (params$eta5[times,-1] * seir_output$Sv_5d)
-  )
+  ) %>%
+    rename_with(., ~ paste0("age_group",1:9))
   
+  new_infections <- new_infections %>%
+    mutate(target_variable = "inc infection",
+           time = t_vec,
+           date = as.Date(time, origin = params$calendar_start_date),
+           epiweek = lubridate::epiweek(date),
+           year = lubridate::epiyear(date))
   # calculate cases ------------------------------------------------------------
   new_cases <- sweep(params$sigma * (seir_output$E + seir_output$Ev_1d + 
     seir_output$Ev_2d + seir_output$Ev_3d + seir_output$Ev_4d + seir_output$Ev_5d),
-    2, params$p_report, "*")
-
+    2, params$p_report, "*") %>%
+    rename_with(., ~ paste0("age_group",1:9)) 
+  
+  new_cases <- new_cases %>%
+    mutate(target_variable = "inc case",
+           time = t_vec,
+           date = as.Date(time, origin = params$calendar_start_date),
+           epiweek = lubridate::epiweek(date),
+           year = lubridate::epiyear(date))
+  
   # calculate hospital admissions ----------------------------------------------
   hosp_admissions <- sweep(seir_output$I + 
     params$eta_hosp1[times,-1] * seir_output$Iv_1d +
@@ -46,11 +59,26 @@ summarise_results <- function(seir_output, params) {
     params$eta_hosp3[times,-1] * seir_output$Iv_3d +
     params$eta_hosp4[times,-1] * seir_output$Iv_4d +
     params$eta_hosp5[times,-1] * seir_output$Iv_5d,
-    2, params$h, "*")
+    2, params$h, "*") %>%
+    rename_with(., ~ paste0("age_group",1:9)) 
   
+  hosp_admissions <- hosp_admissions %>%
+    mutate(target_variable = "inc hosp",
+           time = t_vec,
+           date = as.Date(time, origin = params$calendar_start_date),
+           epiweek = lubridate::epiweek(date),
+           year = lubridate::epiyear(date))
   # calculate IC admissions ----------------------------------------------------
   ic_admissions <- sweep(seir_output$H + seir_output$Hv_1d + seir_output$Hv_2d + 
-    seir_output$Hv_3d + seir_output$Hv_4d + seir_output$Hv_5d, 2, params$i1, "*")
+    seir_output$Hv_3d + seir_output$Hv_4d + seir_output$Hv_5d, 2, params$i1, "*") %>%
+    rename_with(., ~ paste0("age_group",1:9)) 
+  
+  ic_admissions <- ic_admissions %>%
+    mutate(target_variable = "inc icu",
+           time = t_vec,
+           date = as.Date(time, origin = params$calendar_start_date),
+           epiweek = lubridate::epiweek(date),
+           year = lubridate::epiyear(date))
   
   # calculate deaths -----------------------------------------------------------
   new_deaths <- 
@@ -65,113 +93,26 @@ summarise_results <- function(seir_output, params) {
     # from hospital after IC
     sweep(seir_output$H_IC + seir_output$H_ICv_1d + seir_output$H_ICv_2d + 
          seir_output$H_ICv_3d + seir_output$H_ICv_4d + seir_output$H_ICv_5d, 2,
-         params$d_hic, "*") 
+         params$d_hic, "*")
+   
   
-  # Create object for plotting ---------------------------------------
-  # convert from wide to long format
+  new_deaths <- new_deaths %>%
+    rename_with(., ~ paste0("age_group",1:9)) %>%
+    mutate(target_variable = "inc death",
+           time = t_vec,
+           date = as.Date(time, origin = params$calendar_start_date),
+           epiweek = lubridate::epiweek(date),
+           year = lubridate::epiyear(date))
+  
+  # Create object into format for scenario hub ---------------------------------
+  # bind all outcome data frames together and wrangle
+  rtn <- bind_rows(new_infections, new_cases, hosp_admissions, ic_admissions, 
+                   new_deaths) %>%
+    pivot_longer(cols = age_group1:age_group9,
+                 names_to = "age_group",
+                 names_prefix = "age_group",
+                 values_to = "value") %>%
+    select(time, date, epiweek, year, target_variable, age_group, value)
 
-  inf_long <- infections %>%
-    mutate(time = times) %>%
-    pivot_longer(
-      cols = starts_with("E"),
-      names_to = "age_group",
-      names_prefix = "E",
-      values_to = "infections"
-    )
-
-  new_inf_long <- new_infections %>%
-    mutate(time = times) %>%
-    pivot_longer(
-      cols = starts_with("S"),
-      names_to = "age_group",
-      names_prefix = "S",
-      values_to = "new_infections"
-    )
-
-  cases_long <- cases %>%
-    mutate(time = times) %>%
-    pivot_longer(
-      cols = starts_with("I"),
-      names_to = "age_group",
-      names_prefix = "I",
-      values_to = "cases"
-    )
-
-  new_cases_long <- new_cases %>%
-    mutate(time = times) %>%
-    pivot_longer(
-      cols = starts_with("E"),
-      names_to = "age_group",
-      names_prefix = "E",
-      values_to = "new_cases"
-    )
-
-  hosp_long <- total_hosp_occ %>%
-    mutate(time = times) %>%
-    pivot_longer(
-      cols = starts_with("H"),
-      names_to = "age_group",
-      names_prefix = "H",
-      values_to = "hospitalisations"
-    )
-
-  hosp_admin_long <- hosp_admissions %>%
-    mutate(time = times) %>%
-    pivot_longer(
-      cols = starts_with("I"),
-      names_to = "age_group",
-      names_prefix = "I",
-      values_to = "hospital_admissions"
-    )
-
-  ic_long <- ic %>%
-    mutate(time = times) %>%
-    pivot_longer(
-      cols = starts_with("H"),
-      names_to = "age_group",
-      names_prefix = "H",
-      values_to = "ic_admissions"
-    )
-
-  deaths_long <- daily_deaths %>%
-    mutate(time = times) %>%
-    pivot_longer(
-      cols = starts_with("IC"),
-      names_to = "age_group",
-      names_prefix = "IC",
-      values_to = "new_deaths"
-    )
-
-
-  df <- left_join(inf_long, new_inf_long, by = c("time", "age_group")) %>%
-    left_join(.data, cases_long, by = c("time", "age_group")) %>%
-    left_join(.data, new_cases_long, by = c("time", "age_group")) %>%
-    left_join(.data, hosp_long, by = c("time", "age_group")) %>%
-    left_join(.data, hosp_admin_long, by = c("time", "age_group")) %>%
-    left_join(.data, ic_long, by = c("time", "age_group")) %>%
-    left_join(.data, deaths_long, by = c("time", "age_group")) %>%
-    pivot_longer(
-      cols = c(
-        "infections", "new_infections", "cases", "new_cases",
-        "hospitalisations", "hospital_admissions", "ic_admissions",
-        "new_deaths"
-      ),
-      names_to = "outcome",
-      values_to = "value"
-    ) %>%
-    mutate(date = .data$time + as.Date(start_date)) %>%
-    select(.data$time, .data$date, .data$age_group, .data$outcome, .data$value)
-
-
-  df_summary <- df %>%
-    group_by(.data$time, .data$date, .data$outcome) %>%
-    summarise_at(.vars = "value", .funs = sum)
-
-  rtn <- list(
-    lambda = lambda_est,
-    df = df,
-    df_summary = df_summary
-    # df_vac = df_vac
-  )
   return(rtn)
 }
