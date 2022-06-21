@@ -35,12 +35,20 @@ summarise_results <- function(seir_output, params) {
   )
   
   # calculate cases ------------------------------------------------------------
-  new_infectious <- params$sigma * (seir_output$E + seir_output$Ev_1d + 
-                                    seir_output$Ev_2d + seir_output$Ev_3d +
-                                    seir_output$Ev_4d + seir_output$Ev_5d)
-  new_cases <- sweep(new_infectious, 2, params$p_report, "*")
+  new_cases <- sweep(params$sigma * (seir_output$E + seir_output$Ev_1d + 
+    seir_output$Ev_2d + seir_output$Ev_3d + seir_output$Ev_4d + seir_output$Ev_5d),
+    2, params$p_report, "*")
 
-  # hospitalisations/ic admissions
+  # calculate hospital admissions ----------------------------------------------
+  hosp_admissions <- sweep(seir_output$I + 
+    params$eta_hosp1[times,-1] * seir_output$Iv_1d +
+    params$eta_hosp2[times,-1] * seir_output$Iv_2d +
+    params$eta_hosp3[times,-1] * seir_output$Iv_3d +
+    params$eta_hosp4[times,-1] * seir_output$Iv_4d +
+    params$eta_hosp5[times,-1] * seir_output$Iv_5d,
+    2, params$h, "*")
+  
+  
   hosp_admissions <- sweep(infectious, 2, params$h, "*")
   hosp_occ <- (seir_output$H + seir_output$Hv_1d + seir_output$Hv_2d)
   ic <- sweep(hosp_occ, 2, params$i1, "*")
