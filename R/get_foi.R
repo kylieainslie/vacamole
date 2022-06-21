@@ -15,7 +15,7 @@
 get_foi <- function(x, y1, y2, y3, y4, y5, beta, contact_mat, times){
   tmp <- list()
   for(t in 1:length(times)){
-    tmp[[t]] <- t(beta[t] * (contact_mat %*% (unlist(x$I) + 
+    tmp[[t]] <- t(beta[t] * (contact_mat %*% (unlist(x$I[t,]) + 
                                              (unlist(y1[t,]) * unlist(x$Iv_1d[t,])) + 
                                              (unlist(y2[t,]) * unlist(x$Iv_2d[t,])) + 
                                              (unlist(y3[t,]) * unlist(x$Iv_3d[t,])) + 
