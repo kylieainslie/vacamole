@@ -502,10 +502,10 @@ df_round1 <- bind_rows(dfA, dfB, dfC, dfD) %>%
   ungroup() %>%
   mutate(value = round(value),
          origin_date = as.Date("2022-05-22"),
-         target_end_date = "2023-05-20",
+         target_end_date = as.Date("2023-05-20"),
          location = "NL")
 
 # output for submission to scenario hub
-write_csv(df_round1, "C:/Users/ainsliek/Documents/covid19-scenario-hub-europe/data-processed/RIVM-vacamole/2022-05-22-rivm-vacamole.csv")
+write_csv(df_round1, "C:/Users/ainsliek/Documents/covid19-scenario-hub-europe/data-processed/RIVM-vacamole/2022-05-22-RIVM-vacamole.csv")
 # output for plotting
 saveRDS(df_round1, "inst/extdata/results/scenario_hub/2022-05-22-rivm-vacamole.rds")
