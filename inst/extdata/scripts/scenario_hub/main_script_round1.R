@@ -440,10 +440,7 @@ for(s in 1:sim){
   outA[[s]] <- seir_outcomes
 }
 dfA <- bind_rows(outA) %>%
-  mutate(origin_date = as.Date("2022-05-22"),
-         scenario_id = "A-2022-05-22",
-         target_end_date = "2023-05-20",
-         location = "NL") %>%
+  mutate(scenario_id = "A-2022-05-22") %>%
   filter(date <= as.Date("2023-05-20"))
 
 # wrangle Scenario B output ----------------------------------------------------
@@ -460,10 +457,7 @@ for(s in 1:sim){
   outB[[s]] <- seir_outcomes
 }
 dfB <- bind_rows(outB) %>%
-  mutate(origin_date = as.Date("2022-05-22"),
-         scenario_id = "B-2022-05-22",
-         target_end_date = "2023-05-20",
-         location = "NL") %>%
+  mutate(scenario_id = "B-2022-05-22") %>%
   filter(date <= as.Date("2023-05-20"))
 
 # wrangle Scenario C output ----------------------------------------------------
@@ -480,10 +474,7 @@ for(s in 1:sim){
   outC[[s]] <- seir_outcomes
 }
 dfC <- bind_rows(outC) %>%
-  mutate(origin_date = as.Date("2022-05-22"),
-         scenario_id = "C-2022-05-22",
-         target_end_date = "2023-05-20",
-         location = "NL") %>%
+  mutate(scenario_id = "C-2022-05-22") %>%
   filter(date <= as.Date("2023-05-20"))
 
 # wrangle Scenario D output ----------------------------------------------------
@@ -500,10 +491,7 @@ for(s in 1:sim){
   outD[[s]] <- seir_outcomes
 }
 dfD <- bind_rows(outD) %>%
-  mutate(origin_date = as.Date("2022-05-22"),
-         scenario_id = "D-2022-05-22",
-         target_end_date = "2023-05-20",
-         location = "NL") %>%
+  mutate(scenario_id = "D-2022-05-22") %>%
   filter(date <= as.Date("2023-05-20"))
 
 # put all scenarios together into single data frame and sum over epiweek & 
