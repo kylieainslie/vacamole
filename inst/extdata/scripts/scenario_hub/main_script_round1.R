@@ -27,6 +27,8 @@ source("R/convert_vac_schedule2.R")
 source("R/na_to_zero.R")
 source("R/calc_waning.R")
 source("R/age_struct_seir_ode2.R")
+source("R/postprocess_age_struct_model_output2.R")
+source("R/summarise_results.R")
 # -------------------------------------------------------------------
 # Define population size --------------------------------------------
 age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 
@@ -441,7 +443,6 @@ dfA <- bind_rows(outA) %>%
   mutate(origin_date = as.Date("2022-05-22"),
          scenario_id = "A-2022-05-22",
          target_end_date = "2023-05-20",
-         horizon = 52,
          location = "NL") %>%
   filter(date <= as.Date("2023-05-20"))
 
@@ -462,7 +463,6 @@ dfB <- bind_rows(outB) %>%
   mutate(origin_date = as.Date("2022-05-22"),
          scenario_id = "B-2022-05-22",
          target_end_date = "2023-05-20",
-         horizon = 52,
          location = "NL") %>%
   filter(date <= as.Date("2023-05-20"))
 
@@ -483,7 +483,6 @@ dfC <- bind_rows(outC) %>%
   mutate(origin_date = as.Date("2022-05-22"),
          scenario_id = "C-2022-05-22",
          target_end_date = "2023-05-20",
-         horizon = 52,
          location = "NL") %>%
   filter(date <= as.Date("2023-05-20"))
 
@@ -504,23 +503,21 @@ dfD <- bind_rows(outD) %>%
   mutate(origin_date = as.Date("2022-05-22"),
          scenario_id = "D-2022-05-22",
          target_end_date = "2023-05-20",
-         horizon = 52,
          location = "NL") %>%
   filter(date <= as.Date("2023-05-20"))
 
 # put all scenarios together into single data frame and sum over epiweek & 
 # age groups
 df_round1 <- bind_rows(dfA, dfB, dfC, dfD) %>%
-  group_by(scenario_id, sample, epiweek, target_variable) %>%
+  group_by(scenario_id, sample, epiweek, horizon, target_variable) %>%
   summarise_at(.vars = "value", .funs = "sum") %>%
   ungroup() %>%
   mutate(value = round(value),
          origin_date = as.Date("2022-05-22"),
          target_end_date = "2023-05-20",
-         horizon = 52,
          location = "NL")
 
 # output for submission to scenario hub
-write_csv(df_round1, "inst/extdata/results/scenario_hub/2022-05-22-rivm-vacamole.csv")
+write_csv(df_round1, "C:/Users/ainsliek/Documents/covid19-scenario-hub-europe/data-processed/RIVM-vacamole/2022-05-22-rivm-vacamole.csv")
 # output for plotting
 saveRDS(df_round1, "inst/extdata/results/scenario_hub/2022-05-22-rivm-vacamole.rds")
