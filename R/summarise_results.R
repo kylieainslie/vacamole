@@ -39,7 +39,7 @@ summarise_results <- function(seir_output, params, t_vec) {
            date = as.Date(time, origin = params$calendar_start_date),
            epiweek = lubridate::epiweek(date),
            year = lubridate::epiyear(date),
-           wk = lubridate::epiweek(date) - epiweek[1] + 1,
+           wk = floor(difftime(date, date[1], units = "weeks")) + 1,
            horizon = paste(wk, "wk")) %>%
     select(-wk)
   # calculate cases ------------------------------------------------------------
@@ -54,7 +54,7 @@ summarise_results <- function(seir_output, params, t_vec) {
            date = as.Date(time, origin = params$calendar_start_date),
            epiweek = lubridate::epiweek(date),
            year = lubridate::epiyear(date),
-           wk = lubridate::epiweek(date) - epiweek[1] + 1,
+           wk = floor(difftime(date, date[1], units = "weeks")) + 1,
            horizon = paste(wk, "wk")) %>%
     select(-wk)
   
@@ -74,7 +74,7 @@ summarise_results <- function(seir_output, params, t_vec) {
            date = as.Date(time, origin = params$calendar_start_date),
            epiweek = lubridate::epiweek(date),
            year = lubridate::epiyear(date),
-           wk = lubridate::epiweek(date) - epiweek[1] + 1,
+           wk = floor(difftime(date, date[1], units = "weeks")) + 1,
            horizon = paste(wk, "wk")) %>%
     select(-wk)
   
@@ -89,7 +89,7 @@ summarise_results <- function(seir_output, params, t_vec) {
            date = as.Date(time, origin = params$calendar_start_date),
            epiweek = lubridate::epiweek(date),
            year = lubridate::epiyear(date),
-           wk = lubridate::epiweek(date) - epiweek[1] + 1,
+           wk = floor(difftime(date, date[1], units = "weeks")) + 1,
            horizon = paste(wk, "wk")) %>%
     select(-wk)
   
@@ -116,7 +116,7 @@ summarise_results <- function(seir_output, params, t_vec) {
            date = as.Date(time, origin = params$calendar_start_date),
            epiweek = lubridate::epiweek(date),
            year = lubridate::epiyear(date),
-           wk = lubridate::epiweek(date) - epiweek[1] + 1,
+           wk = floor(difftime(date, date[1], units = "weeks")) + 1,
            horizon = paste(wk, "wk")) %>%
     select(-wk)
   
