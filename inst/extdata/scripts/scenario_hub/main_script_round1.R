@@ -494,9 +494,15 @@ dfD <- bind_rows(outD) %>%
   mutate(scenario_id = "D-2022-05-22") %>%
   filter(date <= as.Date("2023-05-20"))
 
+# join all scenarios in a single data frame
+df_round1 <- bind_rows(dfA, dfB, dfC, dfD) 
+
+# output for plotting
+saveRDS(df_round1, "inst/extdata/results/scenario_hub/2022-05-22-rivm-vacamole.rds")
+
 # put all scenarios together into single data frame and sum over epiweek & 
 # age groups
-df_round1 <- bind_rows(dfA, dfB, dfC, dfD) %>%
+df_round1_sh <- df_round1 %>%
   group_by(scenario_id, sample, epiweek, horizon, target_variable) %>%
   summarise_at(.vars = "value", .funs = "sum") %>%
   ungroup() %>%
@@ -506,6 +512,4 @@ df_round1 <- bind_rows(dfA, dfB, dfC, dfD) %>%
          location = "NL")
 
 # output for submission to scenario hub
-write_csv(df_round1, "C:/Users/ainsliek/Documents/covid19-scenario-hub-europe/data-processed/RIVM-vacamole/2022-05-22-RIVM-vacamole.csv")
-# output for plotting
-saveRDS(df_round1, "inst/extdata/results/scenario_hub/2022-05-22-rivm-vacamole.rds")
+write_csv(df_round1_sh, "C:/Users/ainsliek/Documents/covid19-scenario-hub-europe/data-processed/RIVM-vacamole/2022-05-22-RIVM-vacamole.csv")
