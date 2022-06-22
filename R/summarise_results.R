@@ -11,7 +11,7 @@
 summarise_results <- function(seir_output, params, t_vec) {
   
   # get force of infection (lambda) --------------------------------------------
-  calendar_day <- lubridate::yday(as.Date(times, origin = params$calendar_start_date))
+  calendar_day <- lubridate::yday(as.Date(t_vec, origin = params$calendar_start_date))
   beta_t <- params$beta * (1 + params$beta1 * cos(2 * pi * calendar_day / 365.24)) 
   lambda <- get_foi(x  = seir_output, 
                     y1 = params$eta_trans1[times,-1], 
@@ -38,7 +38,10 @@ summarise_results <- function(seir_output, params, t_vec) {
            time = t_vec,
            date = as.Date(time, origin = params$calendar_start_date),
            epiweek = lubridate::epiweek(date),
-           year = lubridate::epiyear(date))
+           year = lubridate::epiyear(date),
+           wk = lubridate::epiweek(date) - epiweek[1] + 1,
+           horizon = paste(wk, "wk")) %>%
+    select(-wk)
   # calculate cases ------------------------------------------------------------
   new_cases <- sweep(params$sigma * (seir_output$E + seir_output$Ev_1d + 
     seir_output$Ev_2d + seir_output$Ev_3d + seir_output$Ev_4d + seir_output$Ev_5d),
@@ -50,7 +53,10 @@ summarise_results <- function(seir_output, params, t_vec) {
            time = t_vec,
            date = as.Date(time, origin = params$calendar_start_date),
            epiweek = lubridate::epiweek(date),
-           year = lubridate::epiyear(date))
+           year = lubridate::epiyear(date),
+           wk = lubridate::epiweek(date) - epiweek[1] + 1,
+           horizon = paste(wk, "wk")) %>%
+    select(-wk)
   
   # calculate hospital admissions ----------------------------------------------
   hosp_admissions <- sweep(seir_output$I + 
@@ -67,7 +73,11 @@ summarise_results <- function(seir_output, params, t_vec) {
            time = t_vec,
            date = as.Date(time, origin = params$calendar_start_date),
            epiweek = lubridate::epiweek(date),
-           year = lubridate::epiyear(date))
+           year = lubridate::epiyear(date),
+           wk = lubridate::epiweek(date) - epiweek[1] + 1,
+           horizon = paste(wk, "wk")) %>%
+    select(-wk)
+  
   # calculate IC admissions ----------------------------------------------------
   ic_admissions <- sweep(seir_output$H + seir_output$Hv_1d + seir_output$Hv_2d + 
     seir_output$Hv_3d + seir_output$Hv_4d + seir_output$Hv_5d, 2, params$i1, "*") %>%
@@ -78,7 +88,10 @@ summarise_results <- function(seir_output, params, t_vec) {
            time = t_vec,
            date = as.Date(time, origin = params$calendar_start_date),
            epiweek = lubridate::epiweek(date),
-           year = lubridate::epiyear(date))
+           year = lubridate::epiyear(date),
+           wk = lubridate::epiweek(date) - epiweek[1] + 1,
+           horizon = paste(wk, "wk")) %>%
+    select(-wk)
   
   # calculate deaths -----------------------------------------------------------
   new_deaths <- 
@@ -102,7 +115,10 @@ summarise_results <- function(seir_output, params, t_vec) {
            time = t_vec,
            date = as.Date(time, origin = params$calendar_start_date),
            epiweek = lubridate::epiweek(date),
-           year = lubridate::epiyear(date))
+           year = lubridate::epiyear(date),
+           wk = lubridate::epiweek(date) - epiweek[1] + 1,
+           horizon = paste(wk, "wk")) %>%
+    select(-wk)
   
   # Create object into format for scenario hub ---------------------------------
   # bind all outcome data frames together and wrangle
@@ -112,7 +128,7 @@ summarise_results <- function(seir_output, params, t_vec) {
                  names_to = "age_group",
                  names_prefix = "age_group",
                  values_to = "value") %>%
-    select(time, date, epiweek, year, target_variable, age_group, value)
+    select(time, date, epiweek, year, horizon, target_variable, age_group, value)
 
   return(rtn)
 }
