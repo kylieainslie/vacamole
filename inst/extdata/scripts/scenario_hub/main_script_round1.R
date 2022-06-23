@@ -29,6 +29,7 @@ source("R/calc_waning.R")
 source("R/age_struct_seir_ode2.R")
 source("R/postprocess_age_struct_model_output2.R")
 source("R/summarise_results.R")
+source("R/get_foi.R")
 # -------------------------------------------------------------------
 # Define population size --------------------------------------------
 age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 
@@ -351,6 +352,8 @@ paramsBD <- list(N = n_vec,
 init_cond_list <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
 init_cond <- unlist(init_cond_list[[length(init_cond_list)]])
 init_cond[1] <- 872
+
+# ------------------------------------------------------------------------------
 # Run forward simulations ------------------------------------------------------
 t_start <- init_cond[1]
 t_end <- t_start + 365
@@ -411,6 +414,7 @@ scenarioD <- foreach(i = 1:100) %dopar% {
 }
 saveRDS(scenarioD, "/rivm/s/ainsliek/results/scenario_hub/round1/scenarioD.rds")
 #-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 # Post-process scenario runs ---------------------------------------------------
 # Results must be in a csv file that containa only the following columns (in any
@@ -509,7 +513,8 @@ df_round1_sh <- df_round1 %>%
   mutate(value = round(value),
          origin_date = as.Date("2022-05-22"),
          target_end_date = as.Date("2023-05-20"),
-         location = "NL")
+         location = "NL") %>%
+  select(-epiweek)
 
 # output for submission to scenario hub
 write_csv(df_round1_sh, "C:/Users/ainsliek/Documents/covid19-scenario-hub-europe/data-processed/RIVM-vacamole/2022-05-22-RIVM-vacamole.csv")
