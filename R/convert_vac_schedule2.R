@@ -16,11 +16,6 @@
 #' @param k logistic growth rate
 #' @param t0 the time point at the midpoint of the logistic curve (where 50\%
 #'  waning occurs)
-#' @param add_extra_dates logical, if TRUE add extra rows to the vaccination 
-#' schedule until extra_end_date
-#' @param extra_end_date character string of the date (YYYY-MM-DD format) to 
-#' end the vaccination schedule (which will
-#' also be the last date of the simulation)
 #' @return data frame of vaccination rate by day, dose, vaccine product, and age
 #' group and weighted VE and delay to protection by day, dose, age group, and 
 #' outcome
@@ -30,10 +25,7 @@
 #' @export
 convert_vac_schedule2 <- function(vac_schedule,
                                   ve_pars,
-                                  wane = FALSE#,
-                                  # add_extra_dates = FALSE,
-                                  # extra_start_date,
-                                  # extra_end_date
+                                  wane = FALSE
                                   ){
   
   # check if there are 9 age groups or 10 age groups ---------------------------
@@ -111,22 +103,6 @@ convert_vac_schedule2 <- function(vac_schedule,
   vac_schedule_rate <- vac_schedule_rate %>%
     mutate(date = date_vec) %>%
     select(date, everything()) # move date column to first position
-  
-  # add extra rows for dates further in the future -----------------------------
-  # if (add_extra_dates) {
-  #   extra_dates <- seq.Date(from = as.Date(extra_start_date), 
-  #                           to = as.Date(extra_end_date), by = 1)
-  #   extra_dat1 <- data.frame(date = extra_dates) %>%
-  #     full_join(vac_schedule_rate, ., by = "date") %>%
-  #     mutate_at(vars(-.data$date), na_to_zero)
-  #   
-  #   extra_dat2 <- data.frame(date = extra_dates) %>%
-  #     full_join(vac_schedule_daily, ., by = "date") %>%
-  #     mutate_at(vars(-.data$date), na_to_zero)
-  #   
-  #   vac_schedule_rate <- extra_dat1
-  #   vac_schedule_daily <- extra_dat2
-  # } 
   
   # daily vaccination rate for each dose ---------------------------------------
   # first transform data frame to long format
