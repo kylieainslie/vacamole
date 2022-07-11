@@ -126,12 +126,17 @@ vac_ratesAC <- convert_vac_schedule2(
   vac_schedule = vac_scheduleAC,
   ve_pars = omicron_ve,
   wane = TRUE,
-  k_inf = )
+  k_inf = 0.012,
+  k_sev = 0.006,
+  t0 = 365)
 
 vac_ratesBD <- convert_vac_schedule2(
   vac_schedule = vac_scheduleBD,
   ve_pars = omicron_ve,
-  wane = TRUE)
+  wane = TRUE,
+  k_inf = 0.012,
+  k_sev = 0.006,
+  t0 = 365)
 
 # data wrangle for model input
 df_inputAC <- pivot_wider(vac_ratesAC %>% 

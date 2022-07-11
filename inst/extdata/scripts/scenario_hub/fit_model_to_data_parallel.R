@@ -247,7 +247,9 @@ for (j in 45:n_bp) {
   vac_rates <- convert_vac_schedule2(
     vac_schedule = vac_schedule_extra,
     ve_pars = ve_params,
-    wane = TRUE)
+    wane = TRUE,
+    k_inf = 0.012,
+    k_sev = 0.006)
   
   # data wrangle for model input
   df_input <- pivot_wider(vac_rates %>% 
