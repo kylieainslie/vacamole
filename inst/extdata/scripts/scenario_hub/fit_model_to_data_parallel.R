@@ -440,7 +440,7 @@ for (j in 1:n_bp) {
   # for(i in 1:200){
   #   params$beta <- beta_draws[[j]][i,1]
   #   params$contact_mat <- contact_matrix[[i]]
-  #   seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode_test,  
+  #   seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode2,  
   #                      params, method = rk45, rtol = 1e-08, hmax = 0.02)
   #   seir_out_ci1 <- as.data.frame(seir_out_ci) 
   #   ci_cases[[j]][[i]] <-  rowSums(params$sigma * seir_out_ci1[c(paste0("E",1:9))] * params$p_report)
@@ -450,7 +450,7 @@ for (j in 1:n_bp) {
   
   # update initial conditions for next time window
   init_cond[[j+1]] <- tail(out[[j]],1)[-1]
-  saveRDS(init_cond, "inst/extdata/results/model_fits/initial_conditions.rds")
+  saveRDS(init_cond, "inst/extdata/results/model_fits/initial_conditions2.rds")
   # ------------------------------------------------------------------  
   
 } # end of for loop over breakpoints
@@ -501,7 +501,7 @@ p
 # --------------------------------------------------------------------
 
 start_time <- Sys.time()
-seir_out <- ode(unlist(init_cond[[j]]), times[[j]], age_struct_seir_ode_test,  
+seir_out <- ode(unlist(init_cond[[j]]), times[[j]], age_struct_seir_ode2,  
                 params, method = rk45) # , rtol = 1e-08, hmax = 0.02
 end_time <- Sys.time()
 end_time - start_time
