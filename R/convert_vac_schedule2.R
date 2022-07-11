@@ -13,7 +13,8 @@
 #' @param wane logical, if TRUE vaccine effectiveness wanes by a logistic 
 #' function parameterized by arguments
 #' k and t0.
-#' @param k logistic growth rate
+#' @param k_inf logistic growth rate for waning curve against infection
+#' @param k_sev logistic growth rate for waning curve against severe disease
 #' @param t0 the time point at the midpoint of the logistic curve (where 50\%
 #'  waning occurs)
 #' @return data frame of vaccination rate by day, dose, vaccine product, and age
@@ -25,7 +26,10 @@
 #' @export
 convert_vac_schedule2 <- function(vac_schedule,
                                   ve_pars,
-                                  wane = FALSE
+                                  wane = FALSE,
+                                  k_inf = 0.012,
+                                  k_sev = 0.006,
+                                  t0 = 365
                                   ){
   
   # check if there are 9 age groups or 10 age groups ---------------------------
@@ -146,37 +150,56 @@ convert_vac_schedule2 <- function(vac_schedule,
   # Vaccine effectiveness
   # ----------------------------------------------------------------------------
   if (wane) {
-    ve_dat <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% 
+    # calculate waning against infection
+    ve_dat1 <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% 
       mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
       group_by(vac_product, dose, age_group) %>%
-      # calculate waning
-      group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start)) %>%
-      # convert t to date
-      mutate(date = row_number() + vac_info_joined$date[1] - 1) %>%
-      ungroup() %>%
+      group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start),
+                   k = k_inf, t0 = t0) %>%
+      mutate(date = row_number() + vac_info_joined$date[1] - 1) %>% # convert t to date
+      rename(w_inf = w) %>%                                         # rename waning column
+      ungroup()
+    
+    # calculate waning against severe disease
+    ve_dat2 <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% 
+      mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
+      group_by(vac_product, dose, age_group) %>%
+      group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start),
+                   k = k_sev, t0 = t0) %>%
+      mutate(date = row_number() + vac_info_joined$date[1] - 1) %>% # convert t to date
+      rename(w_sev = w) %>%                                         # rename waning column
+      ungroup()
+      
       # calculate VE with waning
+    ve_dat <- left_join(ve_dat1, ve_dat2, by = c("vac_product", "dose", "age_group", "t", "date")) %>%
       left_join(., ve_pars, by = c("vac_product", "dose", "age_group")) %>%
       left_join(., vac_info_joined, by = c("date","vac_product", "dose", "age_group")) %>%
       group_by(dose, age_group, outcome) %>%
-      mutate(ve_wane = ve - (ve * w))
+      mutate(ve_wane_inf = ifelse(ve -  w_inf < 0, 0, ve - w_inf),
+             ve_wane_sev = ifelse(ve -  w_sev < 0, 0, ve - w_sev))
     
     # calculate composite VE ---------------------------------------------------
     ve_comp <- ve_dat %>%
       group_by(date, dose, age_group, outcome) %>%
       summarise(alpha = sum(vac_rate),
-                comp_ve = sum(frac * ve_wane),
+                comp_ve_inf = sum(frac * ve_wane_inf),
+                comp_ve_sev = sum(frac * ve_wane_sev),
                 comp_delay = sum(frac * delay)) %>%
       ungroup() %>%      
       # fill in zeros with previous value
       # even when no people are vaccinated on a given date, comp_ve should be > 0
-      mutate(comp_ve = ifelse(comp_ve == 0, NA, comp_ve),
-             comp_delay = ifelse(comp_ve == 0, NA, comp_delay)) %>% 
-      tidyr::fill(comp_ve, .direction = c("down")) %>%
+      mutate(comp_ve_inf = ifelse(comp_ve_inf == 0, NA, comp_ve_inf),
+             comp_ve_sev = ifelse(comp_ve_sev == 0, NA, comp_ve_sev),
+             comp_delay = ifelse(comp_delay == 0, NA, comp_delay)) %>% 
+      tidyr::fill(comp_ve_inf, .direction = c("down")) %>%
+      tidyr::fill(comp_ve_sev, .direction = c("down")) %>%
       tidyr::fill(comp_delay, .direction = c("down")) %>%
-      mutate(eta = 1 - comp_ve,
-             eta = ifelse(is.na(eta), 1, eta),
+      mutate(eta_inf = 1 - comp_ve_inf,
+             eta_inf = ifelse(is.na(eta_inf), 1, eta_inf),
+             eta_sev = 1 - comp_ve_sev,
+             eta_sev = ifelse(is.na(eta_sev), 1, eta_sev),
              comp_delay = ifelse(is.na(comp_delay), 1, comp_delay)) %>%
-      pivot_longer(., alpha:eta, names_to = "param", values_to = "value")
+      pivot_longer(., alpha:eta_sev, names_to = "param", values_to = "value")
 
   } else {
     ve_dat <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% # vac_info_joined %>%
