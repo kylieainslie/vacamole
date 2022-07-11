@@ -23,7 +23,7 @@ library(optimParallel)
 source("R/convert_vac_schedule2.R")
 source("R/na_to_zero.R")
 source("R/calc_waning.R")
-source("R/age_struct_seir_ode_2.R")
+source("R/age_struct_seir_ode2.R")
 # suppress dplyr::summarise() warnings
 options(dplyr.summarise.inform = FALSE)
 # -------------------------------------------------------------------
@@ -131,7 +131,7 @@ raw_vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5t
 raw_vac_schedule <- raw_vac_schedule[,-1]
 # add extra rows
 extra_start_date <- tail(raw_vac_schedule$date,1) + 1
-extra_end_date <- as.Date("2022-05-25")
+extra_end_date <- as.Date("2022-07-09")
 extra_dates <- seq.Date(from = as.Date(extra_start_date), 
                            to = as.Date(extra_end_date), by = 1)
 vac_schedule_extra <- data.frame(date = extra_dates) %>%
@@ -162,7 +162,7 @@ likelihood_func_test <- function(x, t, data, params, init) {
   # run model with current parameter values
   params$beta <- x[1]/10000
   rk45 <- deSolve::rkMethod("rk45dp7")
-  seir_out <- deSolve::ode(init, t, age_struct_seir_ode_test, params, method = rk45)  # , rtol = 1e-08, hmax = 0.02
+  seir_out <- deSolve::ode(init, t, age_struct_seir_ode2, params, method = rk45)  # , rtol = 1e-08, hmax = 0.02
   out <- as.data.frame(seir_out)
   
   print(paste("Negative values?:", any(tail(seir_out, 1) < 0)))
@@ -184,7 +184,7 @@ likelihood_func_test <- function(x, t, data, params, init) {
 
 # define fit windows ------------------------------------------------
 df_breakpoints <- read_csv2("inst/extdata/inputs/breakpoints_for_model_fit_v3.csv") %>%
-  mutate(date = as.Date(date, format = "%d/%m/%Y"),
+  mutate(date = as.Date(date, format = "%d-%m-%Y"),
          time = as.numeric(date - date[1])) %>%
   select(date, time, variant, contact_matrix)
 
@@ -209,7 +209,7 @@ beta_draws <- list()    # store 200 parameter draws
 # ci_cases <- list()
 
 # load case data ----------------------------------------------------
-data_date <- "2022-05-21"
+data_date <- "2022-07-10"
 case_data <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rds"))
 
 # -------------------------------------------------------------------
@@ -218,10 +218,10 @@ case_data <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rd
 init_cond[[1]] <- init_t0
 
 # read in initial conditions if not starting at iteration 1
-init_cond <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
+# init_cond <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
 
 # loop over time windows --------------------------------------------
-for (j in 45:n_bp) {
+for (j in 1:n_bp) {
   
   print(paste(paste0(j,")"),"Fitting from", bp_for_fit$date[j], "to", bp_for_fit$date[j+1]))
   
@@ -375,7 +375,7 @@ for (j in 45:n_bp) {
   } else
     cl <- makeCluster(spec=detectCores(), outfile="")
   setDefaultCluster(cl=cl)
-  clusterExport(cl = cl, c("age_struct_seir_ode_test"))
+  clusterExport(cl = cl, c("age_struct_seir_ode2"))
   ## return log information
   options(optimParallel.loginfo=TRUE)
   ## stop if change of f(x) is smaller than 0.01
@@ -404,7 +404,7 @@ for (j in 45:n_bp) {
   # Run model --------------------------------------------------------
   params$beta <- res$par[1]/10000
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(unlist(init_cond[[j]]), times[[j]], age_struct_seir_ode_test,  
+  seir_out <- ode(unlist(init_cond[[j]]), times[[j]], age_struct_seir_ode2,  
                   params, method = rk45) # , rtol = 1e-08, hmax = 0.02
   
   # checks -----------------------------------------------------------
