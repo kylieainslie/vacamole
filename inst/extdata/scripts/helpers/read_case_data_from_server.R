@@ -2,6 +2,7 @@
 # read in updated OSIRIS data from RIVM server
 # ----------------------------------------------------
 library(fst)
+library(tidyverse)
 # get file path --------------------------------------
 path <- "/rivm/r/COVID-19/Surveillance/Data/OSIRIS/Geschoond/"
 file <- list.files(path, pattern = ".fst")
@@ -30,8 +31,8 @@ osiris_tally <- osiris %>%
 
 # calculate rolling average and remove last 3 days ---
 osiris1 <- osiris_tally %>%
-  mutate(roll_avg = zoo::rollmean(inc, k = 7, fill = 0)) %>%
-  filter(date <= as.Date("2022-05-21"))#max(date)-2) # remove last 3 days due to reporting delay
+  mutate(roll_avg = zoo::rollmean(inc, k = 7, fill = 0)) #%>%
+  #filter(date <= as.Date("2022-05-21"))#max(date)-2) # remove last 3 days due to reporting delay
 
 last_date_in_osiris <- tail(osiris1$date, 1)
 # save output ----------------------------------------
