@@ -1,47 +1,48 @@
 date;variant;contact_matrix;details
-01/01/2020;wildtype;april_2017;# beginning of fit
-16/03/2020;wildtype;april_2017;# 1) closure of hospitality, schools, daycares
-24/03/2020;wildtype;april_2017;# 2) casinos subject to same measures as food/beverage outlets
-29/04/2020;wildtype;april_2020;# 3) Children and young people can participate in outdoor activities
-11/05/2020;wildtype;april_2020;# 4) reopening of primary schools and daycare @ 50% capacity
-01/06/2020;wildtype;april_2020;# 5) cafes/restaurants reopen with max 30 visitor, primary schools and daycares open at 100%
-01/07/2020;wildtype;june_2020;# 6) secondary schools reopen @ 100% capacity
-06/08/2020;wildtype;june_2020;# 7) Small groups allowed at universities
-18/08/2020;wildtype;june_2020;# 8) maximum 6 people in household
-20/09/2020;wildtype;september_2020;# 9) groups <= 50 people, some hospitality closes at midnight or 1 AM
-29/09/2020;wildtype;september_2020;# 10) max 3 visitors at home, max group size 30, face masks in public areas
-14/10/2020;wildtype;september_2020;# 11) cafes/restaurants close, no team sports, 3 visitors at home per day
-23/10/2020;wildtype;september_2020;# 12) hotels can't sell alcohol after 20:00
-04/11/2020;wildtype;september_2020;# 13) 2 visitors per day, groups <= 20
-19/11/2020;wildtype;september_2020;# 14) 3 visitors per day, groups <= 30
-01/12/2020;wildtype;september_2020;# 15) masks mandatory in all public and indoor areas
-15/12/2020;wildtype;september_2020;# 16) non-essential shops close
-04/01/2021;wildtype;september_2020;# 17) beginning of vaccination program
-20/01/2021;wildtype;september_2020;# 18) 1 visitor per day/curfew (23/01/2021)
-08/02/2021;alpha;february_2021;# 19) Primary schools, child care, special ed reopen
-01/03/2021;alpha;february_2021;# 20) secondary schools partially reopen, contact professions reopen (3/3/2021)
-16/03/2021;alpha;february_2021;# 21) some retail reopens
-31/03/2021;alpha;february_2021;# 22) curfew to start at 22:00 instead of 21:00
-19/04/2021;alpha;february_2021;# 23) out of school care fully reopens
-28/04/2021;alpha;february_2021;# 24) curfew canceled
-19/05/2021;alpha;february_2021;# 25) <27 can play outdoor sports, groups <= 30, non-essential travel allowed within NL
-05/06/2021;alpha;june_2021;# 26) 4 visitors per day, museums reopen, group <= 50, restaurants reopen
-22/06/2021;delta;june_2021;# 27) vaccination of 12-17 year olds starts, Delta becomes dominant strain
-26/06/2021;delta;june_2021;# 28) all restrictions relaxed, except masks on public transport, nightclubs reopen
-10/07/2021;delta;june_2021;# 29) catering industry reopens, test for entry with large events, nightclubs close
-19/07/2021;delta;june_2021;# 30) work from home advisory re-instated
-31/07/2021;delta;june_2021;# break up long time window
-30/08/2021;delta;june_2021;# 31) Physical classes resume at MBO schools, colleges and universities, The 1.5 meters no longer applies. Maximum group size = 75, face masks must be worn outside the classrooms/lecture halls
-25/09/2021;delta;june_2021;# 32) 1.5 m distance no longer required, coronapass needed in horeca and events
-03/11/2021;delta;november_2021;# 33) coronapass use expanded, work from home half the time, masks in public spaces
-13/11/2021;delta;november_2021;# 34) non-essential shops close at 5pm, essential shops close at 8pm
-28/11/2021;delta;november_2021;# 35) stay at home advise, 1.5 m distance, work from home, self-tests advised before visiting other, masks in schools
-19/12/2021;omicron;november_2021;# 36) 2 people in house per day, non-essential shops closed, non-medical contact professions closed, schools closed, all events banned
-15/01/2022;omicron;november_2021;# 37) schools re-open, non-essential shops re-open until 5PM, face masks advised everywhere
-26/01/2022;omicron;april_2017;# 38) shops can stay open until 10PM, max number visitors increased to 4 per day, catering,/theaters/museums re-open, quesrantine not required for people with booster
-15/02/2022;omicron;april_2017;# 39) people can work from the office half the time, unlimited visitors at home
-25/02/2022;omicron;april_2017;# 40) most measures lifted, except corona pass, masks on public transport, testing for large events
-15/03/2022;omicron;april_2017;# 41) work from home advice lifted
-23/03/2022;omicron;april_2017;# 42) no compulsory testing
-19/04/2022;omicron;april_2017;# 43) no mandatory quarantine after contact
-21/05/2022;omicron;april_2017;# 44) end of fit for scenario hub round 1
+1-1-2020;wildtype;april_2017;# beginning of fit
+16-3-2020;wildtype;april_2017;# 1) closure of hospitality, schools, daycares
+24-3-2020;wildtype;april_2017;# 2) casinos subject to same measures as food/beverage outlets
+29-4-2020;wildtype;april_2020;# 3) Children and young people can participate in outdoor activities
+11-5-2020;wildtype;april_2020;# 4) reopening of primary schools and daycare @ 50% capacity
+1-6-2020;wildtype;april_2020;# 5) cafes/restaurants reopen with max 30 visitor, primary schools and daycares open at 100%
+1-7-2020;wildtype;june_2020;# 6) secondary schools reopen @ 100% capacity
+6-8-2020;wildtype;june_2020;# 7) Small groups allowed at universities
+18-8-2020;wildtype;june_2020;# 8) maximum 6 people in household
+20-9-2020;wildtype;september_2020;# 9) groups <= 50 people, some hospitality closes at midnight or 1 AM
+29-9-2020;wildtype;september_2020;# 10) max 3 visitors at home, max group size 30, face masks in public areas
+14-10-2020;wildtype;september_2020;# 11) cafes/restaurants close, no team sports, 3 visitors at home per day
+23-10-2020;wildtype;september_2020;# 12) hotels can't sell alcohol after 20:00
+4-11-2020;wildtype;september_2020;# 13) 2 visitors per day, groups <= 20
+19-11-2020;wildtype;september_2020;# 14) 3 visitors per day, groups <= 30
+1-12-2020;wildtype;september_2020;# 15) masks mandatory in all public and indoor areas
+15-12-2020;wildtype;september_2020;# 16) non-essential shops close
+4-1-2021;wildtype;september_2020;# 17) beginning of vaccination program
+20-1-2021;wildtype;september_2020;# 18) 1 visitor per day/curfew (23/01/2021)
+8-2-2021;alpha;february_2021;# 19) Primary schools, child care, special ed reopen
+1-3-2021;alpha;february_2021;# 20) secondary schools partially reopen, contact professions reopen (3/3/2021)
+16-3-2021;alpha;february_2021;# 21) some retail reopens
+31-3-2021;alpha;february_2021;# 22) curfew to start at 22:00 instead of 21:00
+19-4-2021;alpha;february_2021;# 23) out of school care fully reopens
+28-4-2021;alpha;february_2021;# 24) curfew canceled
+19-5-2021;alpha;february_2021;# 25) <27 can play outdoor sports, groups <= 30, non-essential travel allowed within NL
+5-6-2021;alpha;june_2021;# 26) 4 visitors per day, museums reopen, group <= 50, restaurants reopen
+22-6-2021;delta;june_2021;# 27) vaccination of 12-17 year olds starts, Delta becomes dominant strain
+26-6-2021;delta;june_2021;# 28) all restrictions relaxed, except masks on public transport, nightclubs reopen
+10-7-2021;delta;june_2021;# 29) catering industry reopens, test for entry with large events, nightclubs close
+19-7-2021;delta;june_2021;# 30) work from home advisory re-instated
+31-7-2021;delta;june_2021;# break up long time window
+30-8-2021;delta;june_2021;# 31) Physical classes resume at MBO schools, colleges and universities, The 1.5 meters no longer applies. Maximum group size = 75, face masks must be worn outside the classrooms/lecture halls
+25-9-2021;delta;june_2021;# 32) 1.5 m distance no longer required, coronapass needed in horeca and events
+3-11-2021;delta;november_2021;# 33) coronapass use expanded, work from home half the time, masks in public spaces
+13-11-2021;delta;november_2021;# 34) non-essential shops close at 5pm, essential shops close at 8pm
+28-11-2021;delta;november_2021;# 35) stay at home advise, 1.5 m distance, work from home, self-tests advised before visiting other, masks in schools
+19-12-2021;omicron;november_2021;# 36) 2 people in house per day, non-essential shops closed, non-medical contact professions closed, schools closed, all events banned
+15-1-2022;omicron;november_2021;# 37) schools re-open, non-essential shops re-open until 5PM, face masks advised everywhere
+26-1-2022;omicron;april_2017;# 38) shops can stay open until 10PM, max number visitors increased to 4 per day, catering,/theaters/museums re-open, quesrantine not required for people with booster
+15-2-2022;omicron;april_2017;# 39) people can work from the office half the time, unlimited visitors at home
+25-2-2022;omicron;april_2017;# 40) most measures lifted, except corona pass, masks on public transport, testing for large events
+15-3-2022;omicron;april_2017;# 41) work from home advice lifted
+23-3-2022;omicron;april_2017;# 42) no compulsory testing
+19-4-2022;omicron;april_2017;# 43) no mandatory quarantine after contact
+21-5-2022;omicron;april_2017;# 44) end of fit for scenario hub round 1
+9-7-2022;omicron;april_2017;# 45) end of fit for scenario hub round 2
