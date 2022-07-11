@@ -200,6 +200,20 @@ convert_vac_schedule2 <- function(vac_schedule,
              eta_sev = ifelse(is.na(eta_sev), 1, eta_sev),
              comp_delay = ifelse(is.na(comp_delay), 1, comp_delay)) %>%
       pivot_longer(., alpha:eta_sev, names_to = "param", values_to = "value")
+    
+    # subset VE comp so eta value matches outcome (ex: eta_inf only for outcome = infection)
+    rtn <- ve_comp %>%
+      filter(!(outcome == "hospitalisation" & param == "eta_inf"),
+             !(outcome == "hospitalisation" & param == "comp_ve_inf"),
+             !(outcome == "infection" & param == "eta_sev"),
+             !(outcome == "infection" & param == "comp_ve_sev"),
+             !(outcome == "transmission" & param == "eta_sev"),
+             !(outcome == "transmission" & param == "comp_ve_sev")
+             ) %>%
+      mutate(param = ifelse((param == "comp_ve_inf" | param == "comp_ve_sev"), "comp_ve", param),
+             param = ifelse((param == "eta_inf" | param == "eta_sev"), "eta", param),
+      )
+    
 
   } else {
     ve_dat <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% # vac_info_joined %>%
@@ -223,9 +237,9 @@ convert_vac_schedule2 <- function(vac_schedule,
              eta = ifelse(is.na(eta), 1, eta),
              comp_delay = ifelse(is.na(comp_delay), 1, comp_delay)) %>%
       pivot_longer(., alpha:eta, names_to = "param", values_to = "value")
-    
+    rtn <- ve_comp
   }
 
   # output ---------------------------------------------------------------------
-  return(ve_comp)
+  return(rtn)
 }
