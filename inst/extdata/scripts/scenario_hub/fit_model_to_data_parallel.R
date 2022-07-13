@@ -500,8 +500,8 @@ p <- ggplot(data = df_model_fit, aes(x = date, y = mle, linetype="solid")) +
 p
 # --------------------------------------------------------------------
 
-start_time <- Sys.time()
-seir_out <- ode(unlist(init_cond[[j]]), times[[j]], age_struct_seir_ode2,  
-                params, method = rk45) # , rtol = 1e-08, hmax = 0.02
-end_time <- Sys.time()
-end_time - start_time
+# start_time <- Sys.time()
+# seir_out <- ode(unlist(init_cond[[j]]), times[[j]], age_struct_seir_ode2,  
+#                 params, method = rk45) # , rtol = 1e-08, hmax = 0.02
+# end_time <- Sys.time()
+# end_time - start_time
