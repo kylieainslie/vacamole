@@ -94,23 +94,6 @@ wane_6months <- uniroot(Fk, c(0,1), tau = 182, p = 0.5)$root
 # path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
 path <- "inst/extdata/inputs/contact_matrices/converted/"
 april_2017     <- readRDS(paste0(path,"transmission_matrix_april_2017.rds"))
-# april_2020     <- readRDS(paste0(path,"transmission_matrix_april_2020.rds"))
-# june_2020      <- readRDS(paste0(path,"transmission_matrix_june_2020.rds"))
-# september_2020 <- readRDS(paste0(path,"transmission_matrix_september_2020.rds"))
-# february_2021  <- readRDS(paste0(path,"transmission_matrix_february_2021.rds"))
-# june_2021      <- readRDS(paste0(path,"transmission_matrix_june_2021.rds"))
-# november_2021  <- readRDS(paste0(path,"transmission_matrix_november_2021.rds"))
-
-# put contact matrices into a list for input into fit_to_data_func()
-# cm_list <- list(
-#   april_2017 = april_2017,
-#   april_2020 = april_2020,
-#   june_2020 = june_2020,
-#   september_2020 = september_2020,
-#   february_2021 = february_2021,
-#   june_2021 = june_2021,
-#   november_2021 = november_2021
-# )
 
 # vaccination schedule ----------------------------------------------
 # read in vaccination schedule
@@ -377,7 +360,7 @@ registerDoParallel(cores=15)
 scenarioA <- foreach(i = 1:100) %dopar% {
   paramsAC$beta <- betas100[i]
   paramsAC$contact_mat <- april_2017[[i]]
-  paramsAC$omega <- wane_8months
+  #paramsAC$omega <- wane_8months
   
   rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
@@ -389,7 +372,7 @@ saveRDS(scenarioA, "/rivm/s/ainsliek/results/scenario_hub/round1/scenarioA.rds")
 scenarioB <- foreach(i = 1:100) %dopar% {
   paramsBD$beta <- betas100[i]
   paramsBD$contact_mat <- april_2017[[i]]
-  paramsBD$omega <- wane_8months
+  #paramsBD$omega <- wane_8months
   
   rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
@@ -401,7 +384,7 @@ saveRDS(scenarioB, "/rivm/s/ainsliek/results/scenario_hub/round1/scenarioB.rds")
 scenarioC <- foreach(i = 1:100) %dopar% {
   paramsAC$beta <- betas100[i]
   paramsAC$contact_mat <- april_2017[[i]]
-  paramsAC$omega <- wane_3months
+  #paramsAC$omega <- wane_3months
   
   rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
@@ -413,7 +396,7 @@ saveRDS(scenarioC, "/rivm/s/ainsliek/results/scenario_hub/round1/scenarioC.rds")
 scenarioD <- foreach(i = 1:100) %dopar% {
   paramsBD$beta <- betas100[i]
   paramsBD$contact_mat <- april_2017[[i]]
-  paramsBD$omega <- wane_3months
+  #paramsBD$omega <- wane_3months
   
   rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
