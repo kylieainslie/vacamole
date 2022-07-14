@@ -244,4 +244,4 @@ vac_schedule1 <- vac_schedule %>%
          ) %>%
   fill(.data$pf_d4_2:.data$pf_d4_6)
 
-saveRDS(vac_schedule_5da, "inst/extdata/inputs/vaccination_schedules/vac_schedule_scenario_hub_round2_BD.rds")
+saveRDS(vac_schedule1, "inst/extdata/inputs/vaccination_schedules/vac_schedule_scenario_hub_round2_BD.rds")
