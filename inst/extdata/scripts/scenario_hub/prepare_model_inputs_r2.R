@@ -38,13 +38,16 @@ cutoff_date <- as.Date("2022-07-09")
 osiris1 <- osiris_tally %>%
   filter(date <= cutoff_date)
 
+# or read from directory
+osiris1 <- readRDS("inst/extdata/data/case_data_upto_2022-07-10.rds")
+
 # Vaccination schedule ---------------------------------------------------------
 # Use the following code on the file direct from Pieter
 # Read in file and change column names for booster doses
 # vac_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/manuscripts/impact_vac/data/vaccination_scenarios/"
-vac_path <- "/rivm/s/ainsliek/inputs/"
+vac_path <- "/rivm/s/ainsliek/data/"
 
-vac_sched <- read_csv(paste0(vac_path,"Cum_upt20220503.csv")) %>%
+vac_sched <- read_csv(paste0(vac_path,"Cum_upt20220714.csv")) %>%
   rename_with(~ gsub("B1", "d3", .x, fixed = TRUE)) %>%
   rename_with(~ gsub("B2", "d4", .x, fixed = TRUE)) %>%
   select(-starts_with("X")) %>%
@@ -67,10 +70,13 @@ empty_mat <- matrix(rep(0, n_cols * n_rows), nrow = n_rows)
 dates <- seq.Date(osiris1$date[1], vac_sched1$date[1]-1, by = "day")
 my_df <- data.frame(date = dates, empty_mat)
 names(my_df) <- names(vac_sched1)
-vac_schedule <- bind_rows(my_df, vac_sched1)
+vac_schedule <- bind_rows(my_df, vac_sched1) %>%
+  filter(date < as.Date("2022-07-10"))
 
 # write out to directory
-write.csv(vac_schedule,"inst/extdata/inputs/vaccination_schedules/vac_schedule_real_w_4th_and_5th_dose.csv")
+write.csv(vac_schedule,"inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220709.csv")
+saveRDS(vac_schedule,"inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220709.rds")
+
 # ------------------------------------------------------------------------------
 
 # Update vac schedule for Round 2 ----------------------------------------------
@@ -80,7 +86,7 @@ write.csv(vac_schedule,"inst/extdata/inputs/vaccination_schedules/vac_schedule_r
 # 15 December
 
 # 1) increase coverage of 4th dose
-vac_schedule <- readRDS("inst/extdata/inputs/vaccination_schedules/vac_schedule_real_w_4th_and_5th_dose.rds")
+vac_schedule <- readRDS("inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220709.rds")
 current_4d_prop <- vac_schedule %>% 
   tail(.,1) %>%
   select(date, pf_d4_7:pf_d4_9, mo_d4_7:mo_d4_9) %>%
@@ -107,7 +113,7 @@ vac_schedule_4d <- data.frame(date = extra_dates) %>%
 vac_schedule_4d$mo_d4_7[which(vac_schedule_4d$date %in% extra_start_date:extra_end_date)] <- vac_cov_vec
 # add more extra dates
 extra_dates2 <- seq.Date(from = as.Date(extra_end_date)+1, 
-                         to = as.Date("2023-05-20"), by = 1)
+                         to = as.Date("2023-07-29"), by = 1)
 vac_schedule_4da <- data.frame(date = extra_dates2) %>%
   full_join(vac_schedule_4d, ., by = "date") %>%
   fill(-.data$date)
@@ -138,7 +144,7 @@ vac_schedule_5d$pf_d5_8[which(vac_schedule_5d$date %in% extra_start_date_5d:extr
 vac_schedule_5d$pf_d5_9[which(vac_schedule_5d$date %in% extra_start_date_5d:extra_end_date_5d)] <- vac_cov_vec_pf_5d
 # add more extra dates
 extra_dates_5d2 <- seq.Date(from = as.Date(extra_end_date_5d)+1, 
-                         to = as.Date("2023-05-20"), by = 1)
+                         to = as.Date("2023-07-29"), by = 1)
 vac_schedule_5da <- data.frame(date = extra_dates_5d2) %>%
   full_join(vac_schedule_5d, ., by = "date") %>%
   fill(-.data$date)
