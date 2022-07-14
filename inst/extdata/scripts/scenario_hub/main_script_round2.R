@@ -9,6 +9,10 @@
 # TODO: break up code into work chunks
 # ------------------------------------------------------------------
 
+# Options ----------------------------------------------------------
+# suppress dplyr::summarise() warnings
+options(dplyr.summarise.inform = FALSE)
+
 # Load required packages/functions ---------------------------------
 library(deSolve)
 library(reshape2)
