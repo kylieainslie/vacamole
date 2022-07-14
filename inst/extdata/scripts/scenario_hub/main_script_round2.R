@@ -96,8 +96,8 @@ wane_8months <- uniroot(Fk, c(0,1), tau = 244, p = 0.6)$root
 # 50% reduction after 6 months (used for model fits)
 wane_6months <- uniroot(Fk, c(0,1), tau = 182, p = 0.5)$root
 # contact matrices --------------------------------------------------
-# path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
-path <- "inst/extdata/inputs/contact_matrices/converted/"
+path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
+# path <- "inst/extdata/inputs/contact_matrices/converted/"
 april_2017     <- readRDS(paste0(path,"transmission_matrix_april_2017.rds"))
 
 # vaccination schedule ----------------------------------------------
@@ -562,7 +562,7 @@ paramsD <- list(N = n_vec,
 # Specify initial conditions ---------------------------------------------------
 init_cond_list <- readRDS("inst/extdata/results/model_fits/initial_conditions2.rds")
 init_cond <- unlist(init_cond_list[[length(init_cond_list)]])
-init_cond[1] <- 872
+#init_cond[1] <- 872
 
 # ------------------------------------------------------------------------------
 # Run forward simulations ------------------------------------------------------
@@ -577,32 +577,32 @@ betas100 <- sample(betas[[length(betas)]]$beta, 100)
 registerDoParallel(cores=15)
 
 # Scenario A
-# Slow waning, Summer booster campaign (increase coverage 4th dose)
+# Fall booster campaign in 60+, optimistic VE
 scenarioA <- foreach(i = 1:100) %dopar% {
-  paramsAC$beta <- betas100[i]
-  paramsAC$contact_mat <- april_2017[[i]]
+  paramsA$beta <- betas100[i]
+  paramsA$contact_mat <- april_2017[[i]]
   
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
+  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsA, method = rk45)
   as.data.frame(seir_out)
 }
 saveRDS(scenarioA, "/rivm/s/ainsliek/results/scenario_hub/round2/scenarioA.rds")
 # Scenario B
-# Slow waning, autumn booster campaign (5th dose)
+# Fall booster campaign in 18+, optimistic VE
 scenarioB <- foreach(i = 1:100) %dopar% {
-  paramsBD$beta <- betas100[i]
-  paramsBD$contact_mat <- april_2017[[i]]
+  paramsB$beta <- betas100[i]
+  paramsB$contact_mat <- april_2017[[i]]
   
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
+  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsB, method = rk45)
   as.data.frame(seir_out)
 }
 saveRDS(scenarioB, "/rivm/s/ainsliek/results/scenario_hub/round2/scenarioB.rds")
 # Scenario C
-# Fast waning, summer booster campaign (increase coverage of 4th dose)
+# Fall booster campaign in 60+, pessimistic VE
 scenarioC <- foreach(i = 1:100) %dopar% {
-  paramsAC$beta <- betas100[i]
-  paramsAC$contact_mat <- april_2017[[i]]
+  paramsC$beta <- betas100[i]
+  paramsC$contact_mat <- april_2017[[i]]
   
   rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
@@ -610,13 +610,13 @@ scenarioC <- foreach(i = 1:100) %dopar% {
 }
 saveRDS(scenarioC, "/rivm/s/ainsliek/results/scenario_hub/round2/scenarioC.rds")
 # Scenario D
-# Fast waning, autumn booster campaign (5th dose)
+# Fall booster campaign in 18+, pessimistic VE
 scenarioD <- foreach(i = 1:100) %dopar% {
-  paramsBD$beta <- betas100[i]
-  paramsBD$contact_mat <- april_2017[[i]]
+  paramsD$beta <- betas100[i]
+  paramsD$contact_mat <- april_2017[[i]]
   
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsBD, method = rk45)
+  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsD, method = rk45)
   as.data.frame(seir_out)
 }
 saveRDS(scenarioD, "/rivm/s/ainsliek/results/scenario_hub/round2/scenarioD.rds")
