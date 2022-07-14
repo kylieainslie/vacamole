@@ -97,11 +97,11 @@ april_2017     <- readRDS(paste0(path,"transmission_matrix_april_2017.rds"))
 
 # vaccination schedule ----------------------------------------------
 # read in vaccination schedule
-vac_scheduleAC <- readRDS("inst/extdata/inputs/vac_schedule_scenario_hub_round1_AC.rds") 
-vac_scheduleBD <- readRDS("inst/extdata/inputs/vac_schedule_scenario_hub_round1_BD.rds") 
+vac_scheduleAC <- readRDS("inst/extdata/inputs/vaccination_schedules/vac_schedule_scenario_hub_round1_AC.rds") 
+vac_scheduleBD <- readRDS("inst/extdata/inputs/vaccination_schedules/vac_schedule_scenario_hub_round1_BD.rds") 
 
 # read in xlsx file with VEs (there is 1 sheet for each variant)
-omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron")
+omicron_ve <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat.xlsx", sheet = "omicron")
 
 # specify initial model parameters ---------------------------------
 # parameters must be in a named list
@@ -339,7 +339,7 @@ paramsBD <- list(N = n_vec,
 )
 
 # Specify initial conditions ---------------------------------------------------
-init_cond_list <- readRDS("inst/extdata/results/model_fits/initial_conditions.rds")
+init_cond_list <- readRDS("inst/extdata/results/model_fits/initial_conditions2.rds")
 init_cond <- unlist(init_cond_list[[length(init_cond_list)]])
 init_cond[1] <- 872
 

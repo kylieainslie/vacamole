@@ -70,7 +70,7 @@ names(my_df) <- names(vac_sched1)
 vac_schedule <- bind_rows(my_df, vac_sched1)
 
 # write out to directory
-write.csv(vac_schedule,"inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv")
+write.csv(vac_schedule,"inst/extdata/inputs/vaccination_schedules/vac_schedule_real_w_4th_and_5th_dose.csv")
 # ------------------------------------------------------------------------------
 
 # Update vac schedule for Round 1 ----------------------------------------------
@@ -79,7 +79,7 @@ write.csv(vac_schedule,"inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose
 # 15 December
 
 # 1)
-vac_schedule <- readRDS("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.rds")
+vac_schedule <- readRDS("inst/extdata/inputs/vaccination_schedules/vac_schedule_real_w_4th_and_5th_dose.rds")
 current_4d_prop <- vac_schedule %>% 
   tail(.,1) %>%
   select(date, pf_d4_7:pf_d4_9, mo_d4_7:mo_d4_9) %>%
@@ -111,7 +111,7 @@ vac_schedule_4da <- data.frame(date = extra_dates2) %>%
   full_join(vac_schedule_4d, ., by = "date") %>%
   fill(-.data$date)
 
-saveRDS(vac_schedule_4da, "inst/extdata/inputs/vac_schedule_scenario_hub_round1_AC.rds")
+saveRDS(vac_schedule_4da, "inst/extdata/inputs/vaccination_schedules/vac_schedule_scenario_hub_round1_AC.rds")
 
 # add 5th doses 
 # assume 5th doses distribution is 25% pfizer and 75% moderna (up to 50% coverage)
@@ -142,4 +142,4 @@ vac_schedule_5da <- data.frame(date = extra_dates_5d2) %>%
   full_join(vac_schedule_5d, ., by = "date") %>%
   fill(-.data$date)
 
-saveRDS(vac_schedule_5da, "inst/extdata/inputs/vac_schedule_scenario_hub_round1_BD.rds")
+saveRDS(vac_schedule_5da, "inst/extdata/inputs/vaccination_schedules/vac_schedule_scenario_hub_round1_BD.rds")
