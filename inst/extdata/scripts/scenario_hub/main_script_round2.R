@@ -568,7 +568,7 @@ init_cond <- unlist(init_cond_list[[length(init_cond_list)]])
 # Run forward simulations ------------------------------------------------------
 t_start <- init_cond[1]
 t_end <- t_start + 365
-times <- seq(t_start, t_end, by = 1)
+times <- as.integer(seq(t_start, t_end, by = 1))
 betas <- readRDS("inst/extdata/results/model_fits/beta_draws.rds")
 # sample 100 betas from last time window
 betas100 <- sample(betas[[length(betas)]]$beta, 100)
@@ -636,7 +636,7 @@ saveRDS(scenarioD, "/rivm/s/ainsliek/results/scenario_hub/round2/scenarioD.rds")
 # - value	(numeric):	The projected count, a non-negative integer number of new cases or deaths in the epidemiological week
 
 # wrangle Scenario A output ----------------------------------------------------
-p_report_vec <- c(rep(as.numeric(paramsAC$p_report),6))
+p_report_vec <- c(rep(as.numeric(paramsA$p_report),6))
 
 # read in saved output from model runs
 df_scenA <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round2/scenarioA.rds")
@@ -646,13 +646,15 @@ sim <- length(df_scenA)
 outA <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(df_scenA[[s]])
+  paramsA$beta <- betas100[s]
+  paramsA$contact_mat <- april_2017[[s]]
   seir_outcomes <- summarise_results(seir_output, params = paramsA, t_vec = times) %>%
     mutate(sample = s)
   outA[[s]] <- seir_outcomes
 }
 dfA <- bind_rows(outA) %>%
-  mutate(scenario_id = "A-2022-07-24") #%>%
-  #filter(date <= as.Date("2023-05-20"))
+  mutate(scenario_id = "A-2022-07-24") %>%
+  filter(horizon != "53 wk")
 
 # wrangle Scenario B output ----------------------------------------------------
 # read in saved output from model runs
@@ -663,13 +665,15 @@ sim <- length(df_scenB)
 outB <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(df_scenB[[s]])
+  paramsB$beta <- betas100[s]
+  paramsB$contact_mat <- april_2017[[s]]
   seir_outcomes <- summarise_results(seir_output, params = paramsB, t_vec = times) %>%
     mutate(sample = s)
   outB[[s]] <- seir_outcomes
 }
 dfB <- bind_rows(outB) %>%
-  mutate(scenario_id = "B-2022-07-24")# %>%
-  #filter(date <= as.Date("2023-05-20"))
+  mutate(scenario_id = "B-2022-07-24") %>%
+  filter(horizon != "53 wk")
 
 # wrangle Scenario C output ----------------------------------------------------
 # read in saved output from model runs
@@ -680,13 +684,15 @@ sim <- length(df_scenC)
 outC <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(df_scenC[[s]])
+  paramsC$beta <- betas100[s]
+  paramsC$contact_mat <- april_2017[[s]]
   seir_outcomes <- summarise_results(seir_output, params = paramsC, t_vec = times) %>%
     mutate(sample = s)
   outC[[s]] <- seir_outcomes
 }
 dfC <- bind_rows(outC) %>%
-  mutate(scenario_id = "C-2022-07-24") #%>%
-  #filter(date <= as.Date("2023-05-20"))
+  mutate(scenario_id = "C-2022-07-24") %>%
+  filter(horizon != "53 wk")
 
 # wrangle Scenario D output ----------------------------------------------------
 # read in saved output from model runs
@@ -697,31 +703,34 @@ sim <- length(df_scenD)
 outD <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(df_scenD[[s]])
+  paramsD$beta <- betas100[s]
+  paramsD$contact_mat <- april_2017[[s]]
   seir_outcomes <- summarise_results(seir_output, params = paramsD, t_vec = times) %>%
     mutate(sample = s)
   outD[[s]] <- seir_outcomes
 }
 dfD <- bind_rows(outD) %>%
-  mutate(scenario_id = "D-2022-07-24") #%>%
-  #filter(date <= as.Date("2023-05-20"))
+  mutate(scenario_id = "D-2022-07-24") %>%
+  filter(horizon != "53 wk")
 
 # join all scenarios in a single data frame
-df_round1 <- bind_rows(dfA, dfB, dfC, dfD) 
+df_round2 <- bind_rows(dfA, dfB, dfC, dfD) 
 
 # output for plotting
 saveRDS(df_round1, "inst/extdata/results/scenario_hub/2022-07-24-rivm-vacamole.rds")
 
 # put all scenarios together into single data frame and sum over epiweek & 
 # age groups
-df_round1_sh <- df_round1 %>%
+df_round2_sh <- df_round1 %>%
   group_by(scenario_id, sample, epiweek, horizon, target_variable) %>%
   summarise_at(.vars = "value", .funs = "sum") %>%
   ungroup() %>%
   mutate(value = round(value),
          origin_date = as.Date("2022-07-24"),
-         target_end_date = as.Date("2023-05-20"),
+         target_end_date = as.Date("2023-07-06"),
          location = "NL") %>%
   select(-epiweek)
 
 # output for submission to scenario hub
-write_csv(df_round1_sh, "C:/Users/ainsliek/Documents/covid19-scenario-hub-europe/data-processed/RIVM-vacamole/2022-07-24-RIVM-vacamole.csv")
+write_csv(df_round2_sh, "C:/Users/ainsliek/Documents/covid19-scenario-hub-europe/data-processed/RIVM-vacamole/2022-07-24-RIVM-vacamole.csv")
+write_csv(df_round2_sh, "inst/extdata/results/2022-07-24-RIVM-vacamole.csv")
