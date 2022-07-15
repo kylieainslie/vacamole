@@ -605,7 +605,7 @@ scenarioC <- foreach(i = 1:100) %dopar% {
   paramsC$contact_mat <- april_2017[[i]]
   
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsAC, method = rk45)
+  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsC, method = rk45)
   as.data.frame(seir_out)
 }
 saveRDS(scenarioC, "/rivm/s/ainsliek/results/scenario_hub/round2/scenarioC.rds")
@@ -624,7 +624,7 @@ saveRDS(scenarioD, "/rivm/s/ainsliek/results/scenario_hub/round2/scenarioD.rds")
 # ------------------------------------------------------------------------------
 
 # Post-process scenario runs ---------------------------------------------------
-# Results must be in a csv file that containa only the following columns (in any
+# Results must be in a csv file that contains only the following columns (in any
 # order). No additional columns are allowed.
 # - origin_date (date):	Date as YYYY-MM-DD, last day (Monday) of submission window
 # - scenario_id	(string):	A specified "scenario ID"
@@ -646,13 +646,13 @@ sim <- length(df_scenA)
 outA <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(df_scenA[[s]])
-  seir_outcomes <- summarise_results(seir_output, params = paramsAC, t_vec = times) %>%
+  seir_outcomes <- summarise_results(seir_output, params = paramsA, t_vec = times) %>%
     mutate(sample = s)
   outA[[s]] <- seir_outcomes
 }
 dfA <- bind_rows(outA) %>%
-  mutate(scenario_id = "A-2022-07-24") %>%
-  filter(date <= as.Date("2023-05-20"))
+  mutate(scenario_id = "A-2022-07-24") #%>%
+  #filter(date <= as.Date("2023-05-20"))
 
 # wrangle Scenario B output ----------------------------------------------------
 # read in saved output from model runs
@@ -663,13 +663,13 @@ sim <- length(df_scenB)
 outB <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(df_scenB[[s]])
-  seir_outcomes <- summarise_results(seir_output, params = paramsBD, t_vec = times) %>%
+  seir_outcomes <- summarise_results(seir_output, params = paramsB, t_vec = times) %>%
     mutate(sample = s)
   outB[[s]] <- seir_outcomes
 }
 dfB <- bind_rows(outB) %>%
-  mutate(scenario_id = "B-2022-07-24") %>%
-  filter(date <= as.Date("2023-05-20"))
+  mutate(scenario_id = "B-2022-07-24")# %>%
+  #filter(date <= as.Date("2023-05-20"))
 
 # wrangle Scenario C output ----------------------------------------------------
 # read in saved output from model runs
@@ -680,13 +680,13 @@ sim <- length(df_scenC)
 outC <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(df_scenC[[s]])
-  seir_outcomes <- summarise_results(seir_output, params = paramsAC, t_vec = times) %>%
+  seir_outcomes <- summarise_results(seir_output, params = paramsC, t_vec = times) %>%
     mutate(sample = s)
   outC[[s]] <- seir_outcomes
 }
 dfC <- bind_rows(outC) %>%
-  mutate(scenario_id = "C-2022-07-24") %>%
-  filter(date <= as.Date("2023-05-20"))
+  mutate(scenario_id = "C-2022-07-24") #%>%
+  #filter(date <= as.Date("2023-05-20"))
 
 # wrangle Scenario D output ----------------------------------------------------
 # read in saved output from model runs
@@ -697,13 +697,13 @@ sim <- length(df_scenD)
 outD <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(df_scenD[[s]])
-  seir_outcomes <- summarise_results(seir_output, params = paramsBD, t_vec = times) %>%
+  seir_outcomes <- summarise_results(seir_output, params = paramsD, t_vec = times) %>%
     mutate(sample = s)
   outD[[s]] <- seir_outcomes
 }
 dfD <- bind_rows(outD) %>%
-  mutate(scenario_id = "D-2022-07-24") %>%
-  filter(date <= as.Date("2023-05-20"))
+  mutate(scenario_id = "D-2022-07-24") #%>%
+  #filter(date <= as.Date("2023-05-20"))
 
 # join all scenarios in a single data frame
 df_round1 <- bind_rows(dfA, dfB, dfC, dfD) 
