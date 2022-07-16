@@ -199,12 +199,14 @@ extra_end_date <- as.Date("2022-09-15")
 vac_schedule$mo_d3_2[which(vac_schedule$date %in% extra_start_date:extra_end_date)] <- vac_cov_vec_2
 vac_schedule$mo_d3_3[which(vac_schedule$date %in% extra_start_date:extra_end_date)] <- vac_cov_vec_3
 vac_schedule$mo_d3_4[which(vac_schedule$date %in% extra_start_date:extra_end_date)] <- vac_cov_vec_4
-# add more extra dates
-# extra_dates2 <- seq.Date(from = as.Date(extra_end_date)+1, 
-#                          to = as.Date("2023-05-20"), by = 1)
-# vac_schedule_4da <- data.frame(date = extra_dates2) %>%
-#   full_join(vac_schedule_4d, ., by = "date") %>%
-#   fill(-.data$date)
+
+# fill remaining rows with coverage from 15 September 2022
+vac_schedule_3d <- vac_schedule %>%
+  mutate(mo_d3_2 = ifelse(date > extra_end_date, NA, mo_d3_2),
+         mo_d3_3 = ifelse(date > extra_end_date, NA, mo_d3_3),
+         mo_d3_4 = ifelse(date > extra_end_date, NA, mo_d3_4)
+  ) %>%
+  fill(.data$mo_d3_2:.data$mo_d3_4)
 
 #saveRDS(vac_schedule_4da, "inst/extdata/inputs/vaccination_schedules/vac_schedule_scenario_hub_round1_AC.rds")
 
@@ -218,38 +220,34 @@ n_days_4d <- as.numeric(as.Date("2022-12-15") - as.Date("2022-09-15"))
 # create dataframe for vac coverage vectors
 cov_dat <- data.frame(date = seq.Date(extra_start_date_4d, extra_end_date_4d, 
                                       by = 1),
-                      vac_cov_d4_2 = seq(from = tail(vac_schedule$pf_d4_2,1), 
-                                         to = (0.5*0.2) - tail(vac_schedule$mo_d4_2,1), 
+                      vac_cov_d4_2 = seq(from = tail(vac_schedule_3d$pf_d4_2,1), 
+                                         to = (0.5*0.2) - tail(vac_schedule_3d$mo_d4_2,1), 
                                          length.out = n_days_4d),
-                      vac_cov_d4_3 = seq(from = tail(vac_schedule$pf_d4_3,1), 
-                                         to = 0.5 - tail(vac_schedule$mo_d4_3,1), 
+                      vac_cov_d4_3 = seq(from = tail(vac_schedule_3d$pf_d4_3,1), 
+                                         to = 0.5 - tail(vac_schedule_3d$mo_d4_3,1), 
                                          length.out = n_days_4d),
-                      vac_cov_d4_4 = seq(from = tail(vac_schedule$pf_d4_4,1), 
-                                         to = 0.5 - tail(vac_schedule$mo_d4_4,1), 
+                      vac_cov_d4_4 = seq(from = tail(vac_schedule_3d$pf_d4_4,1), 
+                                         to = 0.5 - tail(vac_schedule_3d$mo_d4_4,1), 
                                          length.out = n_days_4d),
-                      vac_cov_d4_5 = seq(from = tail(vac_schedule$pf_d4_5,1), 
-                                         to = 0.5 - tail(vac_schedule$mo_d4_5,1), 
+                      vac_cov_d4_5 = seq(from = tail(vac_schedule_3d$pf_d4_5,1), 
+                                         to = 0.5 - tail(vac_schedule_3d$mo_d4_5,1), 
                                          length.out = n_days_4d),
-                      vac_cov_d4_6 = seq(from = tail(vac_schedule$pf_d4_6,1), 
-                                         to = 0.5 - tail(vac_schedule$mo_d4_6,1), 
+                      vac_cov_d4_6 = seq(from = tail(vac_schedule_3d$pf_d4_6,1), 
+                                         to = 0.5 - tail(vac_schedule_3d$mo_d4_6,1), 
                                          length.out = n_days_4d)
                         )
-# extra_dates_5d <- seq.Date(from = as.Date(extra_start_date_5d), 
-#                            to = as.Date(extra_end_date_5d), by = 1)
-# vac_schedule_5d <- data.frame(date = extra_dates_5d) %>%
-#   full_join(vac_schedule_4d, ., by = "date") %>%
-#   fill(-.data$date)
+
 
 # pfizer 4th doses
-vac_schedule$pf_d4_2[which(vac_schedule$date %in% extra_start_date_4d:extra_end_date_4d)] <- cov_dat$vac_cov_d4_2
-vac_schedule$pf_d4_3[which(vac_schedule$date %in% extra_start_date_4d:extra_end_date_4d)] <- cov_dat$vac_cov_d4_3
-vac_schedule$pf_d4_4[which(vac_schedule$date %in% extra_start_date_4d:extra_end_date_4d)] <- cov_dat$vac_cov_d4_4
-vac_schedule$pf_d4_5[which(vac_schedule$date %in% extra_start_date_4d:extra_end_date_4d)] <- cov_dat$vac_cov_d4_5
-vac_schedule$pf_d4_6[which(vac_schedule$date %in% extra_start_date_4d:extra_end_date_4d)] <- cov_dat$vac_cov_d4_6
+vac_schedule_3d$pf_d4_2[which(vac_schedule_3d$date %in% extra_start_date_4d:extra_end_date_4d)] <- cov_dat$vac_cov_d4_2
+vac_schedule_3d$pf_d4_3[which(vac_schedule_3d$date %in% extra_start_date_4d:extra_end_date_4d)] <- cov_dat$vac_cov_d4_3
+vac_schedule_3d$pf_d4_4[which(vac_schedule_3d$date %in% extra_start_date_4d:extra_end_date_4d)] <- cov_dat$vac_cov_d4_4
+vac_schedule_3d$pf_d4_5[which(vac_schedule_3d$date %in% extra_start_date_4d:extra_end_date_4d)] <- cov_dat$vac_cov_d4_5
+vac_schedule_3d$pf_d4_6[which(vac_schedule_3d$date %in% extra_start_date_4d:extra_end_date_4d)] <- cov_dat$vac_cov_d4_6
 # add more extra dates
 # extra_dates_5d2 <- seq.Date(from = as.Date(extra_end_date_5d)+1, 
 #                             to = as.Date("2023-05-20"), by = 1)
-vac_schedule1 <- vac_schedule %>%
+vac_schedule1 <- vac_schedule_3d %>%
   mutate(pf_d4_2 = ifelse(date > extra_end_date_4d, NA, pf_d4_2),
          pf_d4_3 = ifelse(date > extra_end_date_4d, NA, pf_d4_3),
          pf_d4_4 = ifelse(date > extra_end_date_4d, NA, pf_d4_4),
