@@ -113,19 +113,19 @@ ve_CD <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat_round2_CD.xlsx", sh
 # convert vaccination schedule to vaccination rates
 vac_ratesA <- convert_vac_schedule2(
   vac_schedule = vac_scheduleAC, ve_pars = ve_AB,
-  wane = TRUE, k_inf = 0.012, k_sev = 0.006, t0 = 365)
+  wane = TRUE, k_inf = 0.006, k_sev = 0.012, t0 = 365)
 
 vac_ratesB <- convert_vac_schedule2(
   vac_schedule = vac_scheduleBD, ve_pars = ve_AB,
-  wane = TRUE, k_inf = 0.012, k_sev = 0.006, t0 = 365)
+  wane = TRUE, k_inf = 0.006, k_sev = 0.012, t0 = 365)
 
 vac_ratesC <- convert_vac_schedule2(
   vac_schedule = vac_scheduleAC, ve_pars = ve_CD,
-  wane = TRUE, k_inf = 0.012, k_sev = 0.006, t0 = 365)
+  wane = TRUE, k_inf = 0.006, k_sev = 0.012, t0 = 365)
 
 vac_ratesD <- convert_vac_schedule2(
   vac_schedule = vac_scheduleBD, ve_pars = ve_CD,
-  wane = TRUE, k_inf = 0.012, k_sev = 0.006, t0 = 365)
+  wane = TRUE, k_inf = 0.006, k_sev = 0.012, t0 = 365)
 
 
 
@@ -575,10 +575,10 @@ betas100 <- sample(betas[[length(betas)]]$beta, 100)
 
 # register parallel backend
 registerDoParallel(cores=15)
-
+n_sim <- 10
 # Scenario A
 # Fall booster campaign in 60+, optimistic VE
-scenarioA <- foreach(i = 1:100) %dopar% {
+scenarioA <- foreach(i = 1:n_sim) %dopar% {
   paramsA$beta <- betas100[i]
   paramsA$contact_mat <- april_2017[[i]]
   
@@ -589,7 +589,7 @@ scenarioA <- foreach(i = 1:100) %dopar% {
 saveRDS(scenarioA, "/rivm/s/ainsliek/results/scenario_hub/round2/scenarioA.rds")
 # Scenario B
 # Fall booster campaign in 18+, optimistic VE
-scenarioB <- foreach(i = 1:100) %dopar% {
+scenarioB <- foreach(i = 1:n_sim) %dopar% {
   paramsB$beta <- betas100[i]
   paramsB$contact_mat <- april_2017[[i]]
   
@@ -600,7 +600,7 @@ scenarioB <- foreach(i = 1:100) %dopar% {
 saveRDS(scenarioB, "/rivm/s/ainsliek/results/scenario_hub/round2/scenarioB.rds")
 # Scenario C
 # Fall booster campaign in 60+, pessimistic VE
-scenarioC <- foreach(i = 1:100) %dopar% {
+scenarioC <- foreach(i = 1:n_sim) %dopar% {
   paramsC$beta <- betas100[i]
   paramsC$contact_mat <- april_2017[[i]]
   
@@ -611,7 +611,7 @@ scenarioC <- foreach(i = 1:100) %dopar% {
 saveRDS(scenarioC, "/rivm/s/ainsliek/results/scenario_hub/round2/scenarioC.rds")
 # Scenario D
 # Fall booster campaign in 18+, pessimistic VE
-scenarioD <- foreach(i = 1:100) %dopar% {
+scenarioD <- foreach(i = 1:n_sim) %dopar% {
   paramsD$beta <- betas100[i]
   paramsD$contact_mat <- april_2017[[i]]
   
@@ -717,11 +717,11 @@ dfD <- bind_rows(outD) %>%
 df_round2 <- bind_rows(dfA, dfB, dfC, dfD) 
 
 # output for plotting
-saveRDS(df_round1, "inst/extdata/results/scenario_hub/2022-07-24-rivm-vacamole.rds")
+saveRDS(df_round2, "inst/extdata/results/scenario_hub/2022-07-24-rivm-vacamole.rds")
 
 # put all scenarios together into single data frame and sum over epiweek & 
 # age groups
-df_round2_sh <- df_round1 %>%
+df_round2_sh <- df_round2 %>%
   group_by(scenario_id, sample, epiweek, horizon, target_variable) %>%
   summarise_at(.vars = "value", .funs = "sum") %>%
   ungroup() %>%
