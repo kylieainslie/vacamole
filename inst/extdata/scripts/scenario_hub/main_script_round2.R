@@ -575,7 +575,7 @@ betas100 <- sample(betas[[length(betas)]]$beta, 100)
 
 # register parallel backend
 registerDoParallel(cores=15)
-n_sim <- 10
+n_sim <- 100
 # Scenario A
 # Fall booster campaign in 60+, optimistic VE
 scenarioA <- foreach(i = 1:n_sim) %dopar% {
@@ -639,13 +639,13 @@ saveRDS(scenarioD, "/rivm/s/ainsliek/results/scenario_hub/round2/scenarioD.rds")
 p_report_vec <- c(rep(as.numeric(paramsA$p_report),6))
 
 # read in saved output from model runs
-df_scenA <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round2/scenarioA.rds")
-#df_scenA <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioA.rds")
-sim <- length(df_scenA)
+scenarioA <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round2/scenarioA.rds")
+#scenarioA <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioA.rds")
+sim <- length(scenarioA)
 # loop over samples and summarise results
 outA <- list()
 for(s in 1:sim){
-  seir_output <- postprocess_age_struct_model_output2(df_scenA[[s]])
+  seir_output <- postprocess_age_struct_model_output2(scenarioA[[s]])
   paramsA$beta <- betas100[s]
   paramsA$contact_mat <- april_2017[[s]]
   seir_outcomes <- summarise_results(seir_output, params = paramsA, t_vec = times) %>%
@@ -658,13 +658,13 @@ dfA <- bind_rows(outA) %>%
 
 # wrangle Scenario B output ----------------------------------------------------
 # read in saved output from model runs
-df_scenB <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round2/scenarioB.rds")
-#df_scenB <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioB.rds")
-sim <- length(df_scenB)
+scenarioB <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round2/scenarioB.rds")
+#scenarioB <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioB.rds")
+sim <- length(scenarioB)
 # loop over samples and summarise results
 outB <- list()
 for(s in 1:sim){
-  seir_output <- postprocess_age_struct_model_output2(df_scenB[[s]])
+  seir_output <- postprocess_age_struct_model_output2(scenarioB[[s]])
   paramsB$beta <- betas100[s]
   paramsB$contact_mat <- april_2017[[s]]
   seir_outcomes <- summarise_results(seir_output, params = paramsB, t_vec = times) %>%
@@ -677,13 +677,13 @@ dfB <- bind_rows(outB) %>%
 
 # wrangle Scenario C output ----------------------------------------------------
 # read in saved output from model runs
-df_scenC <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round2/scenarioC.rds")
-#df_scenC <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioC.rds")
-sim <- length(df_scenC)
+scenarioC <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round2/scenarioC.rds")
+#scenarioC <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioC.rds")
+sim <- length(scenarioC)
 # loop over samples and summarise results
 outC <- list()
 for(s in 1:sim){
-  seir_output <- postprocess_age_struct_model_output2(df_scenC[[s]])
+  seir_output <- postprocess_age_struct_model_output2(scenarioC[[s]])
   paramsC$beta <- betas100[s]
   paramsC$contact_mat <- april_2017[[s]]
   seir_outcomes <- summarise_results(seir_output, params = paramsC, t_vec = times) %>%
@@ -696,13 +696,13 @@ dfC <- bind_rows(outC) %>%
 
 # wrangle Scenario D output ----------------------------------------------------
 # read in saved output from model runs
-df_scenD <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round2/scenarioD.rds")
-#df_scenD <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioD.rds")
-sim <- length(df_scenD)
+scenarioD <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round2/scenarioD.rds")
+#scenarioD <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioD.rds")
+sim <- length(scenarioD)
 # loop over samples and summarise results
 outD <- list()
 for(s in 1:sim){
-  seir_output <- postprocess_age_struct_model_output2(df_scenD[[s]])
+  seir_output <- postprocess_age_struct_model_output2(scenarioD[[s]])
   paramsD$beta <- betas100[s]
   paramsD$contact_mat <- april_2017[[s]]
   seir_outcomes <- summarise_results(seir_output, params = paramsD, t_vec = times) %>%

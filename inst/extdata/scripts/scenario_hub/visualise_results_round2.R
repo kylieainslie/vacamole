@@ -35,8 +35,8 @@ df_all_age_groups <- df_round2 %>%
 
 # plot -------------------------------------------------------------------------
 p_all <- ggplot(data = df_all_age_groups %>%
-                  filter(target_variable %in% c("inc hosp", "inc icu", "inc death")) %>%
-                  mutate(date = date + 3,
+                  filter(target_variable %in% c("inc case")) %>% #"inc hosp", "inc icu", "inc death"
+                  mutate(date = date + 1,
                   #        scenario_id = factor(scenario_id, 
                   #                             levels = c("C-2022-07-24", "D-2022-07-24",
                   #                                        "A-2022-07-24", "B-2022-07-24")),
