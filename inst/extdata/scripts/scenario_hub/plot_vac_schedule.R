@@ -96,7 +96,7 @@ fig_AC <- ggplot(data = vac_sched_long %>%
   #geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey70")
 fig_AC
 
-# all vac scenarios (only 0-9 and 10-19) ---------------------------
+# all vac scenarios (only 0-9 and 10-19) ---------------------------------------
 fig_BD <- ggplot(data = vac_sched_long %>%
                       filter(Scenario == "Booster campaign 18+",
                              age_group %in% c("10-19", "20-29", "30-39", "40-49", "50-59",
@@ -122,7 +122,7 @@ fig_BD <- ggplot(data = vac_sched_long %>%
 fig_BD
 
 
-# combine the plots -----------------------------------------------
+# combine the plots ------------------------------------------------------------
 # first for 0-9 and 10-19 age groups
 
 fig_ext_no_legend <- plot_grid(fig_AC + theme(legend.position = "none"), 
@@ -140,5 +140,37 @@ legend <- get_legend(
 fig_all <- plot_grid(fig_ext_no_legend, legend, rel_heights = c(3, .4), nrow = 2)
 fig_all
 
-ggsave(filename = "/rivm/s/ainsliek/results/scneario_hub/round2/vac_coverage_plot.jpg", plot = fig_vc,
+ggsave(filename = "/rivm/s/ainsliek/results/scenario_hub/round2/vac_coverage_plot.jpg", plot = fig_all,
        units = "in", height = 8, width = 13, dpi = 300)
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# plot comp_ve
+vac_ratesCD <- bind_rows(vac_ratesC, vac_ratesD, .id = "Scenario") %>%
+  mutate(Scenario = case_when(
+    Scenario == 1 ~ "C",
+    Scenario == 2 ~ "D"
+  )) %>%
+  filter(param == "comp_ve")
+
+fig_cv <- ggplot(data = vac_ratesCD %>%
+                   filter(dose %in% c("d3", "d4", "d5"),
+                          date > as.Date("2022-07-08"),
+                          outcome == "hospitalisation"
+                   ), 
+                 aes(x = date, y = value, color = Scenario)) +
+  geom_line() +
+  labs(y = "VE", x = "Date") +
+  ylim(0,1) +
+  scale_x_date(date_breaks = "3 months", date_labels = "%d %b %Y") +
+  facet_grid(dose~age_group) +
+  theme(legend.position = "bottom",
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+        #axis.title.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        strip.text.x = element_text(size = 14),
+        #legend.text = element_text(size = 14),
+        #legend.title = element_text(size = 14),
+        axis.title=element_text(size=14,face="bold")) #+
+#geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey70")
+fig_cv

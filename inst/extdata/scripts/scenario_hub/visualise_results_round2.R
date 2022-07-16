@@ -57,11 +57,14 @@ p_ribbon <- ggplot(data = df_summary %>%
         legend.box="vertical",
         axis.title=element_text(size=14,face="bold")) +
   guides(fill=guide_legend("Scenario ID"), colour = guide_legend("Scenario ID")) +
-  facet_grid(VE~target_variable) 
+  facet_grid(.~target_variable) +
   # annotate("rect", xmin = as.Date("2022-09-22"), xmax = as.Date("2022-12-15"), ymin = 0, ymax = 200000, 
   #          alpha = .5)
-p_ribbon +
   geom_vline(xintercept = as.Date("2022-09-15"), linetype = "dashed", color = "grey70")
+
+ggsave(filename = "/rivm/s/ainsliek/results/scenario_hub/round2/case_plot_round2.jpg", 
+       plot = p_ribbon,
+       units = "in", height = 8, width = 13, dpi = 300)
 
 # individual lines
 p_lines <- ggplot(data = df_all %>%
