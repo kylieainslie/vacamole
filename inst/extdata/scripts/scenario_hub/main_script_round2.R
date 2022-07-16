@@ -732,5 +732,5 @@ df_round2_sh <- df_round2 %>%
   select(-epiweek)
 
 # output for submission to scenario hub
-write_csv(df_round2_sh, "C:/Users/ainsliek/Documents/covid19-scenario-hub-europe/data-processed/RIVM-vacamole/2022-07-24-RIVM-vacamole.csv")
-write_csv(df_round2_sh, "inst/extdata/results/2022-07-24-RIVM-vacamole.csv")
+#write_csv(df_round2_sh, "C:/Users/ainsliek/Documents/covid19-scenario-hub-europe/data-processed/RIVM-vacamole/2022-07-24-RIVM-vacamole.csv")
+write_csv(df_round2_sh, "/rivm/s/ainsliek/results/scenario_hub/round2/2022-07-24-RIVM-vacamole.csv")
