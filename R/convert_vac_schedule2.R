@@ -181,19 +181,24 @@ convert_vac_schedule2 <- function(vac_schedule,
     # calculate composite VE ---------------------------------------------------
     ve_comp <- ve_dat %>%
       group_by(date, dose, age_group, outcome) %>%
-      summarise(alpha = sum(vac_rate),
-                comp_ve_inf = sum(frac * ve_wane_inf),
-                comp_ve_sev = sum(frac * ve_wane_sev),
-                comp_delay = sum(frac * delay)) %>%
-      ungroup() %>%      
-      # fill in zeros with previous value
-      # even when no people are vaccinated on a given date, comp_ve should be > 0
+      summarise(alpha = sum(vac_rate, na.rm = TRUE),
+                comp_ve_inf = sum(frac * ve_wane_inf, na.rm = TRUE),
+                comp_ve_sev = sum(frac * ve_wane_sev, na.rm = TRUE),
+                comp_delay = sum(frac * delay, na.rm = TRUE)) 
+      
+    # fill in NA values --------------------------------------------------------
+    # even when no people are vaccinated on a given date, 
+    # comp_ve should be > 0
+    ve_comp_fill <- ve_comp %>%
       mutate(comp_ve_inf = ifelse(comp_ve_inf == 0, NA, comp_ve_inf),
              comp_ve_sev = ifelse(comp_ve_sev == 0, NA, comp_ve_sev),
              comp_delay = ifelse(comp_delay == 0, NA, comp_delay)) %>% 
-      tidyr::fill(comp_ve_inf, .direction = c("down")) %>%
-      tidyr::fill(comp_ve_sev, .direction = c("down")) %>%
-      tidyr::fill(comp_delay, .direction = c("down")) %>%
+      tidyr::fill(comp_ve_inf:comp_delay, .direction = c("down"))
+      # tidyr::fill(comp_ve_sev, .direction = c("down")) %>%
+      # tidyr::fill(comp_delay, .direction = c("down")) 
+      
+    # get etas -----------------------------------------------------------------
+    ve_comp_eta <- ve_comp_fill %>%
       mutate(eta_inf = 1 - comp_ve_inf,
              eta_inf = ifelse(is.na(eta_inf), 1, eta_inf),
              eta_sev = 1 - comp_ve_sev,
@@ -201,8 +206,10 @@ convert_vac_schedule2 <- function(vac_schedule,
              comp_delay = ifelse(is.na(comp_delay), 1, comp_delay)) %>%
       pivot_longer(., alpha:eta_sev, names_to = "param", values_to = "value")
     
-    # subset VE comp so eta value matches outcome (ex: eta_inf only for outcome = infection)
-    rtn <- ve_comp %>%
+    # output -------------------------------------------------------------------
+    # subset VE comp so eta value matches outcome 
+    # (ex: eta_inf only for outcome = infection)
+    rtn <- ve_comp_eta %>%
       filter(!(outcome == "hospitalisation" & param == "eta_inf"),
              !(outcome == "hospitalisation" & param == "comp_ve_inf"),
              !(outcome == "infection" & param == "eta_sev"),
