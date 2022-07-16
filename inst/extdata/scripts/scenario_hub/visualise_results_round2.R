@@ -11,46 +11,68 @@ library(ggplot2)
 df_round2 <- readRDS("inst/extdata/results/scenario_hub/2022-07-24-rivm-vacamole.rds")
 
 # summarise over all age groups
-df_all_age_groups <- df_round2 %>%
+df_all <- df_round2 %>%
   group_by(scenario_id, target_variable, date, sample) %>%
   summarise(sum = sum(value)) %>%
   ungroup() %>%
+  mutate(target_variable = factor(target_variable,
+                           levels = c("inc infection", "inc case",
+                                      "inc hosp", "inc icu", "inc death")),
+         sample = factor(sample))
+
+df_summary <- df_all %>%
   group_by(scenario_id, target_variable, date) %>%
   summarise(mean  = mean(sum),
             q025 = quantile(sum, probs = 0.025),
-            q975 = quantile(sum, probs = 0.975)) %>%
-  select(date, scenario_id, target_variable, mean:q975)
-
-# summarise over 60+
-# df_60_plus <- df_round2 %>%
-#   filter(age_group %in% c("7", "8", "9")) %>%
-#   group_by(scenario_id, target_variable, date, sample) %>%
-#   summarise(sum = sum(value)) %>%
-#   ungroup() %>%
-#   group_by(scenario_id, target_variable, date) %>%
-#   summarise(mean  = mean(sum),
-#             q025 = quantile(sum, probs = 0.025),
-#             q975 = quantile(sum, probs = 0.975)) %>%
-#   select(date, scenario_id, target_variable, mean:q975)
+            q25  = quantile(sum, probs = 0.25),
+            q75  = quantile(sum, probs = 0.75),
+            q975 = quantile(sum, probs = 0.975)
+            ) %>%
+  select(date, scenario_id, target_variable, mean:q975) %>%
+  mutate(VE = case_when(
+    scenario_id == "A-2022-07-24" ~ "Optimistic",
+    scenario_id == "B-2022-07-24" ~ "Optimistic",
+    scenario_id == "C-2022-07-24" ~ "Pessimistic",
+    scenario_id == "D-2022-07-24" ~ "Pessimistic"
+  ))
 
 # plot -------------------------------------------------------------------------
-p_all <- ggplot(data = df_all_age_groups %>%
-                  filter(target_variable %in% c("inc case")) %>% #"inc hosp", "inc icu", "inc death"
-                  mutate(date = date + 1,
-                  #        scenario_id = factor(scenario_id, 
-                  #                             levels = c("C-2022-07-24", "D-2022-07-24",
-                  #                                        "A-2022-07-24", "B-2022-07-24")),
-                         target_variable = factor(target_variable,
-                                                  levels = c("inc infection", "inc case",
-                                                             "inc hosp", "inc icu", "inc death"))),
-                aes(x = date, y = mean, color = scenario_id, fill = scenario_id)) +
+# mean line with ribbon 
+p_ribbon <- ggplot(data = df_summary %>%
+                  filter(target_variable %in% c("inc case")), # "inc hosp", "inc icu", "inc death"
+                 aes(x = date, y = mean, color = scenario_id, fill = scenario_id)) +
   geom_line() +
-  geom_ribbon(aes(ymin = q025, ymax = q975), alpha = 0.1, color = NA) +
-  # scale_color_discrete(limits = c("A-2022-07-24", "B-2022-07-24","C-2022-07-24", "D-2022-07-24")) +
-  # scale_fill_discrete(limits = c("A-2022-07-24", "B-2022-07-24","C-2022-07-24", "D-2022-07-24")) +
+  geom_ribbon(aes(ymin = q025, ymax = q975), alpha = 0.05, color = NA) +
+  geom_ribbon(aes(ymin = q25, ymax = q75), alpha = 0.15, color = NA) +
   xlab("Date") + 
   ylab("Mean value") +
-  #ylim(0,NA) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%d %b %Y") +
+  theme(legend.position = "bottom",
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+        axis.text.y = element_text(size = 14),
+        strip.text.x = element_text(size = 14),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 14),
+        legend.box="vertical",
+        axis.title=element_text(size=14,face="bold")) +
+  guides(fill=guide_legend("Scenario ID"), colour = guide_legend("Scenario ID")) +
+  facet_grid(VE~target_variable) 
+  # annotate("rect", xmin = as.Date("2022-09-22"), xmax = as.Date("2022-12-15"), ymin = 0, ymax = 200000, 
+  #          alpha = .5)
+p_ribbon +
+  geom_vline(xintercept = as.Date("2022-09-15"), linetype = "dashed", color = "grey70")
+
+# individual lines
+p_lines <- ggplot(data = df_all %>%
+         filter(target_variable %in% c("inc case"),
+                scenario_id %in% c("A-2022-07-24", "B-2022-07-24")), #"inc hosp", "inc icu", "inc death"
+       aes(x = date, y = sum, group = sample, color = scenario_id)) +
+  geom_line() 
+p_lines
+
+  xlab("Date") + 
+  ylab("Mean value") +
   scale_x_date(date_breaks = "1 month", date_labels = "%d %b %Y") +
   theme(legend.position = "bottom",
         panel.background = element_blank(),
@@ -63,18 +85,10 @@ p_all <- ggplot(data = df_all_age_groups %>%
         axis.title=element_text(size=14,face="bold")) +
   guides(fill=guide_legend("Scenario ID"), colour = guide_legend("Scenario ID")) +
   facet_wrap(~target_variable, nrow = 1) 
-  # annotate("rect", xmin = as.Date("2022-09-22"), xmax = as.Date("2022-12-15"), ymin = 0, ymax = 200000, 
-  #          alpha = .5)
-p_all +
+# annotate("rect", xmin = as.Date("2022-09-22"), xmax = as.Date("2022-12-15"), ymin = 0, ymax = 200000, 
+#          alpha = .5)
+p_lines +
   geom_vline(xintercept = as.Date("2022-09-15"), linetype = "dashed", color = "grey70")
-
-# plot by epiweek
-# p <- ggplot(data = df_round1 %>%
-#               filter(target_variable == "inc case"), aes(x = epiweek, y = med, color = scenario_id)) +
-#   geom_point(position = position_dodge(width = .75)) +
-#   geom_pointrange(aes(ymin=q025, ymax=q975), position = position_dodge(width = .75)) +
-#   scale_color_viridis(discrete = TRUE)
-# p + facet_wrap(~target_variable, scales = "free")
 
 # percent reduction ------------------------------------------------------------
 # total population
