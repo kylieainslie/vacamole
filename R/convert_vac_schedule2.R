@@ -154,8 +154,8 @@ convert_vac_schedule2 <- function(vac_schedule,
     ve_dat1 <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% 
       mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
       group_by(vac_product, dose, age_group) %>%
-      group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start),
-                   k = k_inf, t0 = t0) %>%
+      group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start,
+                   k = k_inf, t0 = t0)) %>%
       mutate(date = row_number() + vac_info_joined$date[1] - 1) %>% # convert t to date
       rename(w_inf = w) %>%                                         # rename waning column
       ungroup()
@@ -164,8 +164,8 @@ convert_vac_schedule2 <- function(vac_schedule,
     ve_dat2 <- left_join(vac_info_joined, first_day_vac, by = "dose") %>% 
       mutate(time_since_vac_start = ifelse(date >= first_day, date - first_day + 1, NA)) %>%
       group_by(vac_product, dose, age_group) %>%
-      group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start),
-                   k = k_sev, t0 = t0) %>%
+      group_modify(~calc_waning(prop = .x$vac_prop, time_point = .x$time_since_vac_start,
+                   k = k_sev, t0 = t0)) %>%
       mutate(date = row_number() + vac_info_joined$date[1] - 1) %>% # convert t to date
       rename(w_sev = w) %>%                                         # rename waning column
       ungroup()
