@@ -127,13 +127,17 @@ convert_vac_schedule2 <- function(vac_schedule,
   
   vac_prop_by_dose <- vac_prop_long %>%
     group_by(date, dose, age_group) %>%
-    summarise(tot = sum(vac_prop))
+    summarise(tot = sum(vac_prop)) %>%
+    ungroup() %>%
+    group_by(dose, age_group) %>%
+    mutate(tot_cumsum = cumsum(tot))
+  
   
   # get fraction of vaccines from each vaccine product administered on each day 
   vac_prop_long1 <- left_join(vac_prop_long, vac_prop_by_dose, by = c("date", "dose", "age_group")) %>%
     group_by(date, vac_product, dose, age_group) %>%
-    mutate(frac = vac_prop/tot,
-           frac = ifelse(is.nan(frac), 0, frac))
+    mutate(frac = vac_prop/tot) %>%
+    tidyr::fill(frac)
 
   # join with rate data frame
   vac_info_joined <- left_join(vac_rates_long, vac_prop_long1, by = c("date", "vac_product", "dose", "age_group")) %>%
