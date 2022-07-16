@@ -98,7 +98,9 @@ n_days <- as.Date("2022-09-15") - current_4d_prop$date
 daily_prop <- ifelse(to_get_to_50 < 0, 0, to_get_to_50) / (as.numeric(n_days))
 end_mo_prop <- 0.5 - (current_4d_prop$mo_d4_7 + current_4d_prop$pf_d4_7)
 # sequence of increasing vac coverage
-vac_cov_vec <- seq(from = tail(vac_schedule$mo_d4_7,1) + daily_prop[1], to = end_mo_prop, length.out = n_days)
+vac_cov_vec <- seq(from = tail(vac_schedule$mo_d4_7,1) + daily_prop[1], 
+                   to = tail(vac_schedule$mo_d4_7,1) + end_mo_prop, 
+                   length.out = n_days)
 
 # add 4th dose vaccinations to get to 50% by 15 September 2022
 # assume all 4th doses are moderna
@@ -174,9 +176,15 @@ n_days <- as.Date("2022-09-15") - current_3d_prop$date
 daily_prop <- ifelse(to_get_to_50 < 0, 0, to_get_to_50) / (as.numeric(n_days))
 
 # sequence of increasing vac coverage
-vac_cov_vec_2 <- seq(from = tail(vac_schedule$mo_d3_2,1) + daily_prop[1], to = to_get_to_50[1], length.out = n_days)
-vac_cov_vec_3 <- seq(from = tail(vac_schedule$mo_d3_3,1) + daily_prop[2], to = to_get_to_50[2], length.out = n_days)
-vac_cov_vec_4 <- seq(from = tail(vac_schedule$mo_d3_4,1) + daily_prop[3], to = to_get_to_50[3], length.out = n_days)
+vac_cov_vec_2 <- seq(from = tail(vac_schedule$mo_d3_2,1) + daily_prop[1], 
+                     to = tail(vac_schedule$mo_d3_2,1) + to_get_to_50[1], 
+                     length.out = n_days)
+vac_cov_vec_3 <- seq(from = tail(vac_schedule$mo_d3_3,1) + daily_prop[2], 
+                     to = tail(vac_schedule$mo_d3_3,1) + to_get_to_50[2], 
+                     length.out = n_days)
+vac_cov_vec_4 <- seq(from = tail(vac_schedule$mo_d3_4,1) + daily_prop[3], 
+                     to = tail(vac_schedule$mo_d3_4,1) + to_get_to_50[3], 
+                     length.out = n_days)
 
 # add 3rd dose vaccinations to get to 50% by 15 September 2022
 # assume all remaining 3rd doses are moderna
