@@ -223,7 +223,8 @@ convert_vac_schedule2 <- function(vac_schedule,
              ) %>%
       mutate(param = ifelse((param == "comp_ve_inf" | param == "comp_ve_sev"), "comp_ve", param),
              param = ifelse((param == "eta_inf" | param == "eta_sev"), "eta", param),
-      )
+      ) %>%
+      ungroup()
     
 
   } else {
