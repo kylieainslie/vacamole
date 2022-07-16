@@ -2,7 +2,7 @@
 # it is based on the weighted overage of the VE, daily vaccination rate, and
 # time since vaccination
 
-calc_waning <- function(prop, time_points, k = 0.03, t0 = 180){
+calc_waning <- function(prop, time_points, k, t0){
 
   tmp <- rep(NA, length(time_points))
 
