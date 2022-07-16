@@ -119,28 +119,28 @@ convert_vac_schedule2 <- function(vac_schedule,
     group_by(date, dose, age_group) %>%
     summarise(alpha = sum())
   
-  # proportion vaccinated
-  vac_prop_long <- vac_schedule_daily %>%
+  # cumulative vaccination proportion for each dose/product --------------------
+  # convert vac_schedule to long format
+  vac_schedule_cs <- vac_schedule %>%
     pivot_longer(cols = !date, names_to = c("vac_product", "dose", "age_group"), 
                  names_sep = "_", values_to = "vac_prop") %>%
-    mutate_at(vars(vac_prop), na_to_zero) 
-  
-  vac_prop_by_dose <- vac_prop_long %>%
+    mutate_at(vars(vac_prop), na_to_zero)
+    
+  # proportion vaccinated up to current day by dose and age group (summed over
+  # vac_products)
+  vac_prop_total <- vac_schedule_cs %>%
     group_by(date, dose, age_group) %>%
-    summarise(tot = sum(vac_prop)) %>%
-    ungroup() %>%
-    group_by(dose, age_group) %>%
-    mutate(tot_cumsum = cumsum(tot))
+    summarise(total = sum(vac_prop)) %>% 
+    ungroup() 
   
-  
-  # get fraction of vaccines from each vaccine product administered on each day 
-  vac_prop_long1 <- left_join(vac_prop_long, vac_prop_by_dose, by = c("date", "dose", "age_group")) %>%
+  vac_prop <- left_join(vac_schedule_cs, vac_prop_total, by = c("date", "dose", "age_group")) %>%
     group_by(date, vac_product, dose, age_group) %>%
-    mutate(frac = vac_prop/tot) %>%
-    tidyr::fill(frac)
+    mutate(frac = vac_prop/total,
+           frac = ifelse(is.nan(frac), 0, frac)) 
+  
 
   # join with rate data frame
-  vac_info_joined <- left_join(vac_rates_long, vac_prop_long1, by = c("date", "vac_product", "dose", "age_group")) %>%
+  vac_info_joined <- left_join(vac_rates_long, vac_prop, by = c("date", "vac_product", "dose", "age_group")) %>%
     mutate(age_group = as.numeric(age_group)) 
   
   # get first day of vaccination with each dose
