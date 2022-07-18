@@ -388,7 +388,7 @@ scenarioE <- readRDS("/rivm/s/ainsliek/results/scenario_hub/round2/scenarioE.rds
 #scenarioA <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioA.rds")
 sim <- length(scenarioE)
 # loop over samples and summarise results
-outA <- list()
+outE <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(scenarioE[[s]])
   paramsE$beta <- betas100[s]
@@ -416,7 +416,7 @@ for(s in 1:sim){
     mutate(sample = s)
   outF[[s]] <- seir_outcomes
 }
-dfB <- bind_rows(outF) %>%
+dfF <- bind_rows(outF) %>%
   mutate(scenario_id = "F-2022-07-24") %>%
   filter(horizon != "53 wk")
 
