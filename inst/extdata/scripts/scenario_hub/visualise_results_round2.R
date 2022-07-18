@@ -9,9 +9,10 @@ library(ggplot2)
 
 # read in results df -----------------------------------------------------------
 df_round2 <- readRDS("inst/extdata/results/scenario_hub/2022-07-24-rivm-vacamole.rds")
-
+df_round2_no_boost <- readRDS("inst/extdata/results/scenario_hub/2022-07-24-rivm-vacamole_no_boost.rds")
 # summarise over all age groups
 df_all <- df_round2 %>%
+  bind_rows(., df_round2_no_boost) %>%
   group_by(scenario_id, target_variable, date, sample) %>%
   summarise(sum = sum(value)) %>%
   ungroup() %>%
@@ -28,22 +29,23 @@ df_summary <- df_all %>%
             q75  = quantile(sum, probs = 0.75),
             q975 = quantile(sum, probs = 0.975)
             ) %>%
-  select(date, scenario_id, target_variable, mean:q975) %>%
-  mutate(VE = case_when(
-    scenario_id == "A-2022-07-24" ~ "Optimistic",
-    scenario_id == "B-2022-07-24" ~ "Optimistic",
-    scenario_id == "C-2022-07-24" ~ "Pessimistic",
-    scenario_id == "D-2022-07-24" ~ "Pessimistic"
-  ))
+  select(date, scenario_id, target_variable, mean:q975) #%>%
+  # mutate(VE = case_when(
+  #   scenario_id == "A-2022-07-24" ~ "Optimistic",
+  #   scenario_id == "B-2022-07-24" ~ "Optimistic",
+  #   scenario_id == "C-2022-07-24" ~ "Pessimistic",
+  #   scenario_id == "D-2022-07-24" ~ "Pessimistic"
+  # ))
 
 # plot -------------------------------------------------------------------------
 # mean line with ribbon 
 p_ribbon <- ggplot(data = df_summary %>%
-                  filter(target_variable %in% c("inc case")), # "inc hosp", "inc icu", "inc death"
+                  filter(target_variable %in% c("inc case"),
+                         date > as.Date("2022-12-01")), # "inc hosp", "inc icu", "inc death"
                  aes(x = date, y = mean, color = scenario_id, fill = scenario_id)) +
   geom_line() +
   geom_ribbon(aes(ymin = q025, ymax = q975), alpha = 0.05, color = NA) +
-  geom_ribbon(aes(ymin = q25, ymax = q75), alpha = 0.15, color = NA) +
+  #geom_ribbon(aes(ymin = q25, ymax = q75), alpha = 0.15, color = NA) +
   xlab("Date") + 
   ylab("Mean value") +
   scale_x_date(date_breaks = "1 month", date_labels = "%d %b %Y") +
@@ -61,6 +63,7 @@ p_ribbon <- ggplot(data = df_summary %>%
   # annotate("rect", xmin = as.Date("2022-09-22"), xmax = as.Date("2022-12-15"), ymin = 0, ymax = 200000, 
   #          alpha = .5)
   geom_vline(xintercept = as.Date("2022-09-15"), linetype = "dashed", color = "grey70")
+p_ribbon
 
 ggsave(filename = "/rivm/s/ainsliek/results/scenario_hub/round2/case_plot_round2.jpg", 
        plot = p_ribbon,

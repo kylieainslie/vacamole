@@ -127,8 +127,6 @@ vac_ratesD <- convert_vac_schedule2(
   vac_schedule = vac_scheduleBD, ve_pars = ve_CD,
   wane = TRUE, k_inf = 0.006, k_sev = 0.012, t0 = 365)
 
-
-
 # data wrangle for model input
 df_inputA <- pivot_wider(vac_ratesA %>% 
                          filter(param != "comp_ve") %>%
@@ -713,6 +711,7 @@ dfD <- bind_rows(outD) %>%
   mutate(scenario_id = "D-2022-07-24") %>%
   filter(horizon != "53 wk")
 
+# ------------------------------------------------------------------------------
 # join all scenarios in a single data frame
 df_round2 <- bind_rows(dfA, dfB, dfC, dfD) 
 
