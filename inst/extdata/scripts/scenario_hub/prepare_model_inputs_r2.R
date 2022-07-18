@@ -79,6 +79,19 @@ saveRDS(vac_schedule,"inst/extdata/inputs/vaccination_schedules/vac_schedule_rea
 
 # ------------------------------------------------------------------------------
 
+# No booster campaign ----------------------------------------------------------
+vac_schedule <- readRDS("inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220709.rds")
+extra_start_date <- tail(vac_schedule$date,1) + 1
+extra_end_date <- as.Date("2023-07-06")
+extra_dates <- seq.Date(from = as.Date(extra_start_date), 
+                        to = as.Date(extra_end_date), by = 1)
+vac_schedule_no_boost <- data.frame(date = extra_dates) %>%
+  full_join(vac_schedule, ., by = "date") %>%
+  fill(-.data$date)
+
+saveRDS(vac_schedule_no_boost, 
+        "inst/extdata/inputs/vaccination_schedules/vac_schedule_scenario_hub_round2_no_boost.rds")
+
 # Update vac schedule for Round 2 ----------------------------------------------
 # Booster campaign in 60+ (only) -----------------------------------------------
 # 1) increase vaccination of 4th dose to achieve 50% coverage by 15 September
