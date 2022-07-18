@@ -126,7 +126,7 @@ hic2r  <- (1 - p_hospital2death) / time_hospital2discharge # H_IC -> R
 
 # vaccination schedule ----------------------------------------------
 # read in vaccination schedule
-raw_vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5th_dose.csv") #%>%
+raw_vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_20220709.csv") #%>%
   # select(-X1)
 raw_vac_schedule <- raw_vac_schedule[,-1]
 # add extra rows
