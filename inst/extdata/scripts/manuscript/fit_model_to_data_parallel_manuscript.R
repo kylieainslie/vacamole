@@ -126,24 +126,16 @@ hic2r  <- (1 - p_hospital2death) / time_hospital2discharge # H_IC -> R
 
 # vaccination schedule ----------------------------------------------
 # read in vaccination schedule
-raw_vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_20220709.csv") #%>%
+raw_vac_schedule <- read_csv("inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220709.csv") #%>%
   # select(-X1)
-raw_vac_schedule <- raw_vac_schedule[,-1]
-# add extra rows
-extra_start_date <- tail(raw_vac_schedule$date,1) + 1
-extra_end_date <- as.Date("2022-07-09")
-extra_dates <- seq.Date(from = as.Date(extra_start_date), 
-                           to = as.Date(extra_end_date), by = 1)
-vac_schedule_extra <- data.frame(date = extra_dates) %>%
-  full_join(raw_vac_schedule, ., by = "date") %>%
-  fill(-.data$date)
+vac_schedule <- raw_vac_schedule[,-1]
 
 # read in xlsx file with VEs (there is 1 sheet for each variant)
 # we'll only use wildtype values for now
-wt_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "wildtype") 
-alpha_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "alpha")
-delta_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "delta")
-omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron")
+wt_ve <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat_round2_AB.xlsx", sheet = "wildtype") 
+alpha_ve <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat_round2_AB.xlsx", sheet = "alpha")
+delta_ve <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat_round2_AB.xlsx", sheet = "delta")
+omicron_ve <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat_round2_AB.xlsx", sheet = "omicron")
 
 # -------------------------------------------------------------------
 # Define likelihood function ----------------------------------------
@@ -245,7 +237,7 @@ for (j in 1:n_bp) {
   } 
   
   vac_rates <- convert_vac_schedule2(
-    vac_schedule = vac_schedule_extra,
+    vac_schedule = vac_schedule,
     ve_pars = ve_params,
     wane = TRUE,
     k_inf = 0.006,
