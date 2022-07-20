@@ -21,7 +21,7 @@ library(lubridate)
 library(foreach)
 library(doParallel)
 
-source("R/convert_vac_schedule2.R")
+source("R/convert_vac_schedule.R")
 source("R/na_to_zero.R")
 source("R/calc_waning.R")
 source("R/age_struct_seir_ode2.R")
@@ -86,6 +86,11 @@ Fk <- function(lambda, tau, p){
 # 60% reduction after 8 months
 wane_8months <- uniroot(Fk, c(0,1), tau = 244, p = 0.6)$root
 
+# contact matrices --------------------------------------------------
+path <- "/rivm/s/ainsliek/data/contact_matrices/converted/"
+# path <- "inst/extdata/inputs/contact_matrices/converted/"
+april_2017 <- readRDS(paste0(path,"transmission_matrix_april_2017.rds"))
+june_2021  <- readRDS(paste0(path,"transmission_matrix_june_2021.rds"))
 # VE estimates -----------------------------------------------------------------
 # read in xlsx file with VEs (there is 1 sheet for each variant)
 # we'll only use wildtype values for now
@@ -98,11 +103,13 @@ omicron_ve <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat_round2_AB.xlsx
 # ------------------------------------------------------------------
 # read in vac schedules --------------------------------------------
 # ------------------------------------------------------------------
-basis_12plus <- read_csv("inst/extdata/data/vaccination_scenarios/vac_schedule_12plus.csv") %>%
-  select(-starts_with("X"))
+basis_12plus <- read_csv("inst/extdata/inputs/vaccination_schedules/vac_schedule_12plus.csv") %>%
+  select(-starts_with("X")) %>%
+  mutate(date = as.Date(date, format = "%m/%d/%Y"))
 
-basis_18plus <- read_csv("inst/extdata/data/vaccination_scenarios/Cvac_schedule_18plus.csv") %>%
-  select(-starts_with("X"))
+basis_18plus <- read_csv("inst/extdata/inputs/vaccination_schedules/vac_schedule_18plus.csv") %>%
+  select(-starts_with("X")) %>%
+  mutate(date = as.Date(date, format = "%m/%d/%Y"))
 
 # add extra dates for forward sims ---------------------------------------------
 extra_start_date <- tail(basis_12plus$date,1) + 1
@@ -154,12 +161,12 @@ vac_schedule_18plus <- data.frame(date = extra_dates) %>%
 #   delay = delays, wane = TRUE, add_extra_dates = TRUE, extra_end_date = "2022-03-31"
 # )
 
-vac_rates_12plus_delta <- convert_vac_schedule2(
+vac_rates_12plus_delta <- convert_vac_schedule(
   vac_schedule = vac_schedule_12plus, ve_pars = delta_ve,
   wane = TRUE, k_inf = 0.006, k_sev = 0.012, t0 = 365)
 
 
-vac_rates_18plus_delta <- convert_vac_schedule2(
+vac_rates_18plus_delta <- convert_vac_schedule(
   vac_schedule = vac_schedule_18plus, ve_pars = delta_ve,
   wane = TRUE, k_inf = 0.006, k_sev = 0.012, t0 = 365)
 
@@ -231,16 +238,16 @@ params_12plus <- list(
    filter(dose == "d5", outcome == "infection") %>%
    select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
  # --- protection against infection ---
-                eta1 = df_input_12plus %>% 
-                  filter(dose == "d1", outcome == "infection") %>% 
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta2 = df_input_12plus %>% 
-                  filter(dose == "d2", outcome == "infection") %>% 
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta3 = df_input_12plus %>% 
-                  filter(dose == "d3", outcome == "infection") %>% 
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta4 = df_input_12plus %>%
+ eta1 = df_input_12plus %>% 
+   filter(dose == "d1", outcome == "infection") %>%
+   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+ eta2 = df_input_12plus %>% 
+   filter(dose == "d2", outcome == "infection") %>%
+   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+ eta3 = df_input_12plus %>% 
+   filter(dose == "d3", outcome == "infection") %>%
+   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+ eta4 = df_input_12plus %>%
                   filter(dose == "d4", outcome == "infection") %>%
                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
                 eta5 = df_input_12plus %>%
@@ -401,38 +408,28 @@ betas100 <- sample(betas[[length(betas)]]$beta, 100)
 # register parallel backend
 registerDoParallel(cores=15)
 n_sim <- 100
-# Scenario A
-# Fall booster campaign in 60+, optimistic VE
+
+# Vaccination in 12+
 scenario_12plus <- foreach(i = 1:n_sim) %dopar% {
-  paramsA$beta <- betas100[i]
-  paramsA$contact_mat <- april_2017[[i]]
+  params_12plus$beta <- betas100[i]
+  params_12plus$contact_mat <- april_2017[[i]]
   
   rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, params_12plus, method = rk45)
   as.data.frame(seir_out)
 }
 saveRDS(scenario_12plus, "/rivm/s/ainsliek/results/impact_vac/resubmission/results_12plus_delta.rds")
-# Scenario B
-# Fall booster campaign in 18+, optimistic VE
+
+# Vacccination in 18+
 scenario_18plus <- foreach(i = 1:n_sim) %dopar% {
-  paramsB$beta <- betas100[i]
-  paramsB$contact_mat <- april_2017[[i]]
+  params_18plus$beta <- betas100[i]
+  params_18plus$contact_mat <- april_2017[[i]]
   
   rk45 <- rkMethod("rk45dp7")
   seir_out <- ode(init_cond, times, age_struct_seir_ode2, params_18plus, method = rk45)
   as.data.frame(seir_out)
 }
 saveRDS(scenario_18plus, "/rivm/s/ainsliek/results/impact_vac/resubmission/results_18plus_delta.rds")
-# Scenario C
-# Fall booster campaign in 60+, pessimistic VE
-scenarioC <- foreach(i = 1:n_sim) %dopar% {
-  paramsC$beta <- betas100[i]
-  paramsC$contact_mat <- april_2017[[i]]
-  
-  rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsC, method = rk45)
-  as.data.frame(seir_out)
-}
 
 # Post-process scenario runs ---------------------------------------------------
 # Results must be in a csv file that contains only the following columns (in any
