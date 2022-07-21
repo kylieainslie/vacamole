@@ -14,22 +14,22 @@ summarise_results <- function(seir_output, params, t_vec) {
   calendar_day <- lubridate::yday(as.Date(t_vec, origin = params$calendar_start_date))
   beta_t <- params$beta * (1 + params$beta1 * cos(2 * pi * calendar_day / 365.24)) 
   lambda <- get_foi(x  = seir_output, 
-                    y1 = params$eta_trans1[times,-1], 
-                    y2 = params$eta_trans2[times,-1], 
-                    y3 = params$eta_trans3[times,-1], 
-                    y4 = params$eta_trans4[times,-1], 
-                    y5 = params$eta_trans5[times,-1],
+                    y1 = params$eta_trans1[t_vec,-1], 
+                    y2 = params$eta_trans2[t_vec,-1], 
+                    y3 = params$eta_trans3[t_vec,-1], 
+                    y4 = params$eta_trans4[t_vec,-1], 
+                    y5 = params$eta_trans5[t_vec,-1],
                     beta = beta_t, 
                     contact_mat = params$contact_mat,
-                    times = times)
+                    times = t_vec)
   
   # calculate infections -------------------------------------------------------
   new_infections <- lambda * (seir_output$S + seir_output$Shold_1d +
-    (params$eta1[times,-1] * (seir_output$Sv_1d + seir_output$Shold_2d)) +
-    (params$eta2[times,-1] * (seir_output$Sv_2d + seir_output$Shold_3d)) +
-    (params$eta3[times,-1] * (seir_output$Sv_3d + seir_output$Shold_4d)) +
-    (params$eta4[times,-1] * (seir_output$Sv_4d + seir_output$Shold_5d)) +
-    (params$eta5[times,-1] * seir_output$Sv_5d)
+    (params$eta1[t_vec,-1] * (seir_output$Sv_1d + seir_output$Shold_2d)) +
+    (params$eta2[t_vec,-1] * (seir_output$Sv_2d + seir_output$Shold_3d)) +
+    (params$eta3[t_vec,-1] * (seir_output$Sv_3d + seir_output$Shold_4d)) +
+    (params$eta4[t_vec,-1] * (seir_output$Sv_4d + seir_output$Shold_5d)) +
+    (params$eta5[t_vec,-1] * seir_output$Sv_5d)
   ) %>%
     rename_with(., ~ paste0("age_group",1:9))
   
@@ -60,11 +60,11 @@ summarise_results <- function(seir_output, params, t_vec) {
   
   # calculate hospital admissions ----------------------------------------------
   hosp_admissions <- sweep(seir_output$I + 
-    params$eta_hosp1[times,-1] * seir_output$Iv_1d +
-    params$eta_hosp2[times,-1] * seir_output$Iv_2d +
-    params$eta_hosp3[times,-1] * seir_output$Iv_3d +
-    params$eta_hosp4[times,-1] * seir_output$Iv_4d +
-    params$eta_hosp5[times,-1] * seir_output$Iv_5d,
+    params$eta_hosp1[t_vec,-1] * seir_output$Iv_1d +
+    params$eta_hosp2[t_vec,-1] * seir_output$Iv_2d +
+    params$eta_hosp3[t_vec,-1] * seir_output$Iv_3d +
+    params$eta_hosp4[t_vec,-1] * seir_output$Iv_4d +
+    params$eta_hosp5[t_vec,-1] * seir_output$Iv_5d,
     2, params$h, "*") %>%
     rename_with(., ~ paste0("age_group",1:9)) 
   
