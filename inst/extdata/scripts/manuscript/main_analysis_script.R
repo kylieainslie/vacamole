@@ -527,7 +527,7 @@ times2 <- as.integer(seq(t_end1, t_end2, by = 1))
 betas <- readRDS("inst/extdata/results/model_fits/manuscript/beta_draws.rds")
 
 # sample betas from last time window
-n_sim <- 5
+n_sim <- 200
 betas_sample <- sample(betas[[length(betas)]]$beta, n_sim)
 betas_sample2<- rnorm(n_sim, mean = 0.00087, sd = 7.1145e-6)
 
@@ -556,23 +556,39 @@ saveRDS(scenario_5plus, "/rivm/s/ainsliek/results/impact_vac/resubmission/result
 
 # Vaccination in 12+ -----------------------------------------------------------
 scenario_12plus <- foreach(i = 1:n_sim) %dopar% {
+  rk45 <- rkMethod("rk45dp7")
+  
+  # run model from 22 June 2021 to 1 November 2021
   params_12plus$beta <- betas_sample[i]
   params_12plus$contact_mat <- june_2021[[i]]
+  seir_out1 <- ode(init_cond, times1, age_struct_seir_ode2, params_12plus, method = rk45)
   
-  rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init_cond, times, age_struct_seir_ode2, params_12plus, method = rk45)
-  as.data.frame(seir_out)
+  # run model from 1 November 2021 to 31 March 2022
+  init_cond2 <-  unlist(tail(as.data.frame(seir_out1), 1)[-1])
+  params_12plus$beta <- betas_sample2[i]
+  params_12plus$contact_mat <- april_2017[[i]]
+  seir_out2 <- ode(init_cond2, times2, age_struct_seir_ode2, params_12plus, method = rk45)
+  
+  bind_rows(as.data.frame(seir_out1),as.data.frame(seir_out2))
 }
 saveRDS(scenario_12plus, "/rivm/s/ainsliek/results/impact_vac/resubmission/results_12plus.rds")
 
 # Vaccination in 18+ -----------------------------------------------------------
 scenario_18plus <- foreach(i = 1:n_sim) %dopar% {
+  rk45 <- rkMethod("rk45dp7")
+  
+  # run model from 22 June 2021 to 1 November 2021
   params_18plus$beta <- betas_sample[i]
   params_18plus$contact_mat <- june_2021[[i]]
+  seir_out1 <- ode(init_cond, times1, age_struct_seir_ode2, params_18plus, method = rk45)
   
-  rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init_cond, times, age_struct_seir_ode2, params_18plus, method = rk45)
-  as.data.frame(seir_out)
+  # run model from 1 November 2021 to 31 March 2022
+  init_cond2 <-  unlist(tail(as.data.frame(seir_out1), 1)[-1])
+  params_18plus$beta <- betas_sample2[i]
+  params_18plus$contact_mat <- april_2017[[i]]
+  seir_out2 <- ode(init_cond2, times2, age_struct_seir_ode2, params_18plus, method = rk45)
+  
+  bind_rows(as.data.frame(seir_out1),as.data.frame(seir_out2))
 }
 saveRDS(scenario_18plus, "/rivm/s/ainsliek/results/impact_vac/resubmission/results_18plus.rds")
 
@@ -600,16 +616,28 @@ sim <- length(scenario_5plus)
 # loop over samples and summarise results
 out_5plus <- list()
 for(s in 1:sim){
-  seir_output <- postprocess_age_struct_model_output2(scenario_5plus[[s]])
-  params_5plus$beta <- betas_sample[s]
-  params_5plus$contact_mat <- june_2021[[s]]
-  seir_outcomes <- summarise_results(seir_output, params = params_5plus, t_vec = times) %>%
+  out1 <- scenario_5plus[[s]][which(scenario_5plus[[s]]$time %in% times1),] %>%
+    distinct()
+  out2 <- scenario_5plus[[s]][which(scenario_5plus[[s]]$time %in% times2),] %>%
+    distinct
+  
+  seir_output1 <- postprocess_age_struct_model_output2(out1)
+  params_5plus$beta <- betas_sample[i]
+  params_5plus$contact_mat <- june_2021[[i]]
+  seir_outcomes1 <- summarise_results(seir_output = seir_output1, params = params_5plus, t_vec = times1) %>%
     mutate(sample = s)
-  out_5plus[[s]] <- seir_outcomes
+  
+  seir_output2 <- postprocess_age_struct_model_output2(out2)
+  params_5plus$beta <- betas_sample2[i]
+  params_5plus$contact_mat <- april_2017[[i]]
+  seir_outcomes2 <- summarise_results(seir_output2, params = params_5plus, t_vec = times2) %>%
+    mutate(sample = s)
+  
+  out_5plus[[s]] <- bind_rows(seir_outcomes1, seir_outcomes2)
 }
 df_5plus <- bind_rows(out_5plus) %>%
-  mutate(scenario_id = "Vaccination in 5+") %>%
-  filter(horizon != "53 wk")
+  mutate(scenario_id = "Vaccination in 5+") #%>%
+  #filter(horizon != "53 wk")
 
 
 # Vaccination in 12+ -----------------------------------------------------------
@@ -619,16 +647,28 @@ sim <- length(scenario_12plus)
 # loop over samples and summarise results
 out_12plus <- list()
 for(s in 1:sim){
-  seir_output <- postprocess_age_struct_model_output2(scenario_12plus[[s]])
-  params_12plus$beta <- betas_sample[s]
-  params_12plus$contact_mat <- june_2021[[s]]
-  seir_outcomes <- summarise_results(seir_output, params = params_12plus, t_vec = times) %>%
+  out1 <- scenario_12plus[[s]][which(scenario_12plus[[s]]$time %in% times1),] %>%
+    distinct()
+  out2 <- scenario_12plus[[s]][which(scenario_12plus[[s]]$time %in% times2),] %>%
+    distinct
+  
+  seir_output1 <- postprocess_age_struct_model_output2(out1)
+  params_12plus$beta <- betas_sample[i]
+  params_12plus$contact_mat <- june_2021[[i]]
+  seir_outcomes1 <- summarise_results(seir_output = seir_output1, params = params_12plus, t_vec = times1) %>%
     mutate(sample = s)
-  out_12plus[[s]] <- seir_outcomes
+  
+  seir_output2 <- postprocess_age_struct_model_output2(out2)
+  params_12plus$beta <- betas_sample2[i]
+  params_12plus$contact_mat <- april_2017[[i]]
+  seir_outcomes2 <- summarise_results(seir_output2, params = params_12plus, t_vec = times2) %>%
+    mutate(sample = s)
+  
+  out_12plus[[s]] <- bind_rows(seir_outcomes1, seir_outcomes2)
 }
 df_12plus <- bind_rows(out_12plus) %>%
-  mutate(scenario_id = "Vaccination in 12+") %>%
-  filter(horizon != "53 wk")
+  mutate(scenario_id = "Vaccination in 12+")# %>%
+  #filter(horizon != "53 wk")
 
 # Vaccination ni 18+ -----------------------------------------------------------
 # read in saved output from model runs
@@ -638,16 +678,28 @@ sim <- length(scenario_18plus)
 # loop over samples and summarise results
 out_18plus <- list()
 for(s in 1:sim){
-  seir_output <- postprocess_age_struct_model_output2(scenario_18plus[[s]])
-  params_18plus$beta <- betas_sample[s]
-  params_18plus$contact_mat <- june_2021[[s]]
-  seir_outcomes <- summarise_results(seir_output, params = params_18plus, t_vec = times) %>%
+  out1 <- scenario_18plus[[s]][which(scenario_18plus[[s]]$time %in% times1),] %>%
+    distinct()
+  out2 <- scenario_18plus[[s]][which(scenario_18plus[[s]]$time %in% times2),] %>%
+    distinct
+  
+  seir_output1 <- postprocess_age_struct_model_output2(out1)
+  params_18plus$beta <- betas_sample[i]
+  params_18plus$contact_mat <- june_2021[[i]]
+  seir_outcomes1 <- summarise_results(seir_output = seir_output1, params = params_18plus, t_vec = times1) %>%
     mutate(sample = s)
-  out_18plus[[s]] <- seir_outcomes
+  
+  seir_output2 <- postprocess_age_struct_model_output2(out2)
+  params_18plus$beta <- betas_sample2[i]
+  params_18plus$contact_mat <- april_2017[[i]]
+  seir_outcomes2 <- summarise_results(seir_output2, params = params_18plus, t_vec = times2) %>%
+    mutate(sample = s)
+  
+  out_18plus[[s]] <- bind_rows(seir_outcomes1, seir_outcomes2)
 }
 df_18plus <- bind_rows(out_18plus) %>%
-  mutate(scenario_id = "Vaccination in 18+") %>%
-  filter(horizon != "53 wk")
+  mutate(scenario_id = "Vaccination in 18+") #%>%
+  #filter(horizon != "53 wk")
 
 # ------------------------------------------------------------------------------
 # join all scenarios in a single data frame
