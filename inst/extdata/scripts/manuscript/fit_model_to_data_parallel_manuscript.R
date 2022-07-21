@@ -214,168 +214,183 @@ init_cond[[1]] <- init_t0
 
 # loop over time windows --------------------------------------------
 for (j in 1:n_bp) {
-  
-  print(paste(paste0(j,")"),"Fitting from", bp_for_fit$date[j], "to", bp_for_fit$date[j+1]))
-  
+  print(paste(paste0(j, ")"), "Fitting from", bp_for_fit$date[j], "to", bp_for_fit$date[j + 1]))
+
   # set contact matrix for time window ------------------------------
-  if (bp_for_fit$contact_matrix[j+1] == "april_2017"){contact_matrix <- contact_matrices$april_2017 #; print("april_2017")
-  } else if (bp_for_fit$contact_matrix[j+1] == "april_2020"){contact_matrix <- contact_matrices$april_2020 #; print("april_2020")
-  } else if (bp_for_fit$contact_matrix[j+1] == "june_2020"){contact_matrix <- contact_matrices$june_2020 #; print("june_2020")
-  } else if (bp_for_fit$contact_matrix[j+1] == "september_2020"){contact_matrix <- contact_matrices$september_2020 #; print("septemeber_2020")
-  } else if (bp_for_fit$contact_matrix[j+1] == "february_2021"){contact_matrix <- contact_matrices$february_2021 #; print("february_2021")
-  } else if (bp_for_fit$contact_matrix[j+1] == "june_2021"){contact_matrix <- contact_matrices$june_2021 #; print("june_2021")
-  } else {contact_matrix <- contact_matrices$november_2021} 
-  
+  if (bp_for_fit$contact_matrix[j + 1] == "april_2017") {
+    contact_matrix <- contact_matrices$april_2017 # ; print("april_2017")
+  } else if (bp_for_fit$contact_matrix[j + 1] == "april_2020") {
+    contact_matrix <- contact_matrices$april_2020 # ; print("april_2020")
+  } else if (bp_for_fit$contact_matrix[j + 1] == "june_2020") {
+    contact_matrix <- contact_matrices$june_2020 # ; print("june_2020")
+  } else if (bp_for_fit$contact_matrix[j + 1] == "september_2020") {
+    contact_matrix <- contact_matrices$september_2020 # ; print("septemeber_2020")
+  } else if (bp_for_fit$contact_matrix[j + 1] == "february_2021") {
+    contact_matrix <- contact_matrices$february_2021 # ; print("february_2021")
+  } else if (bp_for_fit$contact_matrix[j + 1] == "june_2021") {
+    contact_matrix <- contact_matrices$june_2021 # ; print("june_2021")
+  } else {
+    contact_matrix <- contact_matrices$november_2021
+  }
+
   # has vaccination started? ----------------------------------------
-  #nv <- ifelse(bp_for_fit$date[j+1] >= as.Date("2021-01-04"), TRUE, FALSE)
-  
+  # nv <- ifelse(bp_for_fit$date[j+1] >= as.Date("2021-01-04"), TRUE, FALSE)
+
   # convert vaccination schedule for input into model ---------------
-  if (bp_for_fit$variant[j+1] == "wildtype"){ve_params <- wt_ve
-  } else if (bp_for_fit$variant[j+1] == "alpha"){ve_params <- alpha_ve
-  } else if (bp_for_fit$variant[j+1] == "delta"){ve_params <- delta_ve
-  } else if (bp_for_fit$variant[j+1] == "omicron"){ve_params <- omicron_ve
-  } 
-  
+  if (bp_for_fit$variant[j + 1] == "wildtype") {
+    ve_params <- wt_ve
+  } else if (bp_for_fit$variant[j + 1] == "alpha") {
+    ve_params <- alpha_ve
+  } else if (bp_for_fit$variant[j + 1] == "delta") {
+    ve_params <- delta_ve
+  } else if (bp_for_fit$variant[j + 1] == "omicron") {
+    ve_params <- omicron_ve
+  }
+
   vac_rates <- convert_vac_schedule2(
     vac_schedule = vac_schedule,
     ve_pars = ve_params,
     wane = TRUE,
     k_inf = 0.006,
-    k_sev = 0.012)
-  
-  # data wrangle for model input
-  df_input <- pivot_wider(vac_rates %>% 
-                            filter(param != "comp_ve") %>%
-                            mutate(param = ifelse(param == "comp_delay", "delay", param)), 
-                          names_from = c("param", "age_group"), 
-                          names_sep = "", values_from = "value")
-  
-  # parameters must be in a named list
-  params <- list(N = n_vec,
-                 beta = 0.0004,
-                 beta1 = 0.14,
-                 sigma = 0.5,
-                 gamma = i2r,
-                 h = i2h,
-                 i1 = h2ic,
-                 d = h2d,
-                 r = h2r,
-                 i2 = ic2hic,
-                 d_ic = ic2d,
-                 d_hic = hic2d,
-                 r_ic = hic2r,
-                 epsilon = 0.00,
-                 omega = 0.02017514,
-                 # daily vaccination rate
-                 alpha1 = df_input %>% 
-                   filter(dose == "d1", outcome == "infection") %>% 
-                   select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-                 alpha2 = df_input %>% 
-                   filter(dose == "d2", outcome == "infection") %>% 
-                   select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-                 alpha3 = df_input %>% 
-                   filter(dose == "d3", outcome == "infection") %>% 
-                   select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-                 alpha4 = df_input %>%
-                   filter(dose == "d4", outcome == "infection") %>%
-                   select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-                 alpha5 = df_input %>%
-                   filter(dose == "d5", outcome == "infection") %>%
-                   select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-                 # delay to protection
-                 delay1 = df_input %>% 
-                   filter(dose == "d1", outcome == "infection") %>% 
-                   select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-                 delay2 = df_input %>% 
-                   filter(dose == "d2", outcome == "infection") %>% 
-                   select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-                 delay3 = df_input %>% 
-                   filter(dose == "d3", outcome == "infection") %>% 
-                   select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-                 delay4 = df_input %>%
-                   filter(dose == "d4", outcome == "infection") %>%
-                   select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-                 delay5 = df_input %>%
-                   filter(dose == "d5", outcome == "infection") %>%
-                   select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-                 # protection against infection
-                 eta1 = df_input %>% 
-                   filter(dose == "d1", outcome == "infection") %>% 
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 eta2 = df_input %>% 
-                   filter(dose == "d2", outcome == "infection") %>% 
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 eta3 = df_input %>% 
-                   filter(dose == "d3", outcome == "infection") %>% 
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 eta4 = df_input %>%
-                   filter(dose == "d4", outcome == "infection") %>%
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 eta5 = df_input %>%
-                   filter(dose == "d5", outcome == "infection") %>%
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 # protection from hospitalisation
-                 eta_hosp1 = df_input %>% 
-                   filter(dose == "d1", outcome == "hospitalisation") %>% 
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 eta_hosp2 = df_input %>% 
-                   filter(dose == "d2", outcome == "hospitalisation") %>% 
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 eta_hosp3 = df_input %>% 
-                   filter(dose == "d3", outcome == "hospitalisation") %>% 
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 eta_hosp4 = df_input %>%
-                   filter(dose == "d4", outcome == "hospitalisation") %>%
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 eta_hosp5 = df_input %>%
-                   filter(dose == "d5", outcome == "hospitalisation") %>%
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 # protection from transmission
-                 eta_trans1 = df_input %>% 
-                   filter(dose == "d1", outcome == "transmission") %>% 
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 eta_trans2 = df_input %>% 
-                   filter(dose == "d2", outcome == "transmission") %>% 
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 eta_trans3 = df_input %>% 
-                   filter(dose == "d3", outcome == "transmission") %>% 
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 eta_trans4 = df_input %>%
-                   filter(dose == "d4", outcome == "transmission") %>%
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 eta_trans5 = df_input %>%
-                   filter(dose == "d5", outcome == "transmission") %>%
-                   select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                 p_report = p_reported_by_age,
-                 contact_mat = contact_matrix,#$mean,  # change contact matrix
-                 calendar_start_date = as.Date("2020-01-01")#,
-                 #no_vac = nv
+    k_sev = 0.012
   )
-  
+
+  # data wrangle for model input
+  df_input <- pivot_wider(vac_rates %>%
+    filter(param != "comp_ve") %>%
+    mutate(param = ifelse(param == "comp_delay", "delay", param)),
+  names_from = c("param", "age_group"),
+  names_sep = "", values_from = "value"
+  )
+
+  # parameters must be in a named list
+  params <- list(
+    N = n_vec,
+    beta = 0.0004,
+    beta1 = 0.14,
+    sigma = 0.5,
+    gamma = i2r,
+    h = i2h,
+    i1 = h2ic,
+    d = h2d,
+    r = h2r,
+    i2 = ic2hic,
+    d_ic = ic2d,
+    d_hic = hic2d,
+    r_ic = hic2r,
+    epsilon = 0.00,
+    omega = 0.02017514,
+    # daily vaccination rate
+    alpha1 = df_input %>%
+      filter(dose == "d1", outcome == "infection") %>%
+      select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+    alpha2 = df_input %>%
+      filter(dose == "d2", outcome == "infection") %>%
+      select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+    alpha3 = df_input %>%
+      filter(dose == "d3", outcome == "infection") %>%
+      select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+    alpha4 = df_input %>%
+      filter(dose == "d4", outcome == "infection") %>%
+      select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+    alpha5 = df_input %>%
+      filter(dose == "d5", outcome == "infection") %>%
+      select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
+    # delay to protection
+    delay1 = df_input %>%
+      filter(dose == "d1", outcome == "infection") %>%
+      select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+    delay2 = df_input %>%
+      filter(dose == "d2", outcome == "infection") %>%
+      select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+    delay3 = df_input %>%
+      filter(dose == "d3", outcome == "infection") %>%
+      select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+    delay4 = df_input %>%
+      filter(dose == "d4", outcome == "infection") %>%
+      select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+    delay5 = df_input %>%
+      filter(dose == "d5", outcome == "infection") %>%
+      select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
+    # protection against infection
+    eta1 = df_input %>%
+      filter(dose == "d1", outcome == "infection") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    eta2 = df_input %>%
+      filter(dose == "d2", outcome == "infection") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    eta3 = df_input %>%
+      filter(dose == "d3", outcome == "infection") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    eta4 = df_input %>%
+      filter(dose == "d4", outcome == "infection") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    eta5 = df_input %>%
+      filter(dose == "d5", outcome == "infection") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    # protection from hospitalisation
+    eta_hosp1 = df_input %>%
+      filter(dose == "d1", outcome == "hospitalisation") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    eta_hosp2 = df_input %>%
+      filter(dose == "d2", outcome == "hospitalisation") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    eta_hosp3 = df_input %>%
+      filter(dose == "d3", outcome == "hospitalisation") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    eta_hosp4 = df_input %>%
+      filter(dose == "d4", outcome == "hospitalisation") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    eta_hosp5 = df_input %>%
+      filter(dose == "d5", outcome == "hospitalisation") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    # protection from transmission
+    eta_trans1 = df_input %>%
+      filter(dose == "d1", outcome == "transmission") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    eta_trans2 = df_input %>%
+      filter(dose == "d2", outcome == "transmission") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    eta_trans3 = df_input %>%
+      filter(dose == "d3", outcome == "transmission") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    eta_trans4 = df_input %>%
+      filter(dose == "d4", outcome == "transmission") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    eta_trans5 = df_input %>%
+      filter(dose == "d5", outcome == "transmission") %>%
+      select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
+    p_report = p_reported_by_age,
+    contact_mat = contact_matrix, # $mean,  # change contact matrix
+    calendar_start_date = as.Date("2020-01-01") # ,
+    # no_vac = nv
+  )
+
   # set time sequence -----------------------------------------------
-  times[[j]] <- seq(bp_for_fit$time[j], bp_for_fit$time[j+1], by = 1)
-  
+  times[[j]] <- seq(bp_for_fit$time[j], bp_for_fit$time[j + 1], by = 1)
+
   # subset data for time window -------------------------------------
   case_data_sub <- case_data[times[[j]] + 1, ]
-  
+
   # Start cluster
   ## - use all avilable processor cores
   ## - return cat() output to R prompt
   ## (may have issues on Windows)
-  if(tolower(.Platform$OS.type) != "windows"){
-    cl <- makeCluster(spec=detectCores(), type="FORK", outfile="")
-  } else
-    cl <- makeCluster(spec=detectCores(), outfile="")
-  setDefaultCluster(cl=cl)
+  if (tolower(.Platform$OS.type) != "windows") {
+    cl <- makeCluster(spec = detectCores(), type = "FORK", outfile = "")
+  } else {
+    cl <- makeCluster(spec = detectCores(), outfile = "")
+  }
+  setDefaultCluster(cl = cl)
   clusterExport(cl = cl, c("age_struct_seir_ode2"))
   ## return log information
-  options(optimParallel.loginfo=TRUE)
+  options(optimParallel.loginfo = TRUE)
   ## stop if change of f(x) is smaller than 0.01
-  control <- list(factr=.001/.Machine$double.eps)
-  
+  control <- list(factr = .001 / .Machine$double.eps)
+
   # run optimization procedure --------------------------------------
-  res <- optimParallel( 
-    par = fit_params$init_value, 
+  res <- optimParallel(
+    par = fit_params$init_value,
     fn = likelihood_func_test,
     method = "L-BFGS-B",
     lower = fit_params$lower_bound,
@@ -387,43 +402,48 @@ for (j in 1:n_bp) {
     hessian = TRUE,
     control = control
   )
-  
-  setDefaultCluster(cl=NULL); stopCluster(cl)
+
+  setDefaultCluster(cl = NULL)
+  stopCluster(cl)
   # store MLE --------------------------------------------------------
-  mles[[j]] <- c(beta = res$par[1]/10000, alpha = res$par[2])
+  mles[[j]] <- c(beta = res$par[1] / 10000, alpha = res$par[2])
   print(mles[[j]])
   saveRDS(mles, "inst/extdata/results/model_fits/manuscript/mle_list.rds")
   # Run model --------------------------------------------------------
-  params$beta <- res$par[1]/10000
+  params$beta <- res$par[1] / 10000
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(unlist(init_cond[[j]]), times[[j]], age_struct_seir_ode2,  
-                  params, method = rk45) # , rtol = 1e-08, hmax = 0.02
-  
+  seir_out <- ode(unlist(init_cond[[j]]), times[[j]], age_struct_seir_ode2,
+    params,
+    method = rk45
+  ) # , rtol = 1e-08, hmax = 0.02
+
   # checks -----------------------------------------------------------
   # output error message if negative compartment values
-  if(any(tail(seir_out,1) < 0)){
+  if (any(tail(seir_out, 1) < 0)) {
     stop("Negative compartment values")
   }
-  
+
   # check population size
-  if(!all.equal(sum(unlist(tail(seir_out,1)[-c(1:2)])),sum(params$N))){
+  if (!all.equal(sum(unlist(tail(seir_out, 1)[-c(1:2)])), sum(params$N))) {
     stop("Number of individuals in compartments does not sum to population size")
   }
   # store outputs ----------------------------------------------------
-  out[[j]] <- as.data.frame(seir_out) 
+  out[[j]] <- as.data.frame(seir_out)
   e_comps <- out[[j]] %>% dplyr::select(starts_with("E"))
   cases[[j]] <- rowSums(params$sigma * e_comps * params$p_report)
-  #saveRDS(cases, "inst/extdata/results/model_fits/modelled_daily_cases.rds")
+  # saveRDS(cases, "inst/extdata/results/model_fits/modelled_daily_cases.rds")
   # plot for quick check of fit --------------------------------------
-  plot(case_data_sub$inc ~ times[[j]], pch = 16, col = "red", 
-       ylim = c(0, max(case_data_sub$inc,cases[[j]])))
-  lines(cases[[j]] ~ times[[j]]) 
-  
+  plot(case_data_sub$inc ~ times[[j]],
+    pch = 16, col = "red",
+    ylim = c(0, max(case_data_sub$inc, cases[[j]]))
+  )
+  lines(cases[[j]] ~ times[[j]])
+
   #------------------------------------------------------------------
   # get confidence bounds -------------------------------------------
   # draw 200 parameter values
   parameter_draws <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
-  beta_draws[[j]] <- data.frame(beta = (parameter_draws[,1]/10000)) %>%
+  beta_draws[[j]] <- data.frame(beta = (parameter_draws[, 1] / 10000)) %>%
     mutate(index = 1:200)
   saveRDS(beta_draws, "inst/extdata/results/model_fits/manuscript/beta_draws.rds")
   # run model for each beta draw (with different contact matrix) ----
@@ -432,19 +452,18 @@ for (j in 1:n_bp) {
   # for(i in 1:200){
   #   params$beta <- beta_draws[[j]][i,1]
   #   params$contact_mat <- contact_matrix[[i]]
-  #   seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode2,  
+  #   seir_out_ci <- ode(init_cond[[j]], times[[j]], age_struct_seir_ode2,
   #                      params, method = rk45, rtol = 1e-08, hmax = 0.02)
-  #   seir_out_ci1 <- as.data.frame(seir_out_ci) 
+  #   seir_out_ci1 <- as.data.frame(seir_out_ci)
   #   ci_cases[[j]][[i]] <-  rowSums(params$sigma * seir_out_ci1[c(paste0("E",1:9))] * params$p_report)
   # }
   # ci_out[[j]] <- do.call("rbind", ci_cases[[j]])
   # -----------------------------------------------------------------
-  
+
   # update initial conditions for next time window
-  init_cond[[j+1]] <- tail(out[[j]],1)[-1]
+  init_cond[[j + 1]] <- tail(out[[j]], 1)[-1]
   saveRDS(init_cond, "inst/extdata/results/model_fits/manuscript/initial_conditions_manuscript.rds")
-  # ------------------------------------------------------------------  
-  
+  # ------------------------------------------------------------------
 } # end of for loop over breakpoints
 
 

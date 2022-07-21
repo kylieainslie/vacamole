@@ -21,7 +21,7 @@ library(lubridate)
 library(foreach)
 library(doParallel)
 
-source("R/convert_vac_schedule.R")
+source("R/convert_vac_schedule2.R")
 source("R/na_to_zero.R")
 source("R/calc_waning.R")
 source("R/age_struct_seir_ode2.R")
@@ -147,18 +147,18 @@ vac_schedule_18plus[,new_columns] <- 0
 
 # rearrange columns to preserve correct order (also exclude Novovax doses)
 vac_schedule_5plus1 <- vac_schedule_5plus %>%
-  select(date, pf_d1_1:pf_d4_10, pf_d5_1:pf_d5_10,
-         mo_d1_1:mo_d4_10, mo_d5_1:mo_d5_10,
+  select(date, pf_d1_1:pf_d2_10, pf_d3_1:pf_d5_10,
+         mo_d1_1:mo_d2_10, mo_d3_1:mo_d5_10,
          az_d1_1:az_d2_10, ja_d1_1:ja_d2_10)
 
 vac_schedule_12plus1 <- vac_schedule_12plus %>%
-  select(date, pf_d1_1:pf_d4_10, pf_d5_1:pf_d5_10,
-         mo_d1_1:mo_d4_10, mo_d5_1:mo_d5_10,
+  select(date, pf_d1_1:pf_d2_10, pf_d3_1:pf_d5_10,
+         mo_d1_1:mo_d2_10, mo_d3_1:mo_d5_10,
          az_d1_1:az_d2_10, ja_d1_1:ja_d2_10)
 
 vac_schedule_18plus1 <- vac_schedule_18plus %>%
-  select(date, pf_d1_1:pf_d4_10, pf_d5_1:pf_d5_10,
-         mo_d1_1:mo_d4_10, mo_d5_1:mo_d5_10,
+  select(date, pf_d1_1:pf_d2_10, pf_d3_1:pf_d5_10,
+         mo_d1_1:mo_d2_10, mo_d3_1:mo_d5_10,
          az_d1_1:az_d2_10, ja_d1_1:ja_d2_10)
 
 # ------------------------------------------------------------------
@@ -179,27 +179,29 @@ vac_rates_18plus <- convert_vac_schedule2(
   wane = TRUE, k_inf = 0.006, k_sev = 0.012, t0 = 365)
 
 # data wrangle for model input -------------------------------------------------
-df_input_5plus <- pivot_wider(vac_rates_5plus %>% 
-                                 filter(param != "comp_ve") %>%
-                                 mutate(param = ifelse(param == "comp_delay", "delay", 
-                                                       param)), 
-                               names_from = c("param", "age_group"), 
-                               names_sep = "", values_from = "value")
+df_input_5plus <- pivot_wider(vac_rates_5plus %>%
+  filter(param != "comp_ve") %>%
+  mutate(param = ifelse(param == "comp_delay", "delay",
+    param
+  )),
+names_from = c("param", "age_group"),
+names_sep = "", values_from = "value")
 
-df_input_12plus <- pivot_wider(vac_rates_12plus %>% 
-                           filter(param != "comp_ve") %>%
-                           mutate(param = ifelse(param == "comp_delay", "delay", 
-                                                 param)), 
-                         names_from = c("param", "age_group"), 
-                         names_sep = "", values_from = "value")
+df_input_12plus <- pivot_wider(vac_rates_12plus %>%
+  filter(param != "comp_ve") %>%
+  mutate(param = ifelse(param == "comp_delay", "delay",
+    param
+  )),
+names_from = c("param", "age_group"),
+names_sep = "", values_from = "value")
 
-df_input_18plus <- pivot_wider(vac_rates_18plus %>% 
-                           filter(param != "comp_ve") %>%
-                           mutate(param = ifelse(param == "comp_delay", "delay", 
-                                                 param)), 
-                         names_from = c("param", "age_group"), 
-                         names_sep = "", values_from = "value")
-
+df_input_18plus <- pivot_wider(vac_rates_18plus %>%
+  filter(param != "comp_ve") %>%
+  mutate(param = ifelse(param == "comp_delay", "delay",
+    param
+  )),
+names_from = c("param", "age_group"),
+names_sep = "", values_from = "value")
 # ------------------------------------------------------------------------------
 # parameters lists--------------------------------------------------------------
 # ------------------------------------------------------------------------------
@@ -518,30 +520,43 @@ init_cond <- unlist(init_cond_list[[length(init_cond_list)]])
 # Run forward simulations ------------------------------------------------------
 # ------------------------------------------------------------------------------
 t_start <- init_cond[1]
-t_end <- 820  # 31 March 2022
-times <- as.integer(seq(t_start, t_end, by = 1))
+t_end1 <- t_start + 132
+t_end2 <- 820  # 31 March 2022
+times1 <- as.integer(seq(t_start, t_end1, by = 1))
+times2 <- as.integer(seq(t_end1, t_end2, by = 1))
 betas <- readRDS("inst/extdata/results/model_fits/manuscript/beta_draws.rds")
-# sample 100 betas from last time window
-betas100 <- sample(betas[[length(betas)]]$beta, 100)
+
+# sample betas from last time window
+n_sim <- 5
+betas_sample <- sample(betas[[length(betas)]]$beta, n_sim)
+betas_sample2<- rnorm(n_sim, mean = 0.00087, sd = 7.1145e-6)
 
 # register parallel backend
-registerDoParallel(cores=15)
-n_sim <- 5
+n_cores <- ifelse(n_sim < 15, n_sim, 15)
+registerDoParallel(cores = n_cores)
 
 # Vaccination in 5+ ------------------------------------------------------------
-scenario_12plus <- foreach(i = 1:n_sim) %dopar% {
-  params_12plus$beta <- betas100[i]
-  params_12plus$contact_mat <- june_2021[[i]]
-  
+scenario_5plus <- foreach(i = 1:n_sim) %dopar% {
   rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init_cond, times, age_struct_seir_ode2, params_12plus, method = rk45)
-  as.data.frame(seir_out)
+  
+  # run model from 22 June 2021 to 1 November 2021
+  params_5plus$beta <- betas_sample[i]
+  params_5plus$contact_mat <- june_2021[[i]]
+  seir_out1 <- ode(init_cond, times1, age_struct_seir_ode2, params_5plus, method = rk45)
+  
+  # run model from 1 November 2021 to 31 March 2022
+  init_cond2 <-  unlist(tail(as.data.frame(seir_out1), 1)[-1])
+  params_5plus$beta <- betas_sample2[i]
+  params_5plus$contact_mat <- april_2017[[i]]
+  seir_out2 <- ode(init_cond2, times2, age_struct_seir_ode2, params_5plus, method = rk45)
+  
+  bind_rows(as.data.frame(seir_out1),as.data.frame(seir_out2))
 }
 saveRDS(scenario_5plus, "/rivm/s/ainsliek/results/impact_vac/resubmission/results_5plus.rds")
 
 # Vaccination in 12+ -----------------------------------------------------------
 scenario_12plus <- foreach(i = 1:n_sim) %dopar% {
-  params_12plus$beta <- betas100[i]
+  params_12plus$beta <- betas_sample[i]
   params_12plus$contact_mat <- june_2021[[i]]
   
   rk45 <- rkMethod("rk45dp7")
@@ -552,7 +567,7 @@ saveRDS(scenario_12plus, "/rivm/s/ainsliek/results/impact_vac/resubmission/resul
 
 # Vaccination in 18+ -----------------------------------------------------------
 scenario_18plus <- foreach(i = 1:n_sim) %dopar% {
-  params_18plus$beta <- betas100[i]
+  params_18plus$beta <- betas_sample[i]
   params_18plus$contact_mat <- june_2021[[i]]
   
   rk45 <- rkMethod("rk45dp7")
@@ -586,11 +601,11 @@ sim <- length(scenario_5plus)
 out_5plus <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(scenario_5plus[[s]])
-  params_5plus$beta <- betas100[s]
+  params_5plus$beta <- betas_sample[s]
   params_5plus$contact_mat <- june_2021[[s]]
   seir_outcomes <- summarise_results(seir_output, params = params_5plus, t_vec = times) %>%
     mutate(sample = s)
-  out_12plus[[s]] <- seir_outcomes
+  out_5plus[[s]] <- seir_outcomes
 }
 df_5plus <- bind_rows(out_5plus) %>%
   mutate(scenario_id = "Vaccination in 5+") %>%
@@ -605,7 +620,7 @@ sim <- length(scenario_12plus)
 out_12plus <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(scenario_12plus[[s]])
-  params_12plus$beta <- betas100[s]
+  params_12plus$beta <- betas_sample[s]
   params_12plus$contact_mat <- june_2021[[s]]
   seir_outcomes <- summarise_results(seir_output, params = params_12plus, t_vec = times) %>%
     mutate(sample = s)
@@ -617,20 +632,20 @@ df_12plus <- bind_rows(out_12plus) %>%
 
 # Vaccination ni 18+ -----------------------------------------------------------
 # read in saved output from model runs
-scenario_18plus <- readRDS("/rivm/s/ainsliek/results/impact_vac/resubmission/results_18plus.rds")
+# scenario_18plus <- readRDS("/rivm/s/ainsliek/results/impact_vac/resubmission/results_18plus.rds")
 
 sim <- length(scenario_18plus)
 # loop over samples and summarise results
 out_18plus <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(scenario_18plus[[s]])
-  params_18plus$beta <- betas100[s]
+  params_18plus$beta <- betas_sample[s]
   params_18plus$contact_mat <- june_2021[[s]]
   seir_outcomes <- summarise_results(seir_output, params = params_18plus, t_vec = times) %>%
     mutate(sample = s)
   out_18plus[[s]] <- seir_outcomes
 }
-df_18plus <- bind_rows(outB) %>%
+df_18plus <- bind_rows(out_18plus) %>%
   mutate(scenario_id = "Vaccination in 18+") %>%
   filter(horizon != "53 wk")
 
