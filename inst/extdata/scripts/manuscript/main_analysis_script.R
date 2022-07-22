@@ -122,7 +122,7 @@ extra_dates <- seq.Date(from = as.Date(extra_start_date),
                         to = as.Date(extra_end_date), by = 1)
 
 vac_schedule_5plus <- data.frame(date = extra_dates) %>%
-  full_join(basis_12plus, ., by = "date") %>%
+  full_join(basis_5plus, ., by = "date") %>%
   fill(-.data$date)
 
 vac_schedule_12plus <- data.frame(date = extra_dates) %>%
@@ -706,4 +706,4 @@ df_18plus <- bind_rows(out_18plus) %>%
 df_all <- bind_rows(df_5plus, df_12plus, df_18plus) 
 
 # output for plotting
-saveRDS(df_all, "inst/extdata/results/impact_vac/resubmission/results_all.rds")
+saveRDS(df_all, "/rivm/s/ainsliek/results/impact_vac/resubmission/results_all.rds")
