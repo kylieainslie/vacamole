@@ -536,6 +536,7 @@ betas_sample2<- rnorm(n_sim, mean = 0.00087, sd = 7.1145e-6)
 n_cores <- ifelse(n_sim < 15, n_sim, 15)
 registerDoParallel(cores = n_cores)
 
+#-------------------------------------------------------------------------------
 # Vaccination in 5+ ------------------------------------------------------------
 scenario_5plus <- foreach(i = 1:n_sim) %dopar% {
   rk45 <- rkMethod("rk45dp7")
@@ -592,6 +593,7 @@ scenario_18plus <- foreach(i = 1:n_sim) %dopar% {
   bind_rows(as.data.frame(seir_out1),as.data.frame(seir_out2))
 }
 saveRDS(scenario_18plus, "/rivm/s/ainsliek/results/impact_vac/resubmission/results_18plus.rds")
+# ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
 # Post-process scenario runs ---------------------------------------------------
@@ -623,14 +625,14 @@ for(s in 1:sim){
     distinct
   
   seir_output1 <- postprocess_age_struct_model_output2(out1)
-  params_5plus$beta <- betas_sample[i]
-  params_5plus$contact_mat <- june_2021[[i]]
+  params_5plus$beta <- betas_sample[s]
+  params_5plus$contact_mat <- june_2021[[s]]
   seir_outcomes1 <- summarise_results(seir_output = seir_output1, params = params_5plus, t_vec = times1) %>%
     mutate(sample = s)
   
   seir_output2 <- postprocess_age_struct_model_output2(out2)
-  params_5plus$beta <- betas_sample2[i]
-  params_5plus$contact_mat <- april_2017[[i]]
+  params_5plus$beta <- betas_sample2[s]
+  params_5plus$contact_mat <- april_2017[[s]]
   seir_outcomes2 <- summarise_results(seir_output2, params = params_5plus, t_vec = times2) %>%
     mutate(sample = s)
   
@@ -654,14 +656,14 @@ for(s in 1:sim){
     distinct
   
   seir_output1 <- postprocess_age_struct_model_output2(out1)
-  params_12plus$beta <- betas_sample[i]
-  params_12plus$contact_mat <- june_2021[[i]]
+  params_12plus$beta <- betas_sample[s]
+  params_12plus$contact_mat <- june_2021[[s]]
   seir_outcomes1 <- summarise_results(seir_output = seir_output1, params = params_12plus, t_vec = times1) %>%
     mutate(sample = s)
   
   seir_output2 <- postprocess_age_struct_model_output2(out2)
-  params_12plus$beta <- betas_sample2[i]
-  params_12plus$contact_mat <- april_2017[[i]]
+  params_12plus$beta <- betas_sample2[s]
+  params_12plus$contact_mat <- april_2017[[s]]
   seir_outcomes2 <- summarise_results(seir_output2, params = params_12plus, t_vec = times2) %>%
     mutate(sample = s)
   
@@ -684,14 +686,14 @@ for(s in 1:sim){
     distinct
   
   seir_output1 <- postprocess_age_struct_model_output2(out1)
-  params_18plus$beta <- betas_sample[i]
-  params_18plus$contact_mat <- june_2021[[i]]
+  params_18plus$beta <- betas_sample[s]
+  params_18plus$contact_mat <- june_2021[[s]]
   seir_outcomes1 <- summarise_results(seir_output = seir_output1, params = params_18plus, t_vec = times1) %>%
     mutate(sample = s)
   
   seir_output2 <- postprocess_age_struct_model_output2(out2)
-  params_18plus$beta <- betas_sample2[i]
-  params_18plus$contact_mat <- april_2017[[i]]
+  params_18plus$beta <- betas_sample2[s]
+  params_18plus$contact_mat <- april_2017[[s]]
   seir_outcomes2 <- summarise_results(seir_output2, params = params_18plus, t_vec = times2) %>%
     mutate(sample = s)
   
