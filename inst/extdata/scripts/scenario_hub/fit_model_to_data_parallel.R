@@ -126,12 +126,12 @@ hic2r  <- (1 - p_hospital2death) / time_hospital2discharge # H_IC -> R
 
 # vaccination schedule ----------------------------------------------
 # read in vaccination schedule
-raw_vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_20220709.csv") #%>%
+raw_vac_schedule <- read_csv("inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220709.csv") #%>%
   # select(-X1)
 raw_vac_schedule <- raw_vac_schedule[,-1]
 # add extra rows
 extra_start_date <- tail(raw_vac_schedule$date,1) + 1
-extra_end_date <- as.Date("2022-07-09")
+extra_end_date <- as.Date("2022-07-24")
 extra_dates <- seq.Date(from = as.Date(extra_start_date), 
                            to = as.Date(extra_end_date), by = 1)
 vac_schedule_extra <- data.frame(date = extra_dates) %>%
@@ -140,10 +140,10 @@ vac_schedule_extra <- data.frame(date = extra_dates) %>%
 
 # read in xlsx file with VEs (there is 1 sheet for each variant)
 # we'll only use wildtype values for now
-wt_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "wildtype") 
-alpha_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "alpha")
-delta_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "delta")
-omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron")
+wt_ve <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat.xlsx", sheet = "wildtype") 
+alpha_ve <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat.xlsx", sheet = "alpha")
+delta_ve <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat.xlsx", sheet = "delta")
+omicron_ve <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat.xlsx", sheet = "omicron")
 
 # -------------------------------------------------------------------
 # Define likelihood function ----------------------------------------
@@ -209,7 +209,7 @@ beta_draws <- list()    # store 200 parameter draws
 # ci_cases <- list()
 
 # load case data ----------------------------------------------------
-data_date <- "2022-07-10"
+data_date <- "2022-07-24"
 case_data <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rds"))
 
 # -------------------------------------------------------------------
