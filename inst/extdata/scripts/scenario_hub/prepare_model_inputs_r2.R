@@ -7,18 +7,21 @@
 # write them as RDS files, which will be called in main_script.R
 # ------------------------------------------------------------------------------
 
-# osiris case data --------------------------------------------------
-# this must be run on the RIVM R servers
+library(fst)
+library(tidyverse)
+# get file path ----------------------------------------------------------------
 path <- "/rivm/r/COVID-19/Surveillance/Data/OSIRIS/Geschoond/"
-file <- list.files(path, pattern = ".rds")
+file <- list.files(path, pattern = ".fst")
 if (identical(file, character(0))) {
   path <- paste0(path,"Previous/")
-  file <- list.files(path, pattern = ".rds") %>%
+  file <- list.files(path, pattern = ".fst") %>%
     max()
 }
 
-osiris <- readRDS(paste0(path,file)) # read in file from path
+# read in data -----------------------------------------------------------------
+osiris <- read_fst(paste0(path,file))
 
+# data wrangle -----------------------------------------------------------------
 osiris_tally <- osiris %>%           # aggregate for number of cases per day
   # this removes any identifiable data
   select(OSIRISNR, INFECTIEZIEKTE, ZIE1eZiekteDt, Land) %>%
@@ -33,13 +36,13 @@ osiris_tally <- osiris %>%           # aggregate for number of cases per day
   filter(!is.na(date)) %>%
   complete(date = seq.Date(min(date), max(date), by="day"), fill = list(inc = 0))
 
-cutoff_date <- as.Date("2022-07-09")
+cutoff_date <- as.Date("2022-07-24")
 
 osiris1 <- osiris_tally %>%
   filter(date <= cutoff_date)
 
 # or read from directory
-osiris1 <- readRDS("inst/extdata/data/case_data_upto_2022-07-10.rds")
+osiris1 <- readRDS("inst/extdata/data/case_data_upto_2022-07-24.rds")
 
 # Vaccination schedule ---------------------------------------------------------
 # Use the following code on the file direct from Pieter
