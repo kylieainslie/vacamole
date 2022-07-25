@@ -5,6 +5,35 @@
 source("/inst/extdata/scripts/manuscript/data_wrangling_for_figures.R")
 #save_path <- "inst/extdata/results"
 
+# percent reduction ------------------------------------------------------------
+# total population
+peak_inc <- df_all %>%
+  group_by(scenario_id, target_variable, date, sample) %>%
+  summarise(sum = sum(value)) %>%
+  ungroup() %>%
+  group_by(scenario_id, target_variable, sample) %>%
+  summarise(max = max(sum)) %>%
+  ungroup() %>%
+  group_by(scenario_id, target_variable) %>%
+  summarise(max_mean = mean(max),
+            max_q025 = quantile(max, probs = 0.025),
+            max_q975 = quantile(max, probs = 0.975))
+
+peak_inc_12v18 <- peak_inc %>%
+  filter(scenario_id %in% c("Vaccination in 18+", "Vaccination in 12+")) %>%
+  group_by(target_variable) %>%
+  mutate(perc_change_mean = scales::percent((max_mean - max_mean[scenario_id == "Vaccination in 18+"])/max_mean[scenario_id == "Vaccination in 18+"]),
+         perc_change_q025 = scales::percent((max_q025 - max_q025[scenario_id == "Vaccination in 18+"])/max_q025[scenario_id == "Vaccination in 18+"]),
+         perc_change_q975 = scales::percent((max_q975 - max_q975[scenario_id == "Vaccination in 18+"])/max_q975[scenario_id == "Vaccination in 18+"]))
+
+peak_inc_5v18 <- peak_inc %>%
+  filter(scenario_id %in% c("Vaccination in 18+", "Vaccination in 5+")) %>%
+  group_by(target_variable) %>%
+  mutate(perc_change_mean = scales::percent((max_mean - max_mean[scenario_id == "Vaccination in 18+"])/max_mean[scenario_id == "Vaccination in 18+"]),
+         perc_change_q025 = scales::percent((max_q025 - max_q025[scenario_id == "Vaccination in 18+"])/max_q025[scenario_id == "Vaccination in 18+"]),
+         perc_change_q975 = scales::percent((max_q975 - max_q975[scenario_id == "Vaccination in 18+"])/max_q975[scenario_id == "Vaccination in 18+"]))
+
+
 # Table 1 ---------------------------------------------------
 table1 <- all_res_for_plot %>%
   filter(outcome != "Daily Deaths",
