@@ -141,15 +141,16 @@ new_columns <- c(paste0("pf_d3_", 1:10),
                  paste0("mo_d4_", 1:10),
                  paste0("mo_d5_", 1:10))
 
-vac_schedule_5plus[,new_columns] <- 0
+vac_schedule_5plus[,new_columns[c(1:9, 11:19, 21:29,
+                                  31:39, 41:49, 51:59)]] <- 0
 vac_schedule_12plus[,new_columns] <- 0
 vac_schedule_18plus[,new_columns] <- 0
 
 # rearrange columns to preserve correct order (also exclude Novovax doses)
 vac_schedule_5plus1 <- vac_schedule_5plus %>%
-  select(date, pf_d1_1:pf_d2_10, pf_d3_1:pf_d5_10,
-         mo_d1_1:mo_d2_10, mo_d3_1:mo_d5_10,
-         az_d1_1:az_d2_10, ja_d1_1:ja_d2_10)
+  select(date, pf_d1_1:pf_d2_9, pf_d3_1:pf_d5_9,
+         mo_d1_1:mo_d2_9, mo_d3_1:mo_d5_9,
+         az_d1_1:az_d2_9, ja_d1_1:ja_d2_9)
 
 vac_schedule_12plus1 <- vac_schedule_12plus %>%
   select(date, pf_d1_1:pf_d2_10, pf_d3_1:pf_d5_10,
@@ -611,7 +612,7 @@ p_report_vec <- c(rep(as.numeric(params_5plus$p_report),6))
 
 # Vaccination in 5+ ------------------------------------------------------------
 # read in saved output from model runs
-# scenario_12plus <- readRDS("/rivm/s/ainsliek/results/impact_vac/resubmission/results_5plus.rds")
+scenario_5plus <- readRDS("/rivm/s/ainsliek/results/impact_vac/resubmission/results_5plus.rds")
 sim <- length(scenario_5plus)
 # loop over samples and summarise results
 out_5plus <- list()
@@ -642,7 +643,7 @@ df_5plus <- bind_rows(out_5plus) %>%
 
 # Vaccination in 12+ -----------------------------------------------------------
 # read in saved output from model runs
-# scenario_12plus <- readRDS("/rivm/s/ainsliek/results/impact_vac/resubmission/results_12plus.rds")
+scenario_12plus <- readRDS("/rivm/s/ainsliek/results/impact_vac/resubmission/results_12plus.rds")
 sim <- length(scenario_12plus)
 # loop over samples and summarise results
 out_12plus <- list()
@@ -672,8 +673,7 @@ df_12plus <- bind_rows(out_12plus) %>%
 
 # Vaccination ni 18+ -----------------------------------------------------------
 # read in saved output from model runs
-# scenario_18plus <- readRDS("/rivm/s/ainsliek/results/impact_vac/resubmission/results_18plus.rds")
-
+scenario_18plus <- readRDS("/rivm/s/ainsliek/results/impact_vac/resubmission/results_18plus.rds")
 sim <- length(scenario_18plus)
 # loop over samples and summarise results
 out_18plus <- list()
