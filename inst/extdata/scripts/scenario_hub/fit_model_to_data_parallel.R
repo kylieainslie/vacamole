@@ -124,6 +124,15 @@ ic2d   <- (1 - p_IC2hospital) / time_IC2death              # IC -> D
 hic2d  <- p_hospital2death / time_hospital2death           # H_IC -> D
 hic2r  <- (1 - p_hospital2death) / time_hospital2discharge # H_IC -> R
 
+# determine waning rate
+Fk <- function(lambda, tau, p){
+  exp(-tau * lambda) * (6 + (6 * tau * lambda) + (3 * tau^2 * lambda^2) 
+                        + (tau^3 * lambda^3)) - (p * 6)
+}
+
+# 60% reduction after 8 months
+wane_8months <- uniroot(Fk, c(0,1), tau = 244, p = 0.6)$root
+
 # vaccination schedule ----------------------------------------------
 # read in vaccination schedule
 raw_vac_schedule <- read_csv("inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220709.csv") #%>%
@@ -273,7 +282,7 @@ for (j in 1:n_bp) {
                  d_hic = hic2d,
                  r_ic = hic2r,
                  epsilon = 0.00,
-                 omega = 0.02017514,
+                 omega = wane_8months,
                  # daily vaccination rate
                  alpha1 = df_input %>% 
                    filter(dose == "d1", outcome == "infection") %>% 

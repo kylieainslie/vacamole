@@ -10,7 +10,7 @@ library(lubridate)
 library(readxl)
 library(ggplot2)
 
-source("R/convert_vac_schedule_debug.R")
+source("R/convert_vac_schedule2.R")
 source("R/na_to_zero.R")
 source("R/calc_waning.R")
 # Define model -----------------------------------------------------
@@ -257,75 +257,79 @@ age_struct_seir_ode_test <- function(times, init, params) {
   })
 }
 # -------------------------------------------------------------------
-times <- seq(369, 400, by = 1)
+times <- seq(697, 719, by = 1)
 
 # Specify initial conditions ----------------------------------------
 empty_state <- c(rep(0,9))
 n_vec <- 17407585 * c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463, 0.14514332, 0.12092904, 0.08807406, 0.04622194) # Dutch population size
-s_vec <- c(1758200.1, 1795008.2, 1822164.1, 1939971.7, 2081005.6, 2305117.0, 1909464.3, 1401363.8, 696014.1)
-shold1_vec <- empty_state
-sv1_vec <- empty_state
-shold2_vec <- empty_state
-sv2_vec <- empty_state
-shold3_vec <- empty_state
-sv3_vec <- empty_state
+s_vec <- c(1757166, 878617.4, 776667.4, 747091.8, 724414.8, 762523.6, 664041.6, 247366.5, 169643)
+shold1_vec <- c(0, 20962.29,  14818.1,  13510.63,  7585.556,  4515.087,  1304.304,  1535.003)
+sv1_vec <- c(0, 639545.1, 719967.7, 710214.3, 727050.4, 801066, 539380.6, 307956.5, 195745.2, 715.6142)
+shold2_vec <- c(0, 5562.067, 4672.31, 4615.642, 3337.849, 2365.948, 676.7691, 1100.721, 389.9541)
+sv2_vec <- c(0, 287791.2, 405376.3, 544364.5, 705437.3, 829093.4, 784944.8, 905975.1, 336207.8)
+shold3_vec <- c(0, 28.01181, 1322.589, 2059.032, 3306.735, 4440.677, 2726.498, 1598.139, 12506.28)
+sv3_vec <- c(33.65339, 1588.34, 2464.115, 3959.912, 5325.896, 3333.597, 2071.44, 16812.62)
 shold4_vec <- empty_state
 sv4_vec <- empty_state
 shold5_vec <- empty_state
 sv5_vec <- empty_state
-e_vec <- c(629.0361, 3594.4890, 5915.3246, 2910.9371, 3130.5281, 3523.5570, 3116.9297, 2113.7468, 1700.1333)
-ev1_vec <- empty_state
-ev2_vec <- empty_state
-ev3_vec <- empty_state
+e_vec <- c(2386.128, 7805.516, 10981.63, 3771.885, 3769.941, 4241.147, 3921.587, 1520.052, 2004.645)
+ev1_vec <- c(0, 2533.785, 4544.659, 1627.346, 1727.1, 2026.257, 1795.951, 924.0714, 1187.933)
+ev2_vec <- c(0, 358.4641, 884.8641, 523.5487, 710.9326, 934.8989, 1063.881, 1735.172, 1376.026)
+ev3_vec <- c(0, 0.01708742, 1.286057, 0.7167056, 1.198273, 1.732874, 1.166555, 0.7673278, 12.10313)
 ev4_vec <- empty_state
 ev5_vec <- empty_state
-i_vec <- c(671.8259, 3846.0577, 6342.2980, 3119.7126, 3366.3184, 3809.1308, 3388.1608, 2331.4422, 1867.0974)
-iv1_vec <- empty_state
-iv2_vec <- empty_state
-iv3_vec <- empty_state
+i_vec <- c(2393.964, 7920.415, 11180.77, 3813.357, 3814.714, 4305.289, 3987.789, 1564.516, 2060.12)
+iv1_vec <- c(0, 2546.347, 4583.856, 1634.677, 1739.419, 2048.863, 1820.342, 947.9065, 1213.283)
+iv2_vec <- c(0, 357.1614, 886.2606, 524.1614, 714.3546, 943.9066, 1076.205, 1775.135, 1417.425)
+iv3_vec <- c(0, 0.01060861, 0.7982189, 0.4436163, 0.742976, 1.078147, 0.7371704, 0.5077865, 8.15221)
 iv4_vec <- empty_state
 iv5_vec <- empty_state
-h_vec <- c(9.747787, 2.181694, 9.196823, 15.838136, 28.679582, 65.825066, 84.881661, 138.027275, 169.278401)
-hv1_vec <- empty_state
-hv2_vec <- empty_state
-hv3_vec <- empty_state
+h_vec <- c(27.18996, 3.716007, 13.60442, 16.03164, 27.18963, 62.6223, 84.38554, 77.09082, 147.9043)
+hv1_vec <- c(0, 1.034427, 5.01926, 6.210725, 11.40022, 27.75593, 36.61349, 43.12757, 81.65341)
+hv2_vec <- c(0, 0.1555604, 0.9425662, 1.977678, 4.445326, 12.09392, 22.06691, 85.16457, 99.29292)
+hv3_vec <- c(0, 9.360707e-07, 0.0001901773, 0.0003795419, 0.001168993, 0.00365982, 0.004046525, 
+             0.007012951, 0.1429213)
 hv4_vec <- empty_state
 hv5_vec <- empty_state
-ic_vec <- c(0, 0.9713496,  6.5248700,  12.6613143,  34.6104265,  99.2475311, 175.8306823, 209.6044387, 44.6070593)
-icv1_vec <- empty_state
-icv2_vec <- empty_state
-icv3_vec <- empty_state
+ic_vec <- c(0, 1.244071, 7.19287, 9.327737, 23.51088, 66.66829, 116.7801, 79.60983, 26.97763)
+icv1_vec <- c(0, 0.326927, 2.515957, 3.477652, 9.576357, 28.83535, 49.522, 43.35214, 14.3759)
+icv2_vec <- c(0, 0.04753805, 0.4588652, 1.093194, 3.690472, 12.43055, 29.61921, 85.37708, 17.49398)
+icv3_vec <- c(0, 3.507978e-08, 1.100045e-05, 2.451984e-05, 0.0001134246, 0.0004429778, 0.0006808471, 
+              0.001195892, 0.004727641)
 icv4_vec <- empty_state
 icv5_vec <- empty_state
-hic_vec <- c(0, 0.5002954, 3.3952939, 6.5203019, 17.8682707, 49.1401382, 12.5871195, 71.4254831, 14.6514841)
-hicv1_vec <- empty_state
-hicv2_vec <- empty_state
-hicv3_vec <- empty_state
+hic_vec <- c(0, 0.5427055, 3.130428, 3.977067, 9.995462, 27.00499, 6.750479, 21.76603, 7.087477)
+hicv1_vec <- c(0, 0.1371999,  1.060901,  1.448596,  4.000353,  11.50886,  2.826694, 11.66692, 3.700065)
+hicv2_vec <- c(0, 0.01940543, 0.1896714, 0.4507069,  1.528743, 4.926877,   1.68333, 22.94502, 4.496207)
+hicv3_vec <- c(0, 2.215896e-09, 6.81384e-07, 1.44918e-06, 6.776026e-06, 2.589946e-05, 7.141737e-06,
+               7.790817e-05, 0.0003174733)
 hicv4_vec <- empty_state
 hicv5_vec <- empty_state
-d_vec <- c(0.2322485, 0.6282215, 4.8540845, 11.4236062, 28.2727435, 108.5131182, 755.6668547, 870.7532525, 824.5838766)
-r_vec <- c(19070.29, 113274.53, 193344.72, 90546.75, 96975.90, 108942.40, 95565.06, 64079.59, 52759.36)
-rv1_vec <- empty_state
-rv2_vec <- empty_state
-rv3_vec <- empty_state
+d_vec <- c(1.020095, 2.568894, 16.95339, 36.2586, 84.95562, 317.2533, 2170.362, 2172.682, 1893.923)
+r_vec <- c(12965.45, 45395.17, 64970.73, 21163.58, 20838.08, 23145.87, 20872.23, 7944.972, 10673.15)
+rv1_vec <- c(0, 13853.25, 25327.69, 8763.372, 9265.962, 10788.17, 9370.418, 4709.47, 6088.05)
+rv2_vec <- c(0, 1877.575, 4747.051, 2769.703, 3756.09, 4910.486, 5481.361, 8757.952, 7164.384)
+rv3_vec <- c(0, 0.00911274, 0.6822761, 0.3734436, 0.6233937, 0.9009441, 0.6505618, 0.5101846, 8.822465)
 rv4_vec <- empty_state
 rv5_vec <- empty_state
-r_vec1 <- c(10587.70, 63859.80, 111614.59,  51041.91,  54561.39,  61339.48,  53778.07, 35909.68, 29848.27)
-rv1_vec1 <- empty_state
-rv2_vec1 <- empty_state
-rv3_vec1 <- empty_state
+r_vec1 <- c(9858.296, 36074.89, 51848.93, 16378.41, 15986.89, 17615.19, 15649.99, 5898.077, 7984.347)
+rv1_vec1 <- c(0,10549.48, 19453.3, 6602.408, 6972.201, 8082.101, 6939.408,  3440.285,  4450.496)
+rv2_vec1 <- c(0, 1387.75, 3556.726, 2060.699, 2794.943, 3641.184, 4023.562,  6361.184 , 5216.777)
+rv3_vec1 <- c(0, 0.0009841821, 0.0729049, 0.03891708, 0.06523884, 0.09528294, 0.07852455, 0.07795941,  1.460834)
 rv4_vec1 <- empty_state
 rv5_vec1 <- empty_state
-r_vec2 <- c(5073.434, 30457.485, 54493.620, 24804.111, 26513.001, 29958.204, 26456.079, 17704.939, 14638.817)
-rv1_vec2 <- empty_state
-rv2_vec2 <- empty_state
-rv3_vec2 <- empty_state
+r_vec2 <- c(6894.898, 26380.91, 37413.62, 11562.24, 11216.42, 12262.62, 10721.59, 3993.396, 5414.175)
+rv1_vec2 <- c(0, 7381.78, 13584.93, 4553.088, 4810.678, 5550.896, 4705.327, 2297.737, 2961.422)
+rv2_vec2 <- c(0, 935.1921, 2420.256, 1398.805,  1903.739, 2474.218,  2705.909, 4226.689, 3452.321)
+rv3_vec2 <- c(0, 9.195519e-05, 0.00666582, 0.003381631, 0.005725258, 0.008557778, 0.008865433, 0.01145796, 0.2290288)
 rv4_vec2 <- empty_state
 rv5_vec2 <- empty_state
-r_vec3 <- c(2206.518, 12865.510, 23865.844, 11058.733, 11852.807, 13582.198, 12285.014, 8363.689, 6731.436)
-rv1_vec3 <- empty_state
-rv2_vec3 <- empty_state
-rv3_vec3 <- empty_state
+r_vec3 <- c(4755.703, 19319.74, 26158.76, 7973.445, 7707.248, 8350.497, 7141.973, 2613.521, 3517.111)
+rv1_vec3 <- c(0, 5078.007,  9178.228,  3063.103, 3252.445,  3731.313,  3105.754,   1484.29,  1890.89)
+rv2_vec3 <- c(0, 605.4878,  1575.553,  914.6719,   1258.31,  1636.313,  1767.933,  2714.133, 2191.516)
+rv3_vec3 <- c(0, 8.160795e-06, 0.0005707839, 0.0002642459, 0.0004561424, 0.0007115875, 0.001003167, 
+              0.001605036, 0.03335941)
 rv4_vec3 <- empty_state
 rv5_vec3 <- empty_state
 # r_vec3 <- n_vec - s_vec - e_vec - i_vec - h_vec - hic_vec - ic_vec - d_vec - r_vec - r_vec1 - r_vec2
@@ -347,15 +351,9 @@ init_cond <- c(t = times[1],
 
 # Specify model parameters ------------------------------------------
 # define contact/transmission matrix
-cm <- matrix(c(0.00008, 0.00004, 0.00004, 0.00003, 0.00003, 0.00001, 0.00001, 0.00001, 0.00001,
-               0.00003, 0.00045, 0.00016, 0.00006, 0.00007, 0.00005, 0.00003, 0.00002, 0.00001,
-               0.00003, 0.00015, 0.00049, 0.00014, 0.00011, 0.00010, 0.00007, 0.00004, 0.00006,
-               0.00003, 0.00006, 0.00014, 0.00015, 0.00009, 0.00007, 0.00005, 0.00003, 0.00004,
-               0.00002, 0.00006, 0.00011, 0.00009, 0.00014, 0.00008, 0.00006, 0.00004, 0.00004,
-               0.00001, 0.00004, 0.00009, 0.00006, 0.00007, 0.00010, 0.00007, 0.00005, 0.00007,
-               0.00001, 0.00003, 0.00007, 0.00006, 0.00006, 0.00009, 0.00019, 0.00011, 0.00012,
-               0.00001, 0.00002, 0.00006, 0.00005, 0.00006, 0.00008, 0.00016, 0.00029, 0.00023,
-               0.00001, 0.00004, 0.00017, 0.00010, 0.00013, 0.00023, 0.00032, 0.00043, 0.00120), nrow = 9)
+path <- "inst/extdata/inputs/contact_matrices/converted/"
+# path <- "/rivm/s/ainsliek/data/contact_matrices/converted/" 
+november_2021  <- readRDS(paste0(path,"transmission_matrix_november_2021.rds"))
 
 # probabilities -----------------------------------------------------
 p_infection2admission <- c(0.00347, 0.000377, 0.000949, 0.00388, 0.00842, 0.0165, 0.0251, 0.0494, 0.0463)
@@ -401,10 +399,10 @@ raw_vac_schedule <- read_csv("inst/extdata/inputs/vac_schedule_real_w_4th_and_5t
 
 # read in xlsx file with VEs (there is 1 sheet for each variant)
 # we'll only use wildtype values for now
-wt_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "wildtype") 
+# wt_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "wildtype") 
 # alpha_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "alpha")
 # delta_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "delta")
-# omicron_ve <- read_excel("inst/extdata/inputs/ve_dat.xlsx", sheet = "omicron")
+omicron_ve <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat.xlsx", sheet = "omicron")
 
 # convert vaccination schedule for input into model
 vac_rates_wt <- convert_vac_schedule_debug(
@@ -413,7 +411,15 @@ vac_rates_wt <- convert_vac_schedule_debug(
   wane = TRUE)
                        
 # data wrangle for model input
-df_input <- pivot_wider(vac_rates_wt %>% 
+vac_rates <- convert_vac_schedule2(
+  vac_schedule = vac_schedule_extra,
+  ve_pars = ve_params,
+  wane = TRUE,
+  k_inf = 0.012,
+  k_sev = 0.006)
+
+# data wrangle for model input
+df_input <- pivot_wider(vac_rates %>% 
                           filter(param != "comp_ve") %>%
                           mutate(param = ifelse(param == "comp_delay", "delay", param)), 
                         names_from = c("param", "age_group"), 
@@ -421,20 +427,20 @@ df_input <- pivot_wider(vac_rates_wt %>%
 
 # parameters must be in a named list
 params <- list(N = n_vec,
-               beta = 0.0002531514,
+               beta = 0.0004,
                beta1 = 0.14,
                sigma = 0.5,
                gamma = i2r,
                h = i2h,
                i1 = h2ic,
-               d = h2d,
+               d = empty_state, #h2d,
                r = h2r,
                i2 = ic2hic,
-               d_ic = ic2d,
+               d_ic = empty_state, #ic2d,
                d_hic = hic2d,
                r_ic = hic2r,
                epsilon = 0.00,
-               omega = 0.0038,
+               omega = wane_8months,
                # daily vaccination rate
                alpha1 = df_input %>% 
                  filter(dose == "d1", outcome == "infection") %>% 
@@ -516,10 +522,10 @@ params <- list(N = n_vec,
                  filter(dose == "d5", outcome == "transmission") %>%
                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
                p_report = p_reported_by_age,
-               contact_mat = cm,
-               calendar_start_date = as.Date("2020-01-01")
+               contact_mat = november_2021,#$mean,  # change contact matrix
+               calendar_start_date = as.Date("2020-01-01")#,
+               #no_vac = nv
 )
-
 # Run model -----------------------------------------------------------
 rk45 <- rkMethod("rk45dp7")
 seir_out <- ode(init_cond, times, age_struct_seir_ode_test, params, method = rk45) #, rtol = 1e-08, hmax = 0.02
