@@ -723,7 +723,9 @@ df_round2_sh <- df_round2 %>%
   ungroup() %>%
   mutate(value = round(value),
          origin_date = as.Date("2022-07-24"),
-         target_end_date = as.Date("2023-07-24"),
+         horizon_ = as.numeric(substr(horizon, start = 1, stop = 2)),
+         target_end_date = origin_date + weeks(horizon_),
+         horizon_ = NULL,
          location = "NL") %>%
   select(-epiweek) %>%
   arrange(scenario_id, sample, horizon)
