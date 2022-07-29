@@ -26,6 +26,7 @@ library(readr)
 library(lubridate)
 library(foreach)
 library(doParallel)
+library(here)
 
 source("R/convert_vac_schedule2.R")
 source("R/na_to_zero.R")
@@ -651,8 +652,7 @@ for(s in 1:sim){
   outA[[s]] <- seir_outcomes
 }
 dfA <- bind_rows(outA) %>%
-  mutate(scenario_id = "A-2022-07-24") %>%
-  filter(horizon != "53 wk")
+  mutate(scenario_id = "A-2022-07-24") 
 
 # wrangle Scenario B output ----------------------------------------------------
 # read in saved output from model runs
@@ -670,8 +670,7 @@ for(s in 1:sim){
   outB[[s]] <- seir_outcomes
 }
 dfB <- bind_rows(outB) %>%
-  mutate(scenario_id = "B-2022-07-24") %>%
-  filter(horizon != "53 wk")
+  mutate(scenario_id = "B-2022-07-24") 
 
 # wrangle Scenario C output ----------------------------------------------------
 # read in saved output from model runs
@@ -689,8 +688,7 @@ for(s in 1:sim){
   outC[[s]] <- seir_outcomes
 }
 dfC <- bind_rows(outC) %>%
-  mutate(scenario_id = "C-2022-07-24") %>%
-  filter(horizon != "53 wk")
+  mutate(scenario_id = "C-2022-07-24") 
 
 # wrangle Scenario D output ----------------------------------------------------
 # read in saved output from model runs
@@ -708,8 +706,7 @@ for(s in 1:sim){
   outD[[s]] <- seir_outcomes
 }
 dfD <- bind_rows(outD) %>%
-  mutate(scenario_id = "D-2022-07-24") %>%
-  filter(horizon != "53 wk")
+  mutate(scenario_id = "D-2022-07-24") 
 
 # ------------------------------------------------------------------------------
 # join all scenarios in a single data frame
@@ -726,9 +723,10 @@ df_round2_sh <- df_round2 %>%
   ungroup() %>%
   mutate(value = round(value),
          origin_date = as.Date("2022-07-24"),
-         target_end_date = as.Date("2023-07-06"),
+         target_end_date = as.Date("2023-07-24"),
          location = "NL") %>%
-  select(-epiweek)
+  select(-epiweek) %>%
+  arrange(scenario_id, sample, horizon)
 
 # output for submission to scenario hub
 #write_csv(df_round2_sh, "C:/Users/ainsliek/Documents/covid19-scenario-hub-europe/data-processed/RIVM-vacamole/2022-07-24-RIVM-vacamole.csv")
