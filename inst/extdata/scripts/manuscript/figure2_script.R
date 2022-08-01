@@ -1,18 +1,29 @@
-# -------------------------------------
+# ------------------------------------------------------------------------------
 # Figure 2 script
-# plot of outcomes by age group
-# -------------------------------------
-library(ggsci)
-library(gridExtra)
-
+# Heatmap of % reduction in disease outcomes by vaccination scenario
+# ------------------------------------------------------------------------------
+# library(ggsci)
+# library(gridExtra)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(hrbrthemes)
+library(viridis)
+library(cowplot)
 # -------------------------------------------------------------
-save_path <- "/rivm/s/ainsliek/results/impact_vac/resubmission/"
 
 # read in results df -----------------------------------------------------------
 df_all <- readRDS("/rivm/s/ainsliek/results/impact_vac/resubmission/results_all.rds")
 
-# make plots -------------------------------------------------------------------
-all_res_for_plot <- df_all %>%
+# population size for determining outcomes per 100,000 people ------------------
+age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 
+              0.13083463,0.14514332, 0.12092904, 0.08807406, 
+              0.04622194)
+n <- 17407585 # Dutch population size
+n_vec <- n * age_dist
+
+# data wrangling for plots -----------------------------------------------------
+for_plot2 <- df_all %>%
   ungroup() %>%
   mutate(
     outcome = factor(case_when(
@@ -28,6 +39,17 @@ all_res_for_plot <- df_all %>%
       age_group %in% c(3:9) ~ ">19 years"
     ),
     age_group2 = factor(age_group2, levels = c("0-9 years", "10-19 years", ">19 years")),
+    pop_size = case_when(
+      age_group == 1 ~ n_vec[1],
+      age_group == 2 ~ n_vec[2],
+      age_group == 3 ~ n_vec[3],
+      age_group == 4 ~ n_vec[4],
+      age_group == 5 ~ n_vec[5],
+      age_group == 6 ~ n_vec[6],
+      age_group == 7 ~ n_vec[7],
+      age_group == 8 ~ n_vec[8],
+      age_group == 9 ~ n_vec[9]
+    ),
     age_group = case_when(
       age_group == 1 ~ "0-9",
       age_group == 2 ~ "10-19",
@@ -42,103 +64,89 @@ all_res_for_plot <- df_all %>%
     scenario_id = factor(scenario_id, levels = c("Vaccination in 5+", 
                                                  "Vaccination in 12+",
                                                  "Vaccination in 18+"))
-  )
-
-# Figure 2: summarise by age_group levels --------------------------------------
-dat_fig2 <- all_res_for_plot %>%
-  group_by(scenario_id, outcome, date, sample, age_group) %>%
-  summarise(sum = sum(value)) %>%
-  ungroup() %>%
-  group_by(scenario_id, outcome, date, age_group) %>%
-  summarise(mean  = mean(sum),
-            q025 = quantile(sum, probs = 0.025),
-            q25  = quantile(sum, probs = 0.25),
-            q75  = quantile(sum, probs = 0.75),
-            q975 = quantile(sum, probs = 0.975)
   ) %>%
-  select(date, scenario_id, age_group, outcome, mean:q975) %>%
-  # calculate cases per 100,000 people
-  mutate(pop_size = case_when(
-    age_group == "0-9" ~ n_vec[1],
-    age_group == "10-19" ~ n_vec[2],
-    age_group == "20-29" ~ n_vec[3],
-    age_group == "30-39" ~ n_vec[4],
-    age_group == "40-49" ~ n_vec[5],
-    age_group == "50-59" ~ n_vec[6],
-    age_group == "60-69" ~ n_vec[7],
-    age_group == "70-79" ~ n_vec[8],
-    age_group == "80+"   ~ n_vec[9],
-  ))
+  group_by(date, scenario_id, target_variable, age_group, sample) %>%
+  mutate(value_per100k = (value/pop_size)*100000)
 
-aaas_cols <- pal_aaas("default")(3)
-my_colors <- c(aaas_cols[3], aaas_cols[2], gray.colors(7, start = 0.2, end = 0.8))
 
-fig2 <- ggplot(data = dat_fig2 %>%
-                 filter(#scenario_id == "Vaccination in 5+",
-                   #age_group2 == "10-19 years",
-                   date >= as.Date("2021-11-01"),
-                   #date <= as.Date("2021-12-31"),
-                   outcome == "Daily Cases"), 
-                 aes(x = date, y = mean, fill = age_group)) +
-  geom_ribbon(aes(ymin = q025, ymax = q975, fill = age_group), alpha = 0.3) +
-  geom_line(aes(color = age_group)) +
-  scale_fill_manual(values = my_colors) +
-  scale_color_manual(values = my_colors) +
-  labs(y = "Daily Cases", x = "Date") +
-  ylim(0,NA) +
-  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
-  guides(fill = guide_legend("Age Group"), color = guide_legend("Age Group")) +
-  theme(legend.position = "bottom",
-        panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
-        axis.text.y = element_text(size = 14),
-        strip.text.x = element_text(size = 14),
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) +
-  facet_grid(scenario_id~., scales = "free_y")
-fig2
+# calculate absolute and percent difference in disease outcomes (per 100k) -----
+table1 <- for_plot2 %>%
+  # sum disease outcomes over days
+  group_by(scenario_id, outcome, age_group, sample) %>%
+  summarise(value_cum = sum(value_per100k)) %>%
+  ungroup() %>%
+  # determine percent difference for each sample
+  group_by(outcome, age_group, sample) %>%
+  mutate(
+    abs_diff  = value_cum - value_cum[scenario_id == 'Vaccination in 18+'],
+    abs_diff = ifelse(is.nan(abs_diff), NA, abs_diff),
+    perc_diff = (value_cum - value_cum[scenario_id == 'Vaccination in 18+'])/value_cum[scenario_id == 'Vaccination in 18+'],
+    perc_diff = ifelse(is.nan(perc_diff), NA, perc_diff)
+    ) %>%
+  # calculate summary statistics
+  group_by(scenario_id, outcome, age_group) %>%
+  summarise(
+    abs_diff_mean  = mean(abs_diff, na.rm = TRUE),
+    abs_diff_q025 = quantile(abs_diff, probs = 0.025, na.rm = TRUE),
+    abs_diff_q975 = quantile(abs_diff, probs = 0.975, na.rm = TRUE),
+    perc_diff_mean = mean(perc_diff, na.rm = TRUE),
+    perc_diff_q025 = quantile(perc_diff, probs = 0.025, na.rm = TRUE),
+    perc_diff_q975 = quantile(perc_diff, probs = 0.975, na.rm = TRUE)#,
+    #perc_diff_plot = ifelse(is.nan(abs(perc_diff_mean)*10), NA, abs(perc_diff_mean)*10) #tranforming it so it can be on log
+    # scale when plotting the colors
+  ) %>%
+  ungroup()
+table1
 
-ggsave(filename = paste0(save_path, "figure2_new_color_palette.jpg"), plot = fig3,
-       units = "in", height = 8, width = 12, dpi = 300)
+# make a tile plot (heatmap) of percent difference by outcome and age group ----
+only_12plus <- table1 %>%
+  filter(
+    outcome != "Daily Cases",
+    scenario_id == "Vaccination in 12+"
+  )
+fig2a <- ggplot(data = only_12plus, 
+               aes(x = age_group, y = outcome, fill= perc_diff_mean)) + 
+  geom_tile() + 
+  scale_fill_viridis_c(
+    limits = c(-0.35, 0),
+    breaks = c(-0.35, -0.3, -0.25, -0.2, -0.15, -0.1, -0.05, 0),
+    labels = c(-0.35, -0.3, -0.25, -0.2, -0.15, -0.1, -0.05, 0),
+    #trans = "log",
+    direction = 1) +
+  theme_light() +
+  guides(fill = guide_legend("Percent Difference")) +
+  labs(y = "Outcome", x = "Age Group")
+fig2a
 
-# -------------------------------------------------------------
-# b) hosp and IC admissions is supplemental figure
-dat_figS4 <- all_res_for_plot %>%
-  filter(outcome %in% c("Hospital Admissions", "IC Admissions"),
-         Immunity == "No Waning",
-         date >= as.Date("2021-11-01")) %>%
-  group_by(Immunity, Scenario, date, age_group, outcome) %>%
-  summarise_at(.vars = c("mle", "lower", "upper"), .funs = "sum")
+fig2b <- ggplot(data = table1 %>%
+                  filter(
+                    outcome != "Daily Cases",
+                    scenario_id == "Vaccination in 5+"
+                  ), 
+                aes(x = age_group, y = outcome, fill= perc_diff_mean)) + 
+  geom_tile() + 
+  scale_fill_viridis_c(
+    limits = c(-0.35, 0),
+    breaks = c(-0.35, -0.3, -0.25, -0.2, -0.15, -0.1, -0.05, 0),
+    labels = c(-0.35, -0.3, -0.25, -0.2, -0.15, -0.1, -0.05, 0),
+    #trans = "log",
+    direction = 1) +
+  theme_light() +
+  guides(fill = guide_legend("Percent Difference")) +
+  labs(y = "Outcome", x = "Age Group")
+fig2b
 
-figS4 <- ggplot(data = dat_figS4, 
-                 aes(x = date, y = mle, fill = age_group)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = age_group), alpha = 0.3) +
-  geom_line(aes(color = age_group)) +
-  scale_fill_manual(values = my_colors) +
-  scale_color_manual(values = my_colors) +
-  labs(y = "Value", x = "Date") +
-  ylim(0,NA) +
-  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b %Y") +
-  guides(fill = guide_legend("Age Group"), color = guide_legend("Age Group")) +
-  theme(legend.position = "bottom",
-        panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
-        axis.text.y = element_text(size = 14),
-        strip.text.x = element_text(size = 14),
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 14),
-        axis.title=element_text(size=14,face="bold")) +
-  facet_grid(outcome~Scenario, scales = "free_y")
-figS4
+fig2 <- plot_grid(fig2a + theme(legend.position = "none"),
+                     fig2b + theme(legend.position = "none"), 
+                     labels = "AUTO")
 
-# add text annotation
-# figS4 + 
-#   annotate(
-#     geom = "curve", x = as.Date("2022-03-07"), y = 500, xend = as.Date("2022-02-01"), yend = 400, 
-#     curvature = .3, arrow = arrow(length = unit(2, "mm"))
-#   ) +
-#   annotate(geom = "text", x = as.Date("2022-03-08"), y = 500, label = "", hjust = "left")
+legend <- get_legend(
+  fig2a + theme(legend.box.margin = margin(t= 0, r= 20, b = 0, l = 0))
+)
 
-# ggsave(filename = paste0(save_path, "figureS4.jpg"), plot = figS4,
-#        units = "in", height = 8, width = 12, dpi = 300)
+figure2 <- plot_grid(fig2, legend, rel_widths = c(5,1), nrow = 1)
+figure2
+
+
+ggsave(filename = "/rivm/s/ainsliek/results/impact_vac/resubmission/figure2.png",
+       plot = figure2, units = "in", height = 6, width = 12, dpi = 300)
