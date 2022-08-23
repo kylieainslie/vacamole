@@ -140,7 +140,7 @@ raw_vac_schedule <- read_csv("inst/extdata/inputs/vaccination_schedules/vac_sche
 raw_vac_schedule <- raw_vac_schedule[,-1]
 # add extra rows
 extra_start_date <- tail(raw_vac_schedule$date,1) + 1
-extra_end_date <- as.Date("2022-07-24")
+extra_end_date <- as.Date("2022-08-19")
 extra_dates <- seq.Date(from = as.Date(extra_start_date), 
                            to = as.Date(extra_end_date), by = 1)
 vac_schedule_extra <- data.frame(date = extra_dates) %>%
@@ -218,7 +218,7 @@ beta_draws <- list()    # store 200 parameter draws
 # ci_cases <- list()
 
 # load case data ----------------------------------------------------
-data_date <- "2022-07-24"
+data_date <- "2022-08-19"
 case_data <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rds"))
 
 # -------------------------------------------------------------------
@@ -409,7 +409,7 @@ for (j in 1:n_bp) {
   # store MLE --------------------------------------------------------
   mles[[j]] <- c(beta = res$par[1]/10000, alpha = res$par[2])
   print(mles[[j]])
-  saveRDS(mles, "inst/extdata/results/model_fits/mle_list.rds")
+  saveRDS(mles, paste0("inst/extdata/results/model_fits/mle_list_",data_date,".rds"))
   # Run model --------------------------------------------------------
   params$beta <- res$par[1]/10000
   rk45 <- rkMethod("rk45dp7")
@@ -442,7 +442,7 @@ for (j in 1:n_bp) {
   parameter_draws <- mvtnorm::rmvnorm(200, res$par, solve(res$hessian))
   beta_draws[[j]] <- data.frame(beta = (parameter_draws[,1]/10000)) %>%
     mutate(index = 1:200)
-  saveRDS(beta_draws, "inst/extdata/results/model_fits/beta_draws.rds")
+  saveRDS(beta_draws, paste0("inst/extdata/results/model_fits/beta_draws_",data_date,".rds"))
   # run model for each beta draw (with different contact matrix) ----
   # ci_out[[j]] <- list()
   # ci_cases[[j]] <- list()
@@ -459,7 +459,7 @@ for (j in 1:n_bp) {
   
   # update initial conditions for next time window
   init_cond[[j+1]] <- tail(out[[j]],1)[-1]
-  saveRDS(init_cond, "inst/extdata/results/model_fits/initial_conditions2.rds")
+  saveRDS(init_cond, paste0("inst/extdata/results/model_fits/initial_conditions_",data_date,".rds"))
   # ------------------------------------------------------------------  
   
 } # end of for loop over breakpoints
