@@ -148,5 +148,5 @@ figure2 <- plot_grid(fig2, legend, rel_widths = c(5,1), nrow = 1)
 figure2
 
 
-ggsave(filename = "/rivm/s/ainsliek/results/impact_vac/resubmission/figure2.png",
+ggsave(filename = "/rivm/s/ainsliek/results/impact_vac/resubmission/figure2.pdf",
        plot = figure2, units = "in", height = 6, width = 12, dpi = 300)

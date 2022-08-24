@@ -227,6 +227,6 @@ legend <- get_legend(
 figure1 <- plot_grid(fig1, legend, rel_heights = c(3,.2), nrow = 2)
 figure1
 
-ggsave(filename = "/rivm/s/ainsliek/results/impact_vac/resubmission/figure1_per100k.png",
+ggsave(filename = "/rivm/s/ainsliek/results/impact_vac/resubmission/figure1_per100k.pdf",
        plot = figure1, units = "in", height = 10, width = 26, dpi = 300)
 
