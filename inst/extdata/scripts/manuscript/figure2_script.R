@@ -13,7 +13,8 @@ library(cowplot)
 # -------------------------------------------------------------
 
 # read in results df -----------------------------------------------------------
-df_all <- readRDS("/rivm/s/ainsliek/results/impact_vac/resubmission/results_all.rds")
+#df_all <- readRDS("/rivm/s/ainsliek/results/impact_vac/resubmission/results_all.rds")
+df_all <- readRDS("S:/R/ainsliek/results/impact_vac/resubmission/results_all.rds")
 
 # population size for determining outcomes per 100,000 people ------------------
 age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 
@@ -148,5 +149,8 @@ figure2 <- plot_grid(fig2, legend, rel_widths = c(5,1), nrow = 1)
 figure2
 
 
-ggsave(filename = "/rivm/s/ainsliek/results/impact_vac/resubmission/figure2.pdf",
+# ggsave(filename = "/rivm/s/ainsliek/results/impact_vac/resubmission/figure2.pdf",
+#        plot = figure2, units = "in", height = 6, width = 12, dpi = 300)
+
+ggsave(filename = "S:/R/ainsliek/results/impact_vac/resubmission/figure2.pdf",
        plot = figure2, units = "in", height = 6, width = 12, dpi = 300)
