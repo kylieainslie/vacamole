@@ -97,6 +97,7 @@ saveRDS(vac_schedule,"inst/extdata/inputs/vaccination_schedules/vac_schedule_rea
 # B = 50% coverage 60+, 20% coverage 18+
 # C = 80% coverage 60+, 50% coverage 18+
 # D = 80% coverage 60+, 20% coverage 18+
+# E =  0% coverage 60+,  0% coverage 18+
 
 # vac coverage in 60+
 vac_coverage <- 0.8

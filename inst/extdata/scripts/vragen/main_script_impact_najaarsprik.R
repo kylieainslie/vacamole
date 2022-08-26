@@ -104,7 +104,6 @@ vac_schedule_A <- readRDS("inst/extdata/inputs/vaccination_schedules/vac_schedul
 vac_schedule_B <- readRDS("inst/extdata/inputs/vaccination_schedules/vac_schedule_60plus_0.5_60minus_0.2.rds") 
 vac_schedule_C <- readRDS("inst/extdata/inputs/vaccination_schedules/vac_schedule_60plus_0.8_60minus_0.5.rds")
 vac_schedule_D <- readRDS("inst/extdata/inputs/vaccination_schedules/vac_schedule_60plus_0.8_60minus_0.2.rds")
-vac_schedule_E <- readRDS("inst/extdata/inputs/vaccination_schedules/vac_schedule_scenario_hub_round2_no_boost.rds")
 # read in xlsx file with VEs (there is 1 sheet for each variant)
 ve_dat <- read_excel("inst/extdata/inputs/ve_estimates/ve_dat.xlsx", sheet = "omicron")
 
@@ -125,11 +124,6 @@ vac_ratesC <- convert_vac_schedule2(
 vac_ratesD <- convert_vac_schedule2(
   vac_schedule = vac_schedule_D, ve_pars = ve_dat,
   wane = TRUE, k_inf = 0.006, k_sev = 0.012, t0 = 365)
-
-vac_ratesE <- convert_vac_schedule2(
-  vac_schedule = vac_schedule_E, ve_pars = ve_dat,
-  wane = TRUE, k_inf = 0.006, k_sev = 0.012, t0 = 365)
-
 
 # data wrangle for model input
 df_inputA <- pivot_wider(vac_ratesA %>% 
@@ -156,11 +150,6 @@ df_inputD <- pivot_wider(vac_ratesD %>%
                          names_from = c("param", "age_group"), 
                          names_sep = "", values_from = "value")
 
-df_inputE <- pivot_wider(vac_ratesE %>% 
-                           filter(param != "comp_ve") %>%
-                           mutate(param = ifelse(param == "comp_delay", "delay", param)), 
-                         names_from = c("param", "age_group"), 
-                         names_sep = "", values_from = "value")
 
 # parameters must be in a named list
 # scenarios A 
@@ -566,107 +555,6 @@ paramsD <- list(N = n_vec,
                  contact_mat = april_2017,
                  calendar_start_date = as.Date("2020-01-01")
 )
-
-# scenarios E
-paramsE <- list(N = n_vec,
-                beta = 0.0004,
-                beta1 = 0.14,
-                sigma = 0.5,
-                gamma = i2r,
-                h = i2h,
-                i1 = h2ic,
-                d = h2d,
-                r = h2r,
-                i2 = ic2hic,
-                d_ic = ic2d,
-                d_hic = hic2d,
-                r_ic = hic2r,
-                epsilon = 0.00,
-                omega = wane_8months,
-                # daily vaccination rate
-                alpha1 = df_inputE %>% 
-                  filter(dose == "d1", outcome == "infection") %>% 
-                  select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-                alpha2 = df_inputE %>% 
-                  filter(dose == "d2", outcome == "infection") %>% 
-                  select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-                alpha3 = df_inputE %>% 
-                  filter(dose == "d3", outcome == "infection") %>% 
-                  select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-                alpha4 = df_inputE %>%
-                  filter(dose == "d4", outcome == "infection") %>%
-                  select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-                alpha5 = df_inputE %>%
-                  filter(dose == "d5", outcome == "infection") %>%
-                  select(date, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9),
-                # delay to protection
-                delay1 = df_inputE %>% 
-                  filter(dose == "d1", outcome == "infection") %>% 
-                  select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-                delay2 = df_inputE %>% 
-                  filter(dose == "d2", outcome == "infection") %>% 
-                  select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-                delay3 = df_inputE %>% 
-                  filter(dose == "d3", outcome == "infection") %>% 
-                  select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-                delay4 = df_inputE %>%
-                  filter(dose == "d4", outcome == "infection") %>%
-                  select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-                delay5 = df_inputE %>%
-                  filter(dose == "d5", outcome == "infection") %>%
-                  select(date, delay1, delay2, delay3, delay4, delay5, delay6, delay7, delay8, delay9),
-                # protection against infection
-                eta1 = df_inputE %>% 
-                  filter(dose == "d1", outcome == "infection") %>% 
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta2 = df_inputE %>% 
-                  filter(dose == "d2", outcome == "infection") %>% 
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta3 = df_inputE %>% 
-                  filter(dose == "d3", outcome == "infection") %>% 
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta4 = df_inputE %>%
-                  filter(dose == "d4", outcome == "infection") %>%
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta5 = df_inputE %>%
-                  filter(dose == "d5", outcome == "infection") %>%
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                # protection from hospitalisation
-                eta_hosp1 = df_inputE %>% 
-                  filter(dose == "d1", outcome == "hospitalisation") %>% 
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta_hosp2 = df_inputE %>% 
-                  filter(dose == "d2", outcome == "hospitalisation") %>% 
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta_hosp3 = df_inputE %>% 
-                  filter(dose == "d3", outcome == "hospitalisation") %>% 
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta_hosp4 = df_inputE %>%
-                  filter(dose == "d4", outcome == "hospitalisation") %>%
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta_hosp5 = df_inputE %>%
-                  filter(dose == "d5", outcome == "hospitalisation") %>%
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                # protection from transmission
-                eta_trans1 = df_inputE %>% 
-                  filter(dose == "d1", outcome == "transmission") %>% 
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta_trans2 = df_inputE %>% 
-                  filter(dose == "d2", outcome == "transmission") %>% 
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta_trans3 = df_inputE %>% 
-                  filter(dose == "d3", outcome == "transmission") %>% 
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta_trans4 = df_inputE %>%
-                  filter(dose == "d4", outcome == "transmission") %>%
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                eta_trans5 = df_inputE %>%
-                  filter(dose == "d5", outcome == "transmission") %>%
-                  select(date, eta1, eta2, eta3, eta4, eta5, eta6, eta7, eta8, eta9),
-                p_report = p_reported_by_age,
-                contact_mat = april_2017,
-                calendar_start_date = as.Date("2020-01-01")
-)
 # Specify initial conditions ---------------------------------------------------
 init_cond_list <- readRDS("inst/extdata/results/model_fits/initial_conditions_2022-08-19.rds")
 init_cond <- unlist(init_cond_list[[length(init_cond_list)]])
@@ -683,10 +571,10 @@ betas100 <- sample(betas[[length(betas)]]$beta, 100)
 
 # register parallel backend
 n_cores = 15
+registerDoParallel(cores=n_cores)
 n_sim <- 100
 # Scenario A
 # Fall booster campaign in 60+, optimistic VE
-registerDoParallel(cores=n_cores)
 scenarioA <- foreach(i = 1:n_sim) %dopar% {
   paramsA$beta <- betas100[i]
   paramsA$contact_mat <- april_2017[[i]]
@@ -739,20 +627,6 @@ scenarioD <- foreach(i = 1:n_sim) %dopar% {
 }
 saveRDS(scenarioD, "/rivm/s/ainsliek/results/scenarioD.rds")
 doParallel::stopImplicitCluster()
-# Scenario E
-# No Fall booster campaign
-# register parallel backend
-registerDoParallel(cores=n_cores)
-scenarioE <- foreach(i = 1:n_sim) %dopar% {
-  paramsE$beta <- betas100[i]
-  paramsE$contact_mat <- april_2017[[i]]
-  
-  rk45 <- rkMethod("rk45dp7")
-  seir_out <- ode(init_cond, times, age_struct_seir_ode2, paramsE, method = rk45)
-  as.data.frame(seir_out)
-}
-saveRDS(scenarioE, "/rivm/s/ainsliek/results/scenarioE.rds")
-doParallel::stopImplicitCluster()
 #-------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 
@@ -786,7 +660,7 @@ for(s in 1:sim){
   outA[[s]] <- seir_outcomes
 }
 dfA <- bind_rows(outA) %>%
-  mutate(scenario_id = "A") 
+  mutate(scenario_id = "A-2022-07-24") 
 
 # wrangle Scenario B output ----------------------------------------------------
 # read in saved output from model runs
@@ -804,7 +678,7 @@ for(s in 1:sim){
   outB[[s]] <- seir_outcomes
 }
 dfB <- bind_rows(outB) %>%
-  mutate(scenario_id = "B") 
+  mutate(scenario_id = "B-2022-07-24") 
 
 # wrangle Scenario C output ----------------------------------------------------
 # read in saved output from model runs
@@ -822,7 +696,7 @@ for(s in 1:sim){
   outC[[s]] <- seir_outcomes
 }
 dfC <- bind_rows(outC) %>%
-  mutate(scenario_id = "C") 
+  mutate(scenario_id = "C-2022-07-24") 
 
 # wrangle Scenario D output ----------------------------------------------------
 # read in saved output from model runs
@@ -840,29 +714,30 @@ for(s in 1:sim){
   outD[[s]] <- seir_outcomes
 }
 dfD <- bind_rows(outD) %>%
-  mutate(scenario_id = "D") 
-
-# wrangle Scenario E output ----------------------------------------------------
-# read in saved output from model runs
-scenarioE <- readRDS("/rivm/s/ainsliek/results/scenarioE.rds")
-#scenarioD <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioD.rds")
-sim <- length(scenarioE)
-# loop over samples and summarise results
-outE <- list()
-for(s in 1:sim){
-  seir_output <- postprocess_age_struct_model_output2(scenarioE[[s]])
-  paramsE$beta <- betas100[s]
-  paramsE$contact_mat <- april_2017[[s]]
-  seir_outcomes <- summarise_results(seir_output, params = paramsE, t_vec = times) %>%
-    mutate(sample = s)
-  outE[[s]] <- seir_outcomes
-}
-dfE <- bind_rows(outE) %>%
-  mutate(scenario_id = "E") 
+  mutate(scenario_id = "D-2022-07-24") 
 
 # ------------------------------------------------------------------------------
 # join all scenarios in a single data frame
-df_final <- bind_rows(dfA, dfB, dfC, dfD, dfE) 
+df_round2 <- bind_rows(dfA, dfB, dfC, dfD) 
 
 # output for plotting
-saveRDS(df_final, "rivm/s/ainsliek/results/2022-08-19-rivm-vacamole.rds")
+saveRDS(df_round2, "inst/extdata/results/2022-08-19-rivm-vacamole.rds")
+
+# put all scenarios together into single data frame and sum over epiweek & 
+# age groups
+df_round2_sh <- df_round2 %>%
+  group_by(scenario_id, sample, epiweek, horizon, target_variable) %>%
+  summarise_at(.vars = "value", .funs = "sum") %>%
+  ungroup() %>%
+  mutate(value = round(value),
+         origin_date = as.Date("2022-07-24"),
+         horizon_ = as.numeric(substr(horizon, start = 1, stop = 2)),
+         target_end_date = origin_date + weeks(horizon_),
+         horizon_ = NULL,
+         location = "NL") %>%
+  select(-epiweek) %>%
+  arrange(scenario_id, sample, horizon)
+
+# output for submission to scenario hub
+#write_csv(df_round2_sh, "C:/Users/ainsliek/Documents/covid19-scenario-hub-europe/data-processed/RIVM-vacamole/2022-07-24-RIVM-vacamole.csv")
+write_csv(df_round2_sh, "/rivm/s/ainsliek/results/scenario_hub/round2/2022-07-24-RIVM-vacamole.csv")
