@@ -8,11 +8,11 @@ library(dplyr)
 library(ggplot2)
 
 # read in results df -----------------------------------------------------------
-df_round2 <- readRDS("inst/extdata/results/scenario_hub/2022-07-24-rivm-vacamole.rds")
+df_all <- readRDS("inst/extdata/results/scenario_hub/2022-07-24-rivm-vacamole.rds")
 #df_round2_no_boost <- readRDS("inst/extdata/results/scenario_hub/2022-07-24-rivm-vacamole_no_boost.rds")
 # summarise over all age groups
-df_all <- df_round2 %>%
-  #bind_rows(., df_round2_no_boost) %>%
+df_all2 <- df_all %>%
+  filter(date <= as.Date("2023-07-06")) %>%
   group_by(scenario_id, target_variable, date, sample) %>%
   summarise(sum = sum(value)) %>%
   ungroup() %>%
@@ -21,13 +21,13 @@ df_all <- df_round2 %>%
                                       "inc hosp", "inc icu", "inc death")),
          sample = factor(sample))
 
-df_summary <- df_all %>%
+df_summary <- df_all2 %>%
   group_by(scenario_id, target_variable, date) %>%
   summarise(mean  = median(sum),
-            q025 = quantile(sum, probs = 0.025),
-            q25  = quantile(sum, probs = 0.25),
-            q75  = quantile(sum, probs = 0.75),
-            q975 = quantile(sum, probs = 0.975)
+            q025 = quantile(sum, probs = 0.025, na.rm = TRUE),
+            # q25  = quantile(sum, probs = 0.25),
+            # q75  = quantile(sum, probs = 0.75),
+            q975 = quantile(sum, probs = 0.9752, na.rm = TRUE)
             ) %>%
   select(date, scenario_id, target_variable, mean:q975) #%>%
   # mutate(VE = case_when(
@@ -40,7 +40,7 @@ df_summary <- df_all %>%
 # plot -------------------------------------------------------------------------
 # mean line with ribbon 
 p_ribbon <- ggplot(data = df_summary %>%
-                  filter(target_variable %in% c("inc infection")#,
+                  filter(target_variable %in% c("inc hosp")#,
                          #date < as.Date("2022-10-01")
                          ), # "inc hosp", "inc icu", "inc death"
                  aes(x = date, y = mean, color = scenario_id, fill = scenario_id)) +
@@ -71,17 +71,17 @@ ggsave(filename = "/rivm/s/ainsliek/results/scenario_hub/round2/case_plot_round2
        units = "in", height = 8, width = 13, dpi = 300)
 
 # individual lines
-p_lines <- ggplot(data = df_all %>%
-         filter(target_variable %in% c("inc case"),
-                sample %in% sample(.data$sample, 9)
+p_lines <- ggplot(data = df_all2 %>%
+         filter(target_variable %in% c("inc hosp")#,
+                #sample %in% sample(.data$sample, 1)
                 #scenario_id %in% c("A-2022-07-24", "B-2022-07-24")
                 ), #"inc hosp", "inc icu", "inc death"
        aes(x = date, 
            y = sum, 
-           #group = sample, 
+           group = sample, 
            color = scenario_id)) +
-  geom_line() +
-  facet_wrap(~sample)
+  geom_line() #+
+  #facet_wrap(~sample)
 p_lines
 
   xlab("Date") + 
