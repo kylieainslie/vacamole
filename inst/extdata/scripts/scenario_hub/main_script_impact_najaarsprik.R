@@ -829,7 +829,7 @@ dfC <- bind_rows(outC) %>%
 scenarioD <- readRDS("/rivm/s/ainsliek/results/scenarioD.rds")
 #scenarioD <- readRDS("C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/ECDC Scenario Modelling Hub/round 1/scenarioD.rds")
 sim <- length(scenarioD)
-# loop over samples and summarise results
+# loop over samples and summarise resumlts
 outD <- list()
 for(s in 1:sim){
   seir_output <- postprocess_age_struct_model_output2(scenarioD[[s]])
@@ -865,4 +865,4 @@ dfE <- bind_rows(outE) %>%
 df_final <- bind_rows(dfA, dfB, dfC, dfD, dfE) 
 
 # output for plotting
-saveRDS(df_final, "rivm/s/ainsliek/results/2022-08-19-rivm-vacamole.rds")
+saveRDS(df_final, "/rivm/s/ainsliek/results/2022-08-19-rivm-vacamole.rds")
