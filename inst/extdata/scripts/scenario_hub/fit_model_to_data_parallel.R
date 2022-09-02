@@ -241,7 +241,8 @@ for (j in 1:n_bp) {
   } else if (bp_for_fit$contact_matrix[j+1] == "september_2020"){contact_matrix <- contact_matrices$september_2020 #; print("septemeber_2020")
   } else if (bp_for_fit$contact_matrix[j+1] == "february_2021"){contact_matrix <- contact_matrices$february_2021 #; print("february_2021")
   } else if (bp_for_fit$contact_matrix[j+1] == "june_2021"){contact_matrix <- contact_matrices$june_2021 #; print("june_2021")
-  } else {contact_matrix <- contact_matrices$november_2021} 
+  } else if (bp_for_fit$contact_matrix[j+1] == "november_2021"){contact_matrix <- contact_matrices$november_2021
+  } else if (bp_for_fit$contact_matrix[j+1] == "february_2022") {contact_matrix <- contact_matrices$february_2022} 
   
   # has vaccination started? ----------------------------------------
   #nv <- ifelse(bp_for_fit$date[j+1] >= as.Date("2021-01-04"), TRUE, FALSE)
@@ -249,8 +250,14 @@ for (j in 1:n_bp) {
   # convert vaccination schedule for input into model ---------------
   if (bp_for_fit$variant[j+1] == "wildtype"){ve_params <- wt_ve
   } else if (bp_for_fit$variant[j+1] == "alpha"){ve_params <- alpha_ve
-  } else if (bp_for_fit$variant[j+1] == "delta"){ve_params <- delta_ve
-  } else if (bp_for_fit$variant[j+1] == "omicron"){ve_params <- omicron_ve
+  } else if (bp_for_fit$variant[j+1] == "delta"){
+    ve_params <- delta_ve
+    i2h <- i2h * 2 # severe disease twice as likely for Delta (Barnard et al. 2022 Nat Comm)
+  } else if (bp_for_fit$variant[j+1] == "omicron"){
+    ve_params <- omicron_ve
+    time_IC2hospital <- 8.3
+    time_admission2discharge <- 7.2
+    i2h <- i2h * 0.4 # severe disease 60% less likely for Omicron (Don's estimates and Barnard et al. 2022 Nat Comm)
   } 
   
   vac_rates <- convert_vac_schedule2(

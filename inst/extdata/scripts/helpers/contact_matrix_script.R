@@ -5,6 +5,8 @@ library(plyr)
 library(dplyr)
 library(tidyr)
 
+source("R/convert_contact_matrices.R")
+source("R/get_transmission_matrix.R")
 # read in all contact matrices ------------------------------------
 path <- "/rivm/s/ainsliek/data/contact_matrices/"
 contact_matrices_pienter3 <- readRDS(paste0(path,"raw/Contactpatterns_Pienter3_10y.rds")) # April 2017
@@ -13,7 +15,8 @@ contact_matrices_pico2 <- readRDS(paste0(path,"raw/Contactpatterns_PICO2_10y.rds
 contact_matrices_pico3 <- readRDS(paste0(path,"raw/Contactpatterns_PICO3_10y.rds"))       # September 2020
 contact_matrices_pico4 <- readRDS(paste0(path,"raw/Contactpatterns_PICO4_10y.rds"))       # February 2021
 contact_matrices_pico5 <- readRDS(paste0(path,"raw/Contactpatterns_PICO5_10y.rds"))       # June 2021
-contact_matrices_pico6 <- readRDS(paste0(path,"raw/Contactpatterns_PICO6_prelim_10y.rds"))# June 2021
+contact_matrices_pico6 <- readRDS(paste0(path,"raw/Contactpatterns_PICO6_10y.rds"))       # November 2021
+contact_matrices_pico7 <- readRDS(paste0(path,"raw/Contactpatterns_PICO7_10y.rds"))       # February 2022
 
 # need to run this before running convert_contact_matrices()------
 age_dist <- c(
@@ -36,6 +39,7 @@ september_2020 <- convert_contact_matrices(contact_matrices_pico3)
 february_2021  <- convert_contact_matrices(contact_matrices_pico4)
 june_2021      <- convert_contact_matrices(contact_matrices_pico5)
 november_2021  <- convert_contact_matrices(contact_matrices_pico6)
+february_2022  <- convert_contact_matrices(contact_matrices_pico7)
 
 # save output -----------------------------------------------------
 #save_path <- "inst/extdata/data/contact_matrices/converted/"
@@ -46,3 +50,4 @@ saveRDS(september_2020, file = paste0(path,"converted/transmission_matrix_septem
 saveRDS(february_2021, file = paste0(path,"converted/transmission_matrix_february_2021.rds"))
 saveRDS(june_2021, file = paste0(path,"converted/transmission_matrix_june_2021.rds"))
 saveRDS(november_2021, file = paste0(path,"converted/transmission_matrix_november_2021.rds"))
+saveRDS(february_2022, file = paste0(path,"converted/transmission_matrix_february_2022.rds"))
