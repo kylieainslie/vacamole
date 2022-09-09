@@ -143,9 +143,15 @@ age_struct_seir_ode2 <- function(times, init, params) {
     # ---------------------------------------------------------------
     
     # determine force of infection ----------------------------------
-    # incorporate seasonality in transmission rate 
+    # seasonality 
     calendar_day <- lubridate::yday(as.Date(times, origin = calendar_start_date))
-    beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) 
+    # emergence of new variants
+    var1 <- (sigma1 + sigma2*tanh((t-t_var1)/l))
+    var2 <- (sigma1 + sigma2*tanh((t-t_var2)/l))
+    # determine transmission rate with seasonal/variant effects
+    beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) * 
+      (var_emerg) * (1 + var1 + var2) + (!var_emerg) * 1
+    # calculate force of infection (lambda)
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans1 * Iv_1d) + (eta_trans2 * Iv_2d) + (eta_trans3 * Iv_3d)
                                          + (eta_trans4 * Iv_4d) + (eta_trans5 * Iv_5d)
     )) 
