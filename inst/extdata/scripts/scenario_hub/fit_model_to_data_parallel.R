@@ -290,6 +290,12 @@ for (j in 1:n_bp) {
                  r_ic = hic2r,
                  epsilon = 0.00,
                  omega = wane_8months,
+                 # variant params
+                 var_emerg = FALSE,
+                 t_var1 = 275,
+                 t_var2 = 550,
+                 kappa1 = 0.57,
+                 kappa2 = 0.43,
                  # daily vaccination rate
                  alpha1 = df_input %>% 
                    filter(dose == "d1", outcome == "infection") %>% 
