@@ -146,8 +146,8 @@ age_struct_seir_ode2 <- function(times, init, params) {
     # seasonality 
     calendar_day <- lubridate::yday(as.Date(times, origin = calendar_start_date))
     # emergence of new variants
-    var1 <- (sigma1 + sigma2*tanh((t-t_var1)/l))
-    var2 <- (sigma1 + sigma2*tanh((t-t_var2)/l))
+    var1 <- (kappa1 + kappa2*tanh((t-t_var1)/l))
+    var2 <- (kappa1 + kappa2*tanh((t-t_var2)/l))
     # determine transmission rate with seasonal/variant effects
     beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) * 
       (var_emerg) * (1 + var1 + var2) + (!var_emerg) * 1
