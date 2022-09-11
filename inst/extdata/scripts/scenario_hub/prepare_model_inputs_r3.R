@@ -41,16 +41,22 @@ cutoff_date <- tail(osiris_tally$date,1) #as.Date("2022-07-24")
 osiris1 <- osiris_tally %>%
   filter(date <= cutoff_date)
 
-# or read from directory
-osiris1 <- readRDS(paste0("/inst/extdata/data/case_data_upto_", cutoff_date,".rds"))
+# save file to data directory
+osiris1 <- saveRDS(osiris1, paste0("inst/extdata/data/case_data_upto_", cutoff_date,".rds"))
+
+
+###
+# read in file
+# cutoff_date <- "2022-09-08"
+# osiris1 <- readRDS(paste0("/inst/extdata/data/case_data_upto_", cutoff_date,".rds"))
 
 # Vaccination schedule ---------------------------------------------------------
 # Use the following code on the file direct from Pieter
 # Read in file and change column names for booster doses
 # vac_path <- "C:/Users/ainsliek/Dropbox/Kylie/Projects/RIVM/manuscripts/impact_vac/data/vaccination_scenarios/"
 vac_path <- "/rivm/s/ainsliek/data/"
-
-vac_sched <- read_csv(paste0(vac_path,"Cum_upt20220714.csv")) %>%
+vac_end_date <- "20220909"
+vac_sched <- read_csv(paste0(vac_path,paste0("Cum_upt",vac_end_date,".csv"))) %>%
   rename_with(~ gsub("B1", "d3", .x, fixed = TRUE)) %>%
   rename_with(~ gsub("B2", "d4", .x, fixed = TRUE)) %>%
   select(-starts_with("X")) %>%
@@ -73,12 +79,12 @@ empty_mat <- matrix(rep(0, n_cols * n_rows), nrow = n_rows)
 dates <- seq.Date(osiris1$date[1], vac_sched1$date[1]-1, by = "day")
 my_df <- data.frame(date = dates, empty_mat)
 names(my_df) <- names(vac_sched1)
-vac_schedule <- bind_rows(my_df, vac_sched1) %>%
-  filter(date < as.Date("2022-07-10"))
+vac_schedule <- bind_rows(my_df, vac_sched1) #%>%
+  #filter(date < as.Date("2022-07-10"))
 
 # write out to directory
-write.csv(vac_schedule,"inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220709.csv")
-saveRDS(vac_schedule,"inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220709.rds")
+write.csv(vac_schedule,"inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220909.csv")
+saveRDS(vac_schedule,"inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220909.rds")
 
 # ------------------------------------------------------------------------------
 
