@@ -78,6 +78,7 @@ september_2020 <- readRDS(paste0(path,"transmission_matrix_september_2020.rds"))
 february_2021  <- readRDS(paste0(path,"transmission_matrix_february_2021.rds"))
 june_2021      <- readRDS(paste0(path,"transmission_matrix_june_2021.rds"))
 november_2021  <- readRDS(paste0(path,"transmission_matrix_november_2021.rds"))
+february_2022  <- readRDS(paste0(path,"transmission_matrix_february_2022.rds"))
 
 # put contact matrices into a list for input into fit_to_data_func()
 contact_matrices <- list(
@@ -87,7 +88,8 @@ contact_matrices <- list(
   september_2020 = september_2020,
   february_2021 = february_2021,
   june_2021 = june_2021,
-  november_2021 = november_2021
+  november_2021 = november_2021,
+  february_2022 = february_2022
 )
 
 # probabilities -------------------------------------------------------
@@ -135,17 +137,17 @@ wane_8months <- uniroot(Fk, c(0,1), tau = 244, p = 0.6)$root
 
 # vaccination schedule ----------------------------------------------
 # read in vaccination schedule
-raw_vac_schedule <- read_csv("inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220709.csv") #%>%
+raw_vac_schedule <- read_csv("inst/extdata/inputs/vaccination_schedules/vac_schedule_real_20220909.csv") #%>%
   # select(-X1)
 raw_vac_schedule <- raw_vac_schedule[,-1]
 # add extra rows
-extra_start_date <- tail(raw_vac_schedule$date,1) + 1
-extra_end_date <- as.Date("2022-08-19")
-extra_dates <- seq.Date(from = as.Date(extra_start_date), 
-                           to = as.Date(extra_end_date), by = 1)
-vac_schedule_extra <- data.frame(date = extra_dates) %>%
-  full_join(raw_vac_schedule, ., by = "date") %>%
-  fill(-.data$date)
+# extra_start_date <- tail(raw_vac_schedule$date,1) + 1
+# extra_end_date <- as.Date("2022-09-11")
+# extra_dates <- seq.Date(from = as.Date(extra_start_date), 
+#                            to = as.Date(extra_end_date), by = 1)
+# vac_schedule_extra <- data.frame(date = extra_dates) %>%
+#   full_join(raw_vac_schedule, ., by = "date") %>%
+#   fill(-.data$date)
 
 # read in xlsx file with VEs (there is 1 sheet for each variant)
 # we'll only use wildtype values for now
@@ -218,7 +220,7 @@ beta_draws <- list()    # store 200 parameter draws
 # ci_cases <- list()
 
 # load case data ----------------------------------------------------
-data_date <- "2022-08-19"
+data_date <- "2022-09-08"
 case_data <- readRDS(paste0("inst/extdata/data/case_data_upto_", data_date, ".rds"))
 
 # -------------------------------------------------------------------
@@ -261,7 +263,7 @@ for (j in 1:n_bp) {
   } 
   
   vac_rates <- convert_vac_schedule2(
-    vac_schedule = vac_schedule_extra,
+    vac_schedule = raw_vac_schedule,
     ve_pars = ve_params,
     wane = TRUE,
     k_inf = 0.012,
@@ -296,6 +298,7 @@ for (j in 1:n_bp) {
                  t_var2 = 550,
                  kappa1 = 0.57,
                  kappa2 = 0.43,
+                 l = 30,
                  # daily vaccination rate
                  alpha1 = df_input %>% 
                    filter(dose == "d1", outcome == "infection") %>% 
