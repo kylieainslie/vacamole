@@ -36,7 +36,7 @@ osiris_tally <- osiris %>%           # aggregate for number of cases per day
   filter(!is.na(date)) %>%
   complete(date = seq.Date(min(date), max(date), by="day"), fill = list(inc = 0))
 
-cutoff_date <- tail(osiris_tally$date,1) #as.Date("2022-07-24")
+cutoff_date <- as.Date("2022-09-10") #tail(osiris_tally$date,1)
 
 osiris1 <- osiris_tally %>%
   filter(date <= cutoff_date)
@@ -60,17 +60,18 @@ vac_sched <- read_csv(paste0(vac_path,paste0("Cum_upt",vac_end_date,".csv"))) %>
   rename_with(~ gsub("B1", "d3", .x, fixed = TRUE)) %>%
   rename_with(~ gsub("B2", "d4", .x, fixed = TRUE)) %>%
   select(-starts_with("X")) %>%
-  mutate(date = as.Date(date, format = "%m/%d/%Y"))
+  mutate(date = as.Date(date, format = "%m/%d/%Y")) %>%
+  select(-(NV_d1_1:NV_d2_10))
 
 # add columns for 5th dose of pfizer and moderna vaccines
-new_columns <- c(paste0("pf_d5_", 1:10), paste0("mo_d5_", 1:10))
-vac_sched[,new_columns] <- 0
+# new_columns <- c(paste0("pf_d5_", 1:10), paste0("mo_d5_", 1:10))
+# vac_sched[,new_columns] <- 0
 
 # rearrange columns to preserve correct order (also exclude Novovax doses)
-vac_sched1 <- vac_sched %>%
-  select(date, pf_d1_1:pf_d4_10, pf_d5_1:pf_d5_10,
-         mo_d1_1:mo_d4_10, mo_d5_1:mo_d5_10,
-         az_d1_1:az_d2_10, ja_d1_1:ja_d2_10)
+# vac_sched1 <- vac_sched %>%
+#   select(date, pf_d1_1:pf_d4_10, pf_d5_1:pf_d5_10,
+#          mo_d1_1:mo_d4_10, mo_d5_1:mo_d5_10,
+#          az_d1_1:az_d2_10, ja_d1_1:ja_d2_10)
 
 # create "empty" values from 1/1/2020 until start of vac sched (1/4/2021)
 n_cols <- dim(vac_sched1)[2]-1 # exclude date column
