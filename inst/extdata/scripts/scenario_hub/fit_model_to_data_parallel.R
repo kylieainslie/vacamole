@@ -481,54 +481,5 @@ for (j in 1:n_bp) {
   # ------------------------------------------------------------------  
   
 } # end of for loop over breakpoints
-
-
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
-
-# Plot output -------------------------------------------------------
-# plot all cases with confidence bounds
-# ci_out_wide <- do.call("cbind", ci_out)
-# bounds <- apply(ci_out_wide, 2, quantile, probs = c(0.025, 0.975)) # get quantiles
-
-# df_model_fit <- data.frame(time = x_axis, 
-#                            date = params$calendar_start_date + x_axis,
-#                            obs = case_data$inc[x_axis + 1], 
-#                            mle = unlist(cases)#, 
-#                            # lower = bounds[1,], 
-#                            # upper = bounds[2,]
-#                            )
-# 
-# path_out <- "inst/extdata/results/model_fits/"
-# saveRDS(df_model_fit,
-#         file = paste0(path_out, "model_fit_df_from_", df_model_fit$date[1],"_to_",
-#                       tail(df_model_fit$date,1), ".rds"))
-# 
-# p <- ggplot(data = df_model_fit, aes(x = date, y = mle, linetype="solid")) +
-#   geom_point(data = df_model_fit, aes(x = date, y = obs, color = "Osiris notifications")) +
-#   geom_line() +
-#   #geom_ribbon(aes(ymin = lower, ymax = upper, fill = "95% Confidence bounds"), alpha = 0.3) +
-#   scale_color_manual(values = c("red"),
-#                      labels = c("Osiris notifications")) +
-#   scale_fill_manual(values = c("grey70")) +
-#   scale_linetype_manual(values=c(1), labels = c("Model Fit")) +
-#   #scale_shape_manual(values=c(NA,20)) +
-#   labs(y = "Daily Cases", x = "Date") +
-#   ylim(0,NA) +
-#   scale_x_date(date_breaks = "1 month", date_labels = "%d %b %Y") +
-#   theme(legend.position = "bottom",
-#         panel.background = element_blank(),
-#         axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
-#         axis.text.y = element_text(size = 14),
-#         strip.text.x = element_text(size = 14),
-#         legend.text = element_text(size = 14),
-#         legend.title = element_blank(),
-#         axis.title=element_text(size=14))
-# p
-# --------------------------------------------------------------------
-
-# start_time <- Sys.time()
-# seir_out <- ode(unlist(init_cond[[j]]), times[[j]], age_struct_seir_ode2,  
-#                 params, method = rk45) # , rtol = 1e-08, hmax = 0.02
-# end_time <- Sys.time()
-# end_time - start_time
