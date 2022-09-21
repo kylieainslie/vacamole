@@ -149,8 +149,9 @@ age_struct_seir_ode2 <- function(times, init, params) {
     var1 <- (kappa1 + kappa2*tanh((t-t_var1)/l))
     var2 <- (kappa1 + kappa2*tanh((t-t_var2)/l))
     # determine transmission rate with seasonal/variant effects
-    beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) * 
-      (var_emerg) * (1 + var1 + var2) + (!var_emerg) * 1
+    beta_t <- beta * (1 + beta1 * cos(2 * pi * calendar_day / 365.24)) 
+    if(var_emerg){beta_t <- beta_t * (1 + var1 + var2)} 
+    
     # calculate force of infection (lambda)
     lambda <- beta_t * (contact_mat %*% (I + (eta_trans1 * Iv_1d) + (eta_trans2 * Iv_2d) + (eta_trans3 * Iv_3d)
                                          + (eta_trans4 * Iv_4d) #+ (eta_trans5 * Iv_5d)
