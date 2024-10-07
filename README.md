@@ -26,7 +26,8 @@ library(vacamole)
 # Quick start guide and vignettes
 ----------------------------
 
-Read the [quick start vignette](https://kylieainslie.github.io/vacamole/articles/quick_start_guide.html) to set up and run a simple implementation of the model.
+- Read the [quick start vignette](https://kylieainslie.github.io/vacamole/articles/quick_start_guide.html) to set up and run a simple implementation of the model.
+- A version of the vacamole model has been included in the `epidemics` package, part of the [Epiverse-TRACE](https://epiverse-trace.github.io/) project. For more details see [here](https://epiverse-trace.github.io/epidemics/reference/model_vacamole.html)
 
 Additional vignettes are under development.
 
