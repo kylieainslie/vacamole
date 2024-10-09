@@ -71,14 +71,6 @@ september_2020 <- readRDS("../inst/extdata/inputs/contact_matrices/converted/tra
 february_2021 <- readRDS("../inst/extdata/inputs/contact_matrices/converted/transmission_matrix_february_2021.rds")
 june_2021 <- readRDS("../inst/extdata/inputs/contact_matrices/converted/transmission_matrix_june_2021.rds")
 
-# create list of transmission matrices -----------------------
-cm <- list(april_2017 = april_2017,
-           april_2020 = april_2020,
-           june_2020 = june_2020,
-           september_2020 = september_2020,
-           february_2021 = february_2021,
-           june_2021 = june_2021)
-
 # define population size (by age group) ----------------------
 age_dist <- c(0.10319920, 0.11620856, 0.12740219, 0.12198707, 0.13083463,0.14514332, 0.12092904, 0.08807406, 0.04622194)
 n <- 17407585 # Dutch population size
